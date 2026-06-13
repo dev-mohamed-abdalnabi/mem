@@ -54,12 +54,12 @@ export default function App() {
     setLoading(true);
     try {
       const dbCurrentUser = await dataService.getCurrentUser();
-      setCurrentUser(dbCurrentUser);
-      const dbMemes = await dataService.getMemes("approved", undefined, dbCurrentUser.id);
+      setCurrentUser(dbCurrentUser || initialGuestProfile);
+      const dbMemes = await dataService.getMemes("approved", undefined, dbCurrentUser?.id || initialGuestProfile.id);
       setMemes(dbMemes);
       const dbProfiles = await dataService.getProfilesList();
       setProfiles(dbProfiles);
-      const dbFollowingIds = await dataService.getFollowingList(dbCurrentUser.id);
+      const dbFollowingIds = await dataService.getFollowingList(dbCurrentUser?.id || initialGuestProfile.id);
       setFollowingIds(dbFollowingIds);
     } catch (e) { 
       console.warn(e); 
@@ -73,7 +73,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 flex flex-col antialiased" dir="rtl">
       
-      {/* مودال تسجيل الدخول - مبعوت ليه كل الخصائص عشان يشتغل بدون مشاكل */}
+      {/* مودال تسجيل الدخول وإنشاء الحساب */}
       {showAuthModal && (
         <AuthModal 
           isOpen={showAuthModal} 
@@ -107,13 +107,30 @@ export default function App() {
         onUserSwitch={(p) => { setCurrentUser(p); loadAllData(); }} 
         onMarkNotificationsRead={async () => {}}
         onShowAuthModal={() => { setShowAuthModal(true); setAuthTab("signin"); }} 
-        onSignOutReal={async () => { setCurrentUser(initialGuestProfile); loadAllData(); }}
+        onSignOutReal={async () => {
+          try {
+            if (dataService.logout) {
+              await dataService.logout();
+            } else if (dataService.signOut) {
+              await dataService.signOut();
+            }
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            localStorage.removeItem("supabase.auth.token");
+            sessionStorage.clear();
+          } catch (error) {
+            console.error("خطأ أثناء تسجيل الخروج الحقيقي:", error);
+          } finally {
+            setCurrentUser(initialGuestProfile);
+            window.location.reload();
+          }
+        }}
       />
 
-      {/* جسد التطبيق */}
+      {/* جسد التطبيق والمحتوى الرئيسي */}
       <main className="max-w-7xl mx-auto px-0 md:px-4 py-6 w-full flex-1 flex lg:flex-row flex-col gap-6 items-start">
         
-        {/* القائمة الجانبية */}
+        {/* القائمة الجانبية للشاشات الكبيرة */}
         <RightSidebar
           isRealUser={isRealUser} 
           profiles={profiles}
@@ -123,8 +140,10 @@ export default function App() {
           activeTab={activeTab} 
         />
 
-        {/* مساحة الصفحات والمحتوى */}
+        {/* مساحة عرض الصفحات بناءً على التبويب النشط */}
         <div className="flex-1 max-w-full lg:max-w-2xl mx-auto w-full">
+          
+          {/* صفحة الفيد الرئيسي */}
           {activeTab === "feed" && (
             <FeedPage 
               isRealUser={isRealUser} 
@@ -148,14 +167,92 @@ export default function App() {
               setLightboxImage={setLightboxImage} 
             />
           )}
-          {activeTab === "trending" && <TrendingPage memes={memes} currentUser={currentUser} followingIds={followingIds} handleLikeToggle={async()=>{}} handleSaveToggle={async()=>{}} handleFollowToggle={async()=>{}} setSelectedTag={setSelectedTag} handleReportSubmit={()=>{}} handleShareCompleted={async()=>{}} handleDeleteMeme={async()=>{}} setSelectedProfileId={setSelectedProfileId} setActiveTab={setActiveTab} setLightboxImage={setLightboxImage} />}
-          {activeTab === "saves" && <SavesPage memes={memes} currentUser={currentUser} followingIds={followingIds} handleLikeToggle={async()=>{}} handleSaveToggle={async()=>{}} handleFollowToggle={async()=>{}} setSelectedTag={setSelectedTag} handleReportSubmit={()=>{}} handleShareCompleted={async()=>{}} handleDeleteMeme={async()=>{}} setSelectedProfileId={setSelectedProfileId} setActiveTab={setActiveTab} setLightboxImage={setLightboxImage} />}
-          {activeTab === "leaderboard" && <Leaderboard profiles={profiles} currentUser={currentUser} onNavigate={setActiveTab} onFollowToggle={async()=>{}} followingIds={followingIds} />}
-          {activeTab === "profile" && <ProfilePage profile={currentUser} currentUser={currentUser} isOwnProfile={true} isRealUser={isRealUser} userMemes={[]} followingIds={followingIds} setCurrentUser={setCurrentUser} setProfiles={setProfiles} setShowAuthModal={setShowAuthModal} handleFollowToggle={async()=>{}} handleLikeToggle={async()=>{}} handleSaveToggle={async()=>{}} setSelectedTag={setSelectedTag} handleReportSubmit={()=>{}} handleShareCompleted={async()=>{}} handleDeleteMeme={async()=>{}} setSelectedProfileId={setSelectedProfileId} setActiveTab={setActiveTab} setLightboxImage={setLightboxImage} />}
+          
+          {/* صفحة التريند والمنشورات الشائعة */}
+          {activeTab === "trending" && (
+            <TrendingPage 
+              memes={memes} 
+              currentUser={currentUser} 
+              followingIds={followingIds} 
+              handleLikeToggle={async()=>{}} 
+              handleSaveToggle={async()=>{}} 
+              handleFollowToggle={async()=>{}} 
+              setSelectedTag={setSelectedTag} 
+              handleReportSubmit={()=>{}} 
+              handleShareCompleted={async()=>{}} 
+              handleDeleteMeme={async()=>{}} 
+              setSelectedProfileId={setSelectedProfileId} 
+              setActiveTab={setActiveTab} 
+              setLightboxImage={setLightboxImage} 
+            />
+          )}
+          
+          {/* صفحة إنشاء منشور جديد (تم إضافتها هنا لكي تفتح عند الضغط على زرار الزائد) */}
+          {activeTab === "create-post" && (
+            <CreatePostPage 
+              currentUser={currentUser} 
+              setActiveTab={setActiveTab} 
+            />
+          )}
+          
+          {/* صفحة المحفوظات */}
+          {activeTab === "saves" && (
+            <SavesPage 
+              memes={memes} 
+              currentUser={currentUser} 
+              followingIds={followingIds} 
+              handleLikeToggle={async()=>{}} 
+              handleSaveToggle={async()=>{}} 
+              handleFollowToggle={async()=>{}} 
+              setSelectedTag={setSelectedTag} 
+              handleReportSubmit={()=>{}} 
+              handleShareCompleted={async()=>{}} 
+              handleDeleteMeme={async()=>{}} 
+              setSelectedProfileId={setSelectedProfileId} 
+              setActiveTab={setActiveTab} 
+              setLightboxImage={setLightboxImage} 
+            />
+          )}
+          
+          {/* صفحة قائمة المتصدرين */}
+          {activeTab === "leaderboard" && (
+            <Leaderboard 
+              profiles={profiles} 
+              currentUser={currentUser} 
+              onNavigate={setActiveTab} 
+              onFollowToggle={async()=>{}} 
+              followingIds={followingIds} 
+            />
+          )}
+          
+          {/* صفحة الملف الشخصي للبروفايل الحالي */}
+          {activeTab === "profile" && (
+            <ProfilePage 
+              profile={currentUser} 
+              currentUser={currentUser} 
+              isOwnProfile={true} 
+              isRealUser={isRealUser} 
+              userMemes={[]} 
+              followingIds={followingIds} 
+              setCurrentUser={setCurrentUser} 
+              setProfiles={setProfiles} 
+              setShowAuthModal={setShowAuthModal} 
+              handleFollowToggle={async()=>{}} 
+              handleLikeToggle={async()=>{}} 
+              handleSaveToggle={async()=>{}} 
+              setSelectedTag={setSelectedTag} 
+              handleReportSubmit={()=>{}} 
+              handleShareCompleted={async()=>{}} 
+              handleDeleteMeme={async()=>{}} 
+              setSelectedProfileId={setSelectedProfileId} 
+              setActiveTab={setActiveTab} 
+              setLightboxImage={setLightboxImage} 
+            />
+          )}
         </div>
       </main>
 
-      {/* الملاحة السفلية (للموبايل فقط) */}
+      {/* الملاحة السفلية للهواتف والموبايل فقط */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex items-center justify-around py-3 lg:hidden">
         <button onClick={() => setActiveTab("feed")} className={`p-2 ${activeTab === 'feed' ? 'text-blue-600' : 'text-gray-500'}`}><Home className="w-6 h-6" /></button>
         <button onClick={() => setActiveTab("trending")} className={`p-2 ${activeTab === 'trending' ? 'text-blue-600' : 'text-gray-500'}`}><Flame className="w-6 h-6" /></button>
