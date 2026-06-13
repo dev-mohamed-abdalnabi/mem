@@ -116,20 +116,18 @@ export default function Header({
             {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
 
-          {/* Post Button (Facebook Style) */}
+          {/* Post Button (Sleek & Integrated Style) */}
           <button
             onClick={() => onNavigate("create-post")}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer active:scale-95 hover:scale-110 ${
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
               activeTab === "create-post" 
-                ? "bg-blue-600 text-white" 
-                : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                ? "bg-blue-50 text-blue-600" 
+                : "text-gray-400 hover:text-blue-600 hover:bg-gray-50"
             }`}
             title="انشر ميم جديد"
           >
-            <PlusCircle className="w-6 h-6" />
+            <PlusCircle className="w-5 h-5 sm:w-[22px] sm:h-[22px]" />
           </button>
-
-
 
           {/* Notifications Trigger */}
           <div className="relative">
@@ -341,4 +339,4 @@ export default function Header({
       </div>
     </header>
   );
-}
+                      }
