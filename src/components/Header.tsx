@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Search, Bell, Trophy, User, Flame, LogOut, PlusCircle, Settings, LogIn, Sun, Moon } from "lucide-react";
 import { Profile, Notification } from "../types";
 
@@ -34,6 +34,9 @@ export default function Header({
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
+  // مرجع (Ref) لاكتشاف الضغط خارج القوائم
+  const dropdownContainerRef = useRef<HTMLDivElement>(null);
+
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return document.documentElement.classList.contains('dark') || 
@@ -66,6 +69,22 @@ export default function Header({
     setShowUserDropdown(false);
     setShowLogoutConfirm(false);
   };
+
+  // تأثير (Effect) لإغلاق القوائم عند الضغط في أي مكان خارجها
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownContainerRef.current && !dropdownContainerRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false);
+        setShowNotificationsDropdown(false);
+        setShowLogoutConfirm(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const unifiedBtnClass = "h-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer text-gray-700 dark:text-gray-200 font-bold";
   const unifiedIconClass = `${unifiedBtnClass} w-10`;
@@ -116,8 +135,8 @@ export default function Header({
           />
         </div>
 
-        {/* Right Actions & Utilities */}
-        <div className="flex items-center gap-2">
+        {/* Right Actions & Utilities (مربوطة بالـ Ref لإغلاق القوائم عند الخروج) */}
+        <div ref={dropdownContainerRef} className="flex items-center gap-2">
           
           {/* Post Button */}
           <button
@@ -150,7 +169,7 @@ export default function Header({
               )}
             </button>
 
-            {/* Notifications Popover (تم إصلاح التموضع للموبايل) */}
+            {/* Notifications Popover */}
             {showNotificationsDropdown && (
               <div className="absolute top-full mt-2 w-[320px] max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl py-2 text-right z-50 shadow-2xl -left-12 sm:left-0 origin-top-left">
                 <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
@@ -240,7 +259,7 @@ export default function Header({
               )}
             </button>
 
-            {/* Profile Dropdown (تم إصلاح التموضع) */}
+            {/* Profile Dropdown */}
             {showUserDropdown && (
               <div className="absolute top-full mt-2 w-64 max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl py-2 text-right z-50 shadow-2xl -left-2 sm:left-0 origin-top-left">
                 {isRealUser ? (
@@ -248,15 +267,16 @@ export default function Header({
                     <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/80 rounded-t-2xl">
                       <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">حسابك الحالي</p>
                       <p className="font-extrabold text-gray-900 dark:text-white text-sm mt-0.5">{currentUser.username}</p>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className="text-[10px] bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-gray-200 px-2 py-0.5 rounded-full font-bold">
+                      <div className="flex items-center gap-2 mt-2">
+                        {/* تم إصلاح تباين الألوان هنا ليكون واضح جداً في كلا الوضعين */}
+                        <span className="text-[11px] bg-blue-50 text-blue-700 border border-blue-100 dark:bg-slate-800 dark:text-blue-400 dark:border-slate-600 px-3 py-1 rounded-full font-extrabold shadow-sm">
                           Level: {currentUser.meme_level}
                         </span>
                       </div>
                     </div>
 
                     <div className="py-2">
-                      {/* Theme Toggle (شكل جديد احترافي) */}
+                      {/* Theme Toggle */}
                       <div className="px-3 pb-2 mb-1 border-b border-gray-100 dark:border-slate-800">
                         <div className="bg-gray-100 dark:bg-slate-800 p-1 rounded-xl flex items-center">
                           <button 
@@ -349,4 +369,4 @@ export default function Header({
       </div>
     </header>
   );
-                            }
+                      }
