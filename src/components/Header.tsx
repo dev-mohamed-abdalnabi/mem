@@ -61,7 +61,7 @@ export default function Header({
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 transition-all">
+    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 transition-all shadow-sm">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
         {/* Logo and Branding (RTL Friendly) */}
         <div className="flex items-center gap-3">
@@ -98,10 +98,10 @@ export default function Header({
           </div>
           <input
             type="text"
-            placeholder="ابحث عن ميمز، هاشتاج، أو نكتة..."
+            placeholder="ابحث عن ميمز, هاشتاج, أو نكتة..."
             value={searchQuery}
             onChange={handleSearchChange}
-            className="w-full bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl py-2 pr-10 pl-4 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400"
+            className="w-full bg-gray-50 border border-gray-300 focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl py-2 pr-10 pl-4 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400"
           />
         </div>
 
@@ -119,9 +119,9 @@ export default function Header({
           {/* Post Button (Facebook Style) */}
           <button
             onClick={() => onNavigate("create-post")}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer active:scale-95 hover:scale-110 ${
               activeTab === "create-post" 
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-200" 
+                ? "bg-blue-600 text-white" 
                 : "bg-blue-50 text-blue-600 hover:bg-blue-100"
             }`}
             title="انشر ميم جديد"
@@ -154,7 +154,7 @@ export default function Header({
 
             {/* Notifications Popover */}
             {showNotificationsDropdown && (
-              <div className="absolute left-0 mt-2 w-80 bg-white border border-gray-100 rounded-2xl py-2 text-right z-50">
+              <div className="absolute left-0 mt-2 w-80 bg-white border border-gray-200 rounded-2xl py-2 text-right z-50 shadow-lg">
                 <div className="px-4 py-2 border-b border-gray-100 flex items-center justify-between">
                   <h3 className="font-bold text-gray-800 text-sm">الإشعارات الحية</h3>
                   {unreadCount > 0 && (
@@ -257,7 +257,7 @@ export default function Header({
 
             {/* Profile Dropdown & User switcher */}
             {showUserDropdown && (
-              <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-100 rounded-2xl py-2 text-right z-50">
+              <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-2xl py-2 text-right z-50 shadow-lg">
                 <div className="px-4 py-2 border-b border-gray-100">
                   <p className="text-xs text-gray-400">حسابك الحالي</p>
                   <p className="font-bold text-gray-900 text-sm">{currentUser.username}</p>

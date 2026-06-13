@@ -26,7 +26,7 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
         {/* Profile overview card Threads Style */}
         <div 
           onClick={() => onNavigate("profile")}
-          className="bg-white border border-gray-100 rounded-2xl p-5 cursor-pointer transition-all text-right group"
+          className="bg-white border border-gray-200 rounded-2xl p-5 cursor-pointer transition-all text-right group shadow-sm hover:shadow-md"
         >
           <div className="flex flex-col items-center gap-3">
             {currentUser.avatar_url ? (
@@ -66,7 +66,7 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
         </div>
 
         {/* Sidebar Menu Item Lists */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-2 flex flex-col gap-1 text-right">
+        <div className="bg-white border border-gray-200 rounded-2xl p-2 flex flex-col gap-1 text-right shadow-sm">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isSelected = activeTab === item.id;
@@ -76,7 +76,7 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
                 onClick={() => onNavigate(item.id)}
                 className={`w-full flex items-center justify-between px-4 py-4 rounded-xl transition-all cursor-pointer group text-right ${
                   isSelected
-                    ? "bg-gray-50 text-black"
+                    ? "bg-blue-50 text-black border-l-4 border-blue-600"
                     : "text-gray-500 hover:bg-gray-50 hover:text-black"
                 }`}
               >

@@ -155,7 +155,7 @@ export default function MemeCard({
   };
 
   return (
-    <article className="bg-white border-b border-gray-100 text-right flex flex-col mb-0 transition-all">
+    <article className="bg-white border-b border-gray-200 text-right flex flex-col mb-0 transition-all shadow-sm hover:shadow-md">
       <div className="flex gap-3 p-4">
         {/* Left Column (Threads Style Line) */}
         <div className="flex flex-col items-center gap-2 shrink-0">
@@ -235,7 +235,7 @@ export default function MemeCard({
           )}
 
           {meme.image_url && (
-            <div className="rounded-xl border border-gray-100 overflow-hidden mb-3 max-h-[500px] w-full bg-gray-50 flex justify-center">
+            <div className="rounded-xl border border-gray-200 overflow-hidden mb-3 max-h-[500px] w-full bg-gray-50 flex justify-center">
               <img
                 src={meme.image_url}
                 alt=""

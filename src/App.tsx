@@ -744,7 +744,7 @@ export default function App() {
 
           {activeTab === "create-post" && (
             <div className="flex flex-col gap-4 animate-fade-in">
-              <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-xl text-right flex flex-col gap-6">
+              <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm text-right flex flex-col gap-6">
                 <div className="flex items-center justify-between border-b border-gray-50 pb-4">
                   <h2 className="text-xl font-black text-gray-900">إنشاء منشور جديد</h2>
                   <button 
@@ -779,7 +779,7 @@ export default function App() {
                     placeholder="اكتب تعليقاً مضحكاً أو ميم نصي..."
                     value={newPostCaption}
                     onChange={(e) => setNewPostCaption(e.target.value)}
-                    className="bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-2xl px-4 py-4 text-sm font-extrabold text-gray-950 min-h-[150px] resize-none"
+                    className="bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-2xl px-4 py-4 text-sm font-extrabold text-gray-950 min-h-[150px] resize-none"
                     autoFocus
                   />
                   
@@ -800,7 +800,7 @@ export default function App() {
                         placeholder="هاشتاجات (مثال: #ضحك #ميمز)..."
                         value={newPostTags}
                         onChange={(e) => setNewPostTags(e.target.value)}
-                        className="w-full sm:flex-1 bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-2xl px-4 py-3 text-sm font-mono text-gray-950"
+                        className="w-full sm:flex-1 bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-2xl px-4 py-3 text-sm font-mono text-gray-950"
                       />
                     </div>
                   ) : (
@@ -1016,7 +1016,7 @@ export default function App() {
 
           {activeTab === "saves" && (
             <div className="flex flex-col gap-4">
-              <div className="bg-white border border-gray-100 rounded-3xl p-5 text-right flex flex-col gap-2">
+              <div className="bg-white border border-gray-200 rounded-3xl p-5 text-right flex flex-col gap-2 shadow-sm">
                 <span className="text-[10px] bg-orange-100 border border-orange-200 text-orange-600 font-black px-2.5 py-1 rounded-full uppercase w-max">
                   الميمز المحفوظة بالدرج 💾
                 </span>
@@ -1027,7 +1027,7 @@ export default function App() {
               </div>
 
               {memes.filter(m => m.saved_by_me).length === 0 ? (
-                <div className="bg-white rounded-3xl border border-gray-100 p-12 text-center text-gray-400">
+                <div className="bg-white rounded-3xl border border-gray-200 p-12 text-center text-gray-400 shadow-sm">
                   <Bookmark className="w-10 h-10 mx-auto text-gray-300 mb-2" />
                   <p className="font-extrabold text-sm text-gray-700">لم تقم بحفظ أي ميم حتى الآن يا كابتن!</p>
                   <p className="text-xs text-gray-400 mt-1">تصفح الفيد الرئيسي واضغط "حفظ الميم" لتخزينه هنا فوراً.</p>
@@ -1066,7 +1066,7 @@ export default function App() {
                     {activeTab === "profile" && (
             <div className="flex flex-col gap-4 animate-fade-in">
               {/* Profile Header Card */}
-              <div className="bg-white border border-gray-100 rounded-3xl p-6 text-right relative overflow-hidden">
+              <div className="bg-white border border-gray-200 rounded-3xl p-6 text-right relative overflow-hidden shadow-sm">
                 <div className="absolute top-0 right-0 w-full h-24 bg-gradient-to-l from-blue-500 to-indigo-600 opacity-10 rounded-t-3xl"></div>
                 <div className="relative flex flex-col sm:flex-row gap-5 items-start">
                   {/* Avatar */}
@@ -1167,7 +1167,7 @@ export default function App() {
                 </h3>
                 
                 {memes.filter(m => m.user_id === currentUser.id).length === 0 ? (
-                  <div className="bg-white border border-gray-100 rounded-2xl p-12 text-center text-gray-400">
+                  <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center text-gray-400">
                     <Sparkles className="w-10 h-10 mx-auto text-gray-300 mb-3" />
                     <p className="font-extrabold text-sm text-gray-700">لم تقم بنشر أي ميم حتى الآن!</p>
                     <p className="text-xs text-gray-400 mt-1">ابدأ بنشر ميمز مضحكة لتظهر هنا وتجمع نقاط XP.</p>
@@ -1204,50 +1204,6 @@ export default function App() {
             </div>
           )}
 
-
-          {activeTab === "saves" && (
-            <div className="flex flex-col gap-4 animate-fade-in">
-              <div className="bg-white border border-gray-100 rounded-3xl p-6 text-right relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-full h-24 bg-gradient-to-l from-orange-500 to-yellow-600 opacity-10 rounded-t-3xl"></div>
-                <div className="relative">
-                  <h2 className="font-black text-xl text-gray-900 flex items-center gap-2">
-                    <Bookmark className="w-6 h-6 text-orange-500" />
-                    <span>الميمز المحفوظة</span>
-                  </h2>
-                  <p className="text-xs text-gray-500 mt-1">الميمز اللي عجبتك وشيلتها عشان تضحك عليها تاني بعدين! 😂</p>
-                </div>
-              </div>
-
-              {memes.filter(m => m.saved_by_me).length === 0 ? (
-                <div className="bg-white border border-gray-100 rounded-3xl p-12 text-center text-gray-400">
-                  <Bookmark className="w-12 h-12 mx-auto text-gray-200 mb-4" />
-                  <p className="font-extrabold text-sm text-gray-700">لسه محفظتش أي ميم يا كبير!</p>
-                  <p className="text-xs text-gray-400 mt-1">دوس على علامة الحفظ في أي ميم وهتلاقيه مستنيك هنا.</p>
-                </div>
-              ) : (
-                memes.filter(m => m.saved_by_me).map((meme) => (
-                  <MemeCard
-                    key={meme.id}
-                    meme={meme}
-                    currentUser={currentUser}
-                    onLikeToggle={handleLikeToggle}
-                    onSaveToggle={handleSaveToggle}
-                    onFollowToggle={handleFollowToggle}
-                    onTagClick={(tag) => setSelectedTag(tag)}
-                    onDeleteComment={() => {}}
-                    onReportSubmit={handleReportSubmit}
-                    onShareCompleted={handleShareCompleted}
-                    onDeleteMeme={handleDeleteMeme}
-                    onUserProfileClick={(uid) => {
-                      setSelectedProfileId(uid);
-                      setActiveTab("user-profile");
-                    }}
-                    isFollowingCreator={followingIds.includes(meme.user_id)}
-                  />
-                ))
-              )}
-            </div>
-          )}
 
           {activeTab === "moderation" && (
             <div className="bg-white border border-gray-100 rounded-3xl shadow-sm p-6 text-right flex flex-col gap-5 animate-fade-in">

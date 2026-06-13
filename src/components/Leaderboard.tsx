@@ -29,7 +29,7 @@ export default function Leaderboard({
   };
 
   return (
-    <div className="bg-white border border-gray-100 rounded-3xl p-5 text-right flex flex-col gap-6">
+    <div className="bg-white border border-gray-200 rounded-3xl p-5 text-right flex flex-col gap-6 shadow-sm">
       {/* Banner */}
       <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 rounded-2xl p-5 text-white relative overflow-hidden">
         <div className="absolute top-0 left-0 w-32 h-32 bg-white/5 rounded-full -translate-x-10 -translate-y-10 blur-xl" />
@@ -62,7 +62,7 @@ export default function Leaderboard({
             { metric: "+10 نقاط", act: "لكل متابع جديد" },
             { metric: "1500+ XP", act: "مستوى الإمبراطور" }
           ].map((rule, i) => (
-            <div key={i} className="bg-gray-50 border border-gray-100 p-2.5 rounded-xl text-center">
+            <div key={i} className="bg-gray-50 border border-gray-200 p-2.5 rounded-xl text-center shadow-sm">
               <p className="text-xs font-black text-blue-600 font-mono leading-none">{rule.metric}</p>
               <p className="text-[10px] text-gray-500 font-extrabold mt-1">{rule.act}</p>
             </div>
@@ -83,14 +83,14 @@ export default function Leaderboard({
                 key={prof.id}
                 className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
                   isMe
-                    ? "bg-blue-50/40 border-blue-200"
-                    : "bg-white border-gray-100 hover:border-gray-200"
+                    ? "bg-blue-50 border-blue-300 shadow-sm"
+                    : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
                 }`}
               >
                 {/* User details and position */}
                 <div className="flex items-center gap-3">
                   {/* Position number */}
-                  <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100">
+                  <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0 border border-gray-200">
                     {getRankIcon(index)}
                   </div>
 
@@ -128,7 +128,7 @@ export default function Leaderboard({
                 <div className="flex items-center gap-4">
                   {/* XP Points Score */}
                   <div className="text-center shrink-0">
-                    <div className="flex items-center gap-1 bg-gray-100 px-2.5 py-1 rounded-xl border border-gray-200">
+                    <div className="flex items-center gap-1 bg-gray-100 px-2.5 py-1 rounded-xl border border-gray-300 shadow-sm">
                       <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />
                       <span className="text-xs font-black text-gray-900 font-mono tracking-tight">
                         {prof.total_points}
