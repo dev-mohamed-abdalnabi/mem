@@ -647,8 +647,8 @@ export default function App() {
                     {!newPostImage ? (
                       <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 hover:border-blue-500 hover:bg-blue-50/20 bg-gray-50 rounded-2xl py-6 px-4 cursor-pointer text-center transition-all group">
                         <PlusCircle className="w-8 h-8 text-blue-500 mb-2 group-hover:scale-110 transition-transform animate-pulse" />
-                        <span className="text-xs font-black text-gray-800">📁 اضغط لتنزيل أو اختيار ملف ميم حقيقي من موبايلك أو جهازك</span>
-                        <span className="text-[10px] text-gray-400 mt-1 font-semibold">تترفع فوراً وتظهر في الفيد الحقيقي!</span>
+                        <span className="text-xs font-black text-gray-800">اضغط لاختيار صورة ميم من جهازك</span>
+                        <span className="text-[10px] text-gray-400 mt-1 font-semibold">تُنشر فوراً وتظهر في الصفحة الرئيسية!</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -669,7 +669,7 @@ export default function App() {
                           className="absolute top-3 left-3 bg-red-600 hover:bg-red-700 text-white rounded-full px-3 py-1.5 shadow-lg cursor-pointer hover:scale-105 transition-all font-black text-[10px] flex items-center gap-1"
                         >
                           <X className="w-3.5 h-3.5" />
-                          <span>تغيير الصورة ❌</span>
+                          <span>تغيير الصورة</span>
                         </button>
                       </div>
                     )}
@@ -678,14 +678,14 @@ export default function App() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <input
                         type="text"
-                        placeholder="اكتب تعليق مضحك أو إفه يكمل الصورة... 💬"
+                        placeholder="اكتب تعليقاً مضحكاً على الصورة..."
                         value={newPostCaption}
                         onChange={(e) => setNewPostCaption(e.target.value)}
                         className="bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl px-3 py-2.5 text-xs font-extrabold text-gray-950"
                       />
                       <input
                         type="text"
-                        placeholder="هاشتاجات مرافقة: #برمجة #طالب (مسافة للفصل) 🏷️"
+                        placeholder="هاشتاجات مرافقة (مسافة للفصل)..."
                         value={newPostTags}
                         onChange={(e) => setNewPostTags(e.target.value)}
                         className="bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl px-3 py-2.5 text-xs font-mono text-gray-950"
@@ -695,14 +695,14 @@ export default function App() {
 
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-50">
                     <span className="text-[10px] text-gray-500 font-bold">
-                       {newPostImage ? "✨ مبروك! الصورة جاهزة للبلع والنشر" : "⚠️ يرجى اختيار ملف صورة ميم أولاً"}
+                       {newPostImage ? "الصورة جاهزة للنشر" : "يرجى اختيار صورة ميم أولاً"}
                     </span>
                     <button
                       type="submit"
                       className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-5 py-2.5 text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all shadow-md shadow-blue-100 hover:scale-[1.03] active:scale-95"
                     >
                       <PlusCircle className="w-4 h-4" />
-                      <span>انشر الكوميك الحقيقي 🚀</span>
+                      <span>انشر الكوميك</span>
                     </button>
                   </div>
                 </form>
@@ -717,7 +717,7 @@ export default function App() {
                 {postSuccess && (
                   <p className="text-xs text-green-700 font-black bg-green-50 border border-green-100 p-2 rounded-xl animate-fade-in flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                    <span>تم النشر بنجاح زائد نقاط إضافية! فرفش الضحكة 🚀</span>
+                    <span>تم النشر بنجاح!</span>
                   </p>
                 )}
                 
@@ -727,7 +727,7 @@ export default function App() {
                     onClick={() => setActiveTab("creator")}
                     className="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1 cursor-pointer"
                   >
-                    <span>أو اصنع كارت مضحك في استوديو الميمز الاحترافي المدمج 🎨</span>
+                    <span>أو اصنع ميم في استوديو الميمز الاحترافي المدمج</span>
                   </button>
                 </div>
               </div>
