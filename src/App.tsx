@@ -414,6 +414,18 @@ export default function App() {
     dataService.getNotifications(newProf.id).then(notifs => setNotifications(notifs));
   };
 
+  // التقاط الضغط على أي صورة بوست لفتحها في شاشة كاملة
+  const handleGlobalImageClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'IMG') {
+      const className = target.className || '';
+      const isAvatar = className.includes('rounded-full') || className.includes('avatar') || target.closest('header');
+      if (!isAvatar && target.closest('.post-wrapper')) {
+        setLightboxImage((target as HTMLImageElement).src);
+      }
+    }
+  };
+
   const filteredMemes = memes.filter((meme) => {
     if (meme.status === "deleted" || meme.status === "rejected") return false;
 
@@ -440,22 +452,37 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans" dir="rtl">
-      {/* Lightbox for Images */}
+      {/* 
+        إصلاحات حواف البوستات والصور لتبدو دائرية انسيابية (حسب الطلب). 
+        يجعل كل المكونات الداخلية للبوست متناسقة مع بعضها.
+      */}
+      <style>{`
+        .post-wrapper > div, .post-wrapper > article {
+          border-radius: 14px !important;
+          overflow: hidden !important;
+        }
+        .post-wrapper img:not(.rounded-full) {
+          cursor: pointer;
+          border-radius: 6px !important;
+        }
+      `}</style>
+
+      {/* Lightbox for Images (فيسبوك ستايل) */}
       {lightboxImage && (
         <div 
-          className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4 backdrop-blur-md transition-all"
           onClick={() => setLightboxImage(null)}
         >
           <button 
-            className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/50 p-2 rounded-full transition-colors z-50"
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all z-50 shadow-lg cursor-pointer"
             onClick={() => setLightboxImage(null)}
           >
-            <X className="w-8 h-8" />
+            <X className="w-6 h-6" />
           </button>
           <img 
             src={lightboxImage} 
             alt="Full size" 
-            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-scale-in"
+            className="max-w-full max-h-[90vh] object-contain shadow-2xl animate-scale-in cursor-default"
             onClick={(e) => e.stopPropagation()}
             referrerPolicy="no-referrer"
           />
@@ -525,8 +552,13 @@ export default function App() {
         isRealUser={isRealUser}
       />
 
-      {/* Main stage layout block */}
-      <main className="max-w-7xl mx-auto px-4 py-6 w-full flex-1 flex gap-6">
+      {/* Main stage layout block 
+          اضافة pb-24 لحل مشكلة المحتوى اللي بيتآكل من تحت بسبب البار السفلي
+      */}
+      <main 
+        className="max-w-7xl mx-auto px-4 py-6 pb-24 md:pb-6 w-full flex-1 flex gap-6"
+        onClick={handleGlobalImageClick}
+      >
         
         {/* Right side helper columns */}
         <div className="w-64 shrink-0 hidden lg:flex flex-col gap-6 order-3">
@@ -646,28 +678,28 @@ export default function App() {
                 </div>
               ) : (
                 filteredMemes.map((meme) => (
-                  <MemeCard
-                    key={meme.id}
-                    meme={meme}
-                    currentUser={currentUser}
-                    onLikeToggle={handleLikeToggle}
-                    onSaveToggle={handleSaveToggle}
-                    onFollowToggle={handleFollowToggle}
-                    onTagClick={(tag) => setSelectedTag(tag)}
-                    onDeleteComment={() => {
-                      setMemes(prev => prev.map(m => m.id === meme.id ? { ...m, comments_count: Math.max(0, m.comments_count - 1) } : m));
-                    }}
-                    onReportSubmit={handleReportSubmit}
-                    onShareCompleted={handleShareCompleted}
-                    onDeleteMeme={handleDeleteMeme}
-                    onUserProfileClick={(uid) => {
-                      setSelectedProfileId(uid);
-                      setActiveTab("user-profile");
-                    }}
-                    isFollowingCreator={followingIds.includes(meme.user_id)}
-                    // Pass image click to open lightbox if MemeCard supports it
-                    onImageClick={(url: string) => setLightboxImage(url)} 
-                  />
+                  <div key={meme.id} className="post-wrapper w-full">
+                    <MemeCard
+                      meme={meme}
+                      currentUser={currentUser}
+                      onLikeToggle={handleLikeToggle}
+                      onSaveToggle={handleSaveToggle}
+                      onFollowToggle={handleFollowToggle}
+                      onTagClick={(tag) => setSelectedTag(tag)}
+                      onDeleteComment={() => {
+                        setMemes(prev => prev.map(m => m.id === meme.id ? { ...m, comments_count: Math.max(0, m.comments_count - 1) } : m));
+                      }}
+                      onReportSubmit={handleReportSubmit}
+                      onShareCompleted={handleShareCompleted}
+                      onDeleteMeme={handleDeleteMeme}
+                      onUserProfileClick={(uid) => {
+                        setSelectedProfileId(uid);
+                        setActiveTab("user-profile");
+                      }}
+                      isFollowingCreator={followingIds.includes(meme.user_id)}
+                      onImageClick={(url: string) => setLightboxImage(url)} 
+                    />
+                  </div>
                 ))
               )}
             </div>
@@ -685,13 +717,34 @@ export default function App() {
 
                 return (
                   <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-3xl overflow-hidden shadow-sm">
-                    {/* FB Style Cover Photo */}
-                    <div className="h-40 sm:h-56 bg-gradient-to-r from-blue-600 to-indigo-700 relative group w-full">
+                    {/* FB Style Cover Photo (تم تفعيل إضافة وتغيير الغلاف) */}
+                    <div 
+                      className="h-40 sm:h-56 bg-gradient-to-r from-blue-600 to-indigo-700 relative group w-full bg-cover bg-center transition-all duration-300"
+                      style={(profile as any).cover_url ? { backgroundImage: `url(${(profile as any).cover_url})` } : {}}
+                    >
                       {isOwnProfile && (
-                        <button className="absolute bottom-3 right-3 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white p-2 rounded-lg text-xs font-bold flex items-center gap-1 transition-all">
+                        <label className="absolute bottom-3 right-3 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white p-2 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm">
                           <Camera className="w-4 h-4" />
                           <span className="hidden sm:inline">تعديل الغلاف</span>
-                        </button>
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                try {
+                                  // نقوم برفع الصورة واستخدامها كغلاف
+                                  const url = await dataService.uploadAvatar(file);
+                                  const updated = { ...currentUser, cover_url: url } as any;
+                                  setCurrentUser(updated);
+                                  setProfiles(prev => prev.map(p => p.id === updated.id ? updated : p));
+                                  await dataService.updateProfile({ cover_url: url } as any);
+                                } catch (err: any) { alert("فشل رفع الغلاف: " + err.message); }
+                              }
+                            }}
+                          />
+                        </label>
                       )}
                     </div>
 
@@ -836,25 +889,26 @@ export default function App() {
                           </div>
                         ) : (
                           userMemes.map(meme => (
-                            <MemeCard
-                              key={meme.id}
-                              meme={meme}
-                              currentUser={currentUser}
-                              onLikeToggle={handleLikeToggle}
-                              onSaveToggle={handleSaveToggle}
-                              onFollowToggle={handleFollowToggle}
-                              onTagClick={(tag) => setSelectedTag(tag)}
-                              onDeleteComment={() => {}}
-                              onReportSubmit={handleReportSubmit}
-                              onShareCompleted={handleShareCompleted}
-                              onDeleteMeme={handleDeleteMeme}
-                              onUserProfileClick={(uid) => {
-                                setSelectedProfileId(uid);
-                                setActiveTab("user-profile");
-                              }}
-                              isFollowingCreator={followingIds.includes(meme.user_id)}
-                              onImageClick={(url: string) => setLightboxImage(url)}
-                            />
+                            <div key={meme.id} className="post-wrapper w-full">
+                              <MemeCard
+                                meme={meme}
+                                currentUser={currentUser}
+                                onLikeToggle={handleLikeToggle}
+                                onSaveToggle={handleSaveToggle}
+                                onFollowToggle={handleFollowToggle}
+                                onTagClick={(tag) => setSelectedTag(tag)}
+                                onDeleteComment={() => {}}
+                                onReportSubmit={handleReportSubmit}
+                                onShareCompleted={handleShareCompleted}
+                                onDeleteMeme={handleDeleteMeme}
+                                onUserProfileClick={(uid) => {
+                                  setSelectedProfileId(uid);
+                                  setActiveTab("user-profile");
+                                }}
+                                isFollowingCreator={followingIds.includes(meme.user_id)}
+                                onImageClick={(url: string) => setLightboxImage(url)}
+                              />
+                            </div>
                           ))
                         )}
                       </div>
@@ -868,7 +922,6 @@ export default function App() {
 
           {activeTab === "create-post" && (
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-3xl p-6 shadow-sm text-right flex flex-col gap-6 animate-fade-in">
-              {/* ... (Create Post contents remain same, just add dark mode classes if needed) */}
               <div className="flex items-center justify-between border-b border-gray-50 dark:border-gray-700 pb-4">
                 <h2 className="text-xl font-black">إنشاء منشور</h2>
                 <button onClick={() => setActiveTab("feed")} className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200">
@@ -913,7 +966,9 @@ export default function App() {
                 <h2 className="font-extrabold text-xl mt-1">الأعلى تفاعل</h2>
               </div>
               {[...memes].sort((a,b) => (b.likes_count*10 + b.comments_count*15) - (a.likes_count*10 + a.comments_count*15)).map((m) => (
-                <MemeCard key={m.id} meme={m} currentUser={currentUser} onLikeToggle={handleLikeToggle} onSaveToggle={handleSaveToggle} onFollowToggle={handleFollowToggle} onTagClick={setSelectedTag} onDeleteComment={() => {}} onReportSubmit={handleReportSubmit} onShareCompleted={handleShareCompleted} onDeleteMeme={handleDeleteMeme} onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }} isFollowingCreator={followingIds.includes(m.user_id)} onImageClick={(url: string) => setLightboxImage(url)} />
+                <div key={m.id} className="post-wrapper w-full">
+                  <MemeCard meme={m} currentUser={currentUser} onLikeToggle={handleLikeToggle} onSaveToggle={handleSaveToggle} onFollowToggle={handleFollowToggle} onTagClick={setSelectedTag} onDeleteComment={() => {}} onReportSubmit={handleReportSubmit} onShareCompleted={handleShareCompleted} onDeleteMeme={handleDeleteMeme} onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }} isFollowingCreator={followingIds.includes(m.user_id)} onImageClick={(url: string) => setLightboxImage(url)} />
+                </div>
               ))}
             </div>
           )}
@@ -928,7 +983,9 @@ export default function App() {
                 <h2 className="font-extrabold text-xl mt-1">المحفوظات 💾</h2>
               </div>
               {memes.filter(m => m.saved_by_me).map((m) => (
-                <MemeCard key={m.id} meme={m} currentUser={currentUser} onLikeToggle={handleLikeToggle} onSaveToggle={handleSaveToggle} onFollowToggle={handleFollowToggle} onTagClick={setSelectedTag} onDeleteComment={() => {}} onReportSubmit={handleReportSubmit} onShareCompleted={handleShareCompleted} onDeleteMeme={handleDeleteMeme} onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }} isFollowingCreator={followingIds.includes(m.user_id)} onImageClick={(url: string) => setLightboxImage(url)} />
+                <div key={m.id} className="post-wrapper w-full">
+                  <MemeCard meme={m} currentUser={currentUser} onLikeToggle={handleLikeToggle} onSaveToggle={handleSaveToggle} onFollowToggle={handleFollowToggle} onTagClick={setSelectedTag} onDeleteComment={() => {}} onReportSubmit={handleReportSubmit} onShareCompleted={handleShareCompleted} onDeleteMeme={handleDeleteMeme} onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }} isFollowingCreator={followingIds.includes(m.user_id)} onImageClick={(url: string) => setLightboxImage(url)} />
+                </div>
               ))}
             </div>
           )}
@@ -972,7 +1029,7 @@ export default function App() {
         <button onClick={() => setActiveTab("profile")} className={activeTab === 'profile' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'}><User className="w-6 h-6" /></button>
       </nav>
 
-      {/* AUTHENTICATION MODAL - REDESIGNED FOR DARK/LIGHT MODE */}
+      {/* AUTHENTICATION MODAL */}
       {showAuthModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 shadow-2xl" dir="rtl">
           <div className="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full p-6 text-right border border-gray-200 dark:border-gray-700 shadow-2xl relative animate-fade-in">
@@ -1070,4 +1127,4 @@ export default function App() {
       )}
     </div>
   ); 
-}
+    }
