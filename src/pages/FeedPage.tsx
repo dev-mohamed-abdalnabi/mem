@@ -47,7 +47,7 @@ export default function FeedPage({
   setLightboxImage,
 }: FeedPageProps) {
   return (
-    <div className="flex flex-col gap-4 w-full pb-24 md:pb-8">
+    <div className="flex flex-col gap-4 w-full">
       {!isRealUser && (
         <div className="lg:hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm mx-4 md:mx-0 flex items-center justify-between gap-4">
           <div className="text-right">
@@ -56,7 +56,7 @@ export default function FeedPage({
           </div>
           <button
             onClick={() => { setShowAuthModal(true); setAuthTab("signin"); }}
-            className="bg-blue-600 hover:bg-blue-700 transition-colors text-white font-bold py-2 px-4 rounded-xl text-xs whitespace-nowrap"
+            className="bg-blue-600 text-white font-bold py-2 px-4 rounded-xl text-xs whitespace-nowrap"
           >
             تسجيل الدخول
           </button>
@@ -75,7 +75,8 @@ export default function FeedPage({
         </div>
       ) : (
         filteredMemes.map((meme) => (
-          <div key={meme.id} className="post-wrapper w-full px-4 md:px-0">
+          // التعديل هنا: تم إضافة 'rounded-2xl' و 'overflow-hidden' للحاوية
+          <div key={meme.id} className="post-wrapper w-full rounded-2xl overflow-hidden">
             <MemeCard
               meme={meme}
               currentUser={currentUser}
