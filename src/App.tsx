@@ -6,7 +6,7 @@ import { dataService } from "./services/dataService";
 
 import Header from "./components/Header";
 import RightSidebar from "./components/RightSidebar";
-import AuthModal from "./components/AuthModal"; // <-- تم إضافة الاستيراد هنا
+import AuthModal from "./components/AuthModal";
 
 import FeedPage from "./pages/FeedPage";
 import CreatePostPage from "./pages/CreatePostPage";
@@ -73,12 +73,15 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 flex flex-col antialiased" dir="rtl">
       
-      {/* مودال تسجيل الدخول - تمت الإضافة هنا عشان يظهر لما تدوس على الزرار */}
+      {/* مودال تسجيل الدخول - مبعوت ليه كل الخصائص عشان يشتغل بدون مشاكل */}
       {showAuthModal && (
         <AuthModal 
           isOpen={showAuthModal} 
           onClose={() => setShowAuthModal(false)} 
           initialTab={authTab}
+          authTab={authTab}
+          setAuthTab={setAuthTab}
+          setShowAuthModal={setShowAuthModal}
         />
       )}
 
