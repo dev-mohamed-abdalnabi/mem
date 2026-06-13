@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Bell, Trophy, BookOpen, User, Flame, LogOut, CheckCircle2 } from "lucide-react";
+import { Search, Bell, Trophy, BookOpen, User, Flame, LogOut, CheckCircle2, Sun, Moon } from "lucide-react";
 import { Profile, Notification } from "../types";
 
 interface HeaderProps {
@@ -32,6 +32,25 @@ export default function Header({
   const [searchQuery, setSearchQuery] = useState("");
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return document.documentElement.classList.contains('dark') || 
+             (!document.documentElement.classList.contains('light') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    return false;
+  });
+
+  const toggleTheme = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    if (newMode) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    }
+  };
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
@@ -87,6 +106,15 @@ export default function Header({
 
         {/* Right Actions & Utilities */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-black hover:bg-gray-50 transition-all cursor-pointer"
+            title={isDarkMode ? "الوضع الفاتح" : "الوضع الليلي"}
+          >
+            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+
           {/* Account Toggle/Status */}
           <button
             onClick={isRealUser ? onSignOutReal : onShowAuthModal}

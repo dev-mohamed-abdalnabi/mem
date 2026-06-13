@@ -227,12 +227,17 @@ export const dataService = {
   },
 
   // Memes Content
-  getMemes: async (status: string = "approved"): Promise<Meme[]> => {
-    const { data, error } = await supabase
+  getMemes: async (status: string = "approved", userId?: string): Promise<Meme[]> => {
+    let query = supabase
       .from("memes")
       .select("*, profiles!user_id(*)")
-      .eq("status", status)
-      .order("created_at", { ascending: false });
+      .eq("status", status);
+    
+    if (userId) {
+      query = query.eq("user_id", ensureUUID(userId));
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: false });
     
     if (error) throw error;
     
@@ -244,6 +249,16 @@ export const dataService = {
         tags: Array.from(new Set([...originalTags, ...extracted]))
       };
     });
+  },
+
+  deleteMeme: async (memeId: string, userId: string): Promise<void> => {
+    const { error } = await supabase
+      .from("memes")
+      .delete()
+      .eq("id", ensureUUID(memeId))
+      .eq("user_id", ensureUUID(userId));
+    
+    if (error) throw error;
   },
 
   getTrendingMemes: async (): Promise<Meme[]> => {
@@ -284,11 +299,11 @@ export const dataService = {
     const extractedCaps = extractTagsFromCaption(meme.caption || "");
     tagsToInsert = Array.from(new Set([...tagsToInsert, ...extractedCaps]));
 
-    const { data, error } = await supabase
+      const { data, error } = await supabase
       .from("memes")
       .insert({ 
         user_id: dbUserId,
-        image_url: meme.image_url,
+        image_url: meme.image_url || null,
         caption: meme.caption || "",
         status: "approved"
       })

@@ -18,6 +18,8 @@ interface MemeCardProps {
   onDeleteComment: (commentId: string) => void;
   onReportSubmit: (memeId: string, reason: string) => void;
   onShareCompleted: (memeId: string) => void;
+  onDeleteMeme: (memeId: string) => void;
+  onUserProfileClick: (userId: string) => void;
   isFollowingCreator: boolean;
 }
 
@@ -31,6 +33,8 @@ export default function MemeCard({
   onDeleteComment,
   onReportSubmit,
   onShareCompleted,
+  onDeleteMeme,
+  onUserProfileClick,
   isFollowingCreator
 }: MemeCardProps) {
   const [showComments, setShowComments] = useState(false);
@@ -156,18 +160,23 @@ export default function MemeCard({
         {/* Left Column (Threads Style Line) */}
         <div className="flex flex-col items-center gap-2 shrink-0">
           <div className="relative">
-            {creator.avatar_url ? (
-              <img
-                src={creator.avatar_url}
-                alt=""
-                className="w-10 h-10 rounded-full object-cover border border-gray-100"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-xs">
-                {creator.username[0]}
-              </div>
-            )}
+            <div 
+              className="cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => onUserProfileClick(creator.id)}
+            >
+              {creator.avatar_url ? (
+                <img
+                  src={creator.avatar_url}
+                  alt=""
+                  className="w-10 h-10 rounded-full object-cover border border-gray-100"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-xs">
+                  {creator.username[0]}
+                </div>
+              )}
+            </div>
             <button 
               onClick={() => onFollowToggle(currentUser.id, creator.id)}
               className="absolute -bottom-1 -left-1 bg-black text-white rounded-full w-4 h-4 flex items-center justify-center border-2 border-white hover:scale-110 transition-transform"
@@ -186,16 +195,30 @@ export default function MemeCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-sm text-gray-900 hover:underline cursor-pointer">
+              <span 
+                className="font-bold text-sm text-gray-900 hover:underline cursor-pointer"
+                onClick={() => onUserProfileClick(creator.id)}
+              >
                 {creator.username}
               </span>
               <span className="text-gray-400 text-xs">
                 {new Date(meme.created_at).toLocaleDateString("ar-EG", { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
-            <button onClick={() => setShowReportModal(true)} className="text-gray-400 hover:text-gray-600">
-              <AlertOctagon className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              {(currentUser.id === creator.id || currentUser.role === "admin") && (
+                <button 
+                  onClick={() => onDeleteMeme(meme.id)} 
+                  className="text-gray-400 hover:text-red-500 transition-colors"
+                  title="حذف الميم"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+              <button onClick={() => setShowReportModal(true)} className="text-gray-400 hover:text-gray-600">
+                <AlertOctagon className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {meme.caption && (

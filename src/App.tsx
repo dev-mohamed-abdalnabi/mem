@@ -44,6 +44,7 @@ export default function App() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
 
   // New Post Widget inputs
   const [newPostImage, setNewPostImage] = useState("");
@@ -284,8 +285,8 @@ export default function App() {
 
   const handleQuickPostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPostImage.trim()) {
-      setPostError("يا رايق، لازم ترفع صورة الميم أو تختار ملف من جهازك الأول عشان ننشرها!");
+    if (!newPostImage.trim() && !newPostCaption.trim()) {
+      setPostError("يا رايق، لازم تكتب نص أو ترفع صورة عشان تنشر الميم!");
       return;
     }
 
@@ -447,6 +448,17 @@ export default function App() {
   const handleMarkNotificationsRead = async () => {
     await dataService.markNotificationsAsRead(currentUser.id);
     setNotifications((prev) => prev.map(n => ({ ...n, is_read: true })));
+  };
+
+  const handleDeleteMeme = async (memeId: string) => {
+    if (window.confirm("هل أنت متأكد من حذف هذا الميم؟")) {
+      try {
+        await dataService.deleteMeme(memeId, currentUser.id);
+        setMemes((prev) => prev.filter(m => m.id !== memeId));
+      } catch (err: any) {
+        alert(err.message || "فشل حذف الميم.");
+      }
+    }
   };
 
   const handleUserSwitch = (newProf: Profile) => {
@@ -636,35 +648,59 @@ export default function App() {
                     <img
                       src={currentUser.avatar_url}
                       alt={currentUser.username}
-                      className="w-10 h-10 rounded-xl object-cover shrink-0 border border-gray-150"
+                      className="w-10 h-10 rounded-xl object-cover shrink-0 border border-gray-150 cursor-pointer"
                       referrerPolicy="no-referrer"
+                      onClick={() => {
+                        setSelectedProfileId(currentUser.id);
+                        setActiveTab("user-profile");
+                      }}
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-sm font-black shrink-0">
+                    <div 
+                      className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-sm font-black shrink-0 cursor-pointer"
+                      onClick={() => {
+                        setSelectedProfileId(currentUser.id);
+                        setActiveTab("user-profile");
+                      }}
+                    >
                       U
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500 font-bold">مشاركة ميم جديد فوري</p>
+                    <p className="text-xs text-gray-500 font-bold">بماذا تفكر يا ميمر؟</p>
                     <p className="text-[10px] text-gray-400 mt-0.5">انشر قفشة جديدة حية لتراها باقي العقول المفرفشة!</p>
                   </div>
                 </div>
 
                 <form onSubmit={handleQuickPostSubmit} className="flex flex-col gap-3">
-                  {/* File Upload Selector & Preview Section */}
                   <div className="flex flex-col gap-3">
+                    <textarea
+                      placeholder="اكتب تعليقاً مضحكاً أو ميم نصي..."
+                      value={newPostCaption}
+                      onChange={(e) => setNewPostCaption(e.target.value)}
+                      className="bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl px-3 py-2.5 text-xs font-extrabold text-gray-950 min-h-[80px] resize-none"
+                    />
+                    
                     {!newPostImage ? (
-                      <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 hover:border-blue-500 hover:bg-blue-50/20 bg-gray-50 rounded-2xl py-6 px-4 cursor-pointer text-center transition-all group">
-                        <PlusCircle className="w-8 h-8 text-blue-500 mb-2 group-hover:scale-110 transition-transform animate-pulse" />
-                        <span className="text-xs font-black text-gray-800">اضغط لاختيار صورة ميم من جهازك</span>
-                        <span className="text-[10px] text-gray-400 mt-1 font-semibold">تُنشر فوراً وتظهر في الصفحة الرئيسية!</span>
+                      <div className="flex items-center gap-2">
+                        <label className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-xl cursor-pointer transition-all">
+                          <PlusCircle className="w-4 h-4 text-blue-500" />
+                          <span className="text-xs font-bold text-gray-700">إضافة صورة</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+                        </label>
                         <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileChange}
-                          className="hidden"
+                          type="text"
+                          placeholder="هاشتاجات (مسافة للفصل)..."
+                          value={newPostTags}
+                          onChange={(e) => setNewPostTags(e.target.value)}
+                          className="flex-1 bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl px-3 py-2 text-xs font-mono text-gray-950"
                         />
-                      </label>
+                      </div>
                     ) : (
                       <div className="relative rounded-2xl overflow-hidden border border-gray-100 max-h-64 bg-gray-900 flex items-center justify-center p-2">
                         <img
@@ -682,24 +718,6 @@ export default function App() {
                         </button>
                       </div>
                     )}
-
-                    {/* Meta Input Fields */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <input
-                        type="text"
-                        placeholder="اكتب تعليقاً مضحكاً على الصورة..."
-                        value={newPostCaption}
-                        onChange={(e) => setNewPostCaption(e.target.value)}
-                        className="bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl px-3 py-2.5 text-xs font-extrabold text-gray-950"
-                      />
-                      <input
-                        type="text"
-                        placeholder="هاشتاجات مرافقة (مسافة للفصل)..."
-                        value={newPostTags}
-                        onChange={(e) => setNewPostTags(e.target.value)}
-                        className="bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl px-3 py-2.5 text-xs font-mono text-gray-950"
-                      />
-                    </div>
                   </div>
 
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-50">
@@ -777,6 +795,11 @@ export default function App() {
                     }}
                     onReportSubmit={handleReportSubmit}
                     onShareCompleted={handleShareCompleted}
+                    onDeleteMeme={handleDeleteMeme}
+                    onUserProfileClick={(uid) => {
+                      setSelectedProfileId(uid);
+                      setActiveTab("user-profile");
+                    }}
                     isFollowingCreator={followingIds.includes(meme.user_id)}
                   />
                 ))
@@ -819,6 +842,11 @@ export default function App() {
                     }}
                     onReportSubmit={handleReportSubmit}
                     onShareCompleted={handleShareCompleted}
+                    onDeleteMeme={handleDeleteMeme}
+                    onUserProfileClick={(uid) => {
+                      setSelectedProfileId(uid);
+                      setActiveTab("user-profile");
+                    }}
                     isFollowingCreator={followingIds.includes(m.user_id)}
                   />
                 ))
@@ -836,6 +864,97 @@ export default function App() {
               onFollowToggle={handleFollowToggle}
               followingIds={followingIds}
             />
+          )}
+
+          {activeTab === "user-profile" && selectedProfileId && (
+            <div className="flex flex-col gap-4">
+              {(() => {
+                const profile = profiles.find(p => p.id === selectedProfileId) || (selectedProfileId === currentUser.id ? currentUser : null);
+                if (!profile) return <div className="text-center py-10">المستخدم غير موجود</div>;
+                
+                const userMemes = memes.filter(m => m.user_id === selectedProfileId);
+                
+                return (
+                  <>
+                    <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm text-right relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-full h-24 bg-gradient-to-l from-blue-500 to-indigo-600 opacity-10"></div>
+                      <div className="relative flex flex-col items-center sm:items-start sm:flex-row gap-5">
+                        <img 
+                          src={profile.avatar_url || ""} 
+                          className="w-24 h-24 rounded-3xl object-cover border-4 border-white shadow-lg"
+                        />
+                        <div className="flex-1 text-center sm:text-right">
+                          <h2 className="text-2xl font-black text-gray-900">{profile.username}</h2>
+                          <p className="text-sm text-blue-600 font-bold mt-1">{profile.meme_level}</p>
+                          <p className="text-gray-500 text-xs mt-3 leading-relaxed max-w-md">{profile.bio || "لا يوجد وصف حالياً."}</p>
+                          
+                          <div className="flex items-center justify-center sm:justify-start gap-6 mt-5">
+                            <div className="text-center">
+                              <p className="text-lg font-black text-gray-900">{userMemes.length}</p>
+                              <p className="text-[10px] text-gray-400 font-bold uppercase">ميمز</p>
+                            </div>
+                            <div className="text-center border-x border-gray-100 px-6">
+                              <p className="text-lg font-black text-gray-900">{profile.followers_count}</p>
+                              <p className="text-[10px] text-gray-400 font-bold uppercase">متابعين</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-lg font-black text-gray-900">{profile.total_points}</p>
+                              <p className="text-[10px] text-gray-400 font-bold uppercase">XP</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {profile.id !== currentUser.id && (
+                          <button 
+                            onClick={() => handleFollowToggle(currentUser.id, profile.id)}
+                            className={`px-8 py-2.5 rounded-2xl text-sm font-black transition-all ${
+                              followingIds.includes(profile.id) 
+                                ? "bg-gray-100 text-gray-600 hover:bg-gray-200" 
+                                : "bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-100"
+                            }`}
+                          >
+                            {followingIds.includes(profile.id) ? "متابع" : "متابعة"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col gap-4 mt-2">
+                      <h3 className="font-black text-gray-900 px-2 flex items-center gap-2">
+                        <Flame className="w-5 h-5 text-orange-500" />
+                        <span>منشورات {profile.username}</span>
+                      </h3>
+                      {userMemes.length === 0 ? (
+                        <div className="bg-white border border-gray-100 rounded-2xl p-10 text-center text-gray-400 font-bold">
+                          هذا المستخدم لم ينشر أي ميمز بعد.
+                        </div>
+                      ) : (
+                        userMemes.map(meme => (
+                          <MemeCard
+                            key={meme.id}
+                            meme={meme}
+                            currentUser={currentUser}
+                            onLikeToggle={handleLikeToggle}
+                            onSaveToggle={handleSaveToggle}
+                            onFollowToggle={handleFollowToggle}
+                            onTagClick={(tag) => setSelectedTag(tag)}
+                            onDeleteComment={() => {}}
+                            onReportSubmit={handleReportSubmit}
+                            onShareCompleted={handleShareCompleted}
+                            onDeleteMeme={handleDeleteMeme}
+                            onUserProfileClick={(uid) => {
+                              setSelectedProfileId(uid);
+                              setActiveTab("user-profile");
+                            }}
+                            isFollowingCreator={followingIds.includes(meme.user_id)}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
           )}
 
           {activeTab === "saves" && (
@@ -875,6 +994,11 @@ export default function App() {
                     onDeleteComment={() => {}}
                     onReportSubmit={handleReportSubmit}
                     onShareCompleted={handleShareCompleted}
+                    onDeleteMeme={handleDeleteMeme}
+                    onUserProfileClick={(uid) => {
+                      setSelectedProfileId(uid);
+                      setActiveTab("user-profile");
+                    }}
                     isFollowingCreator={followingIds.includes(savedMeme.user_id)}
                   />
                 ))
