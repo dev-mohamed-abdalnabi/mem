@@ -15,8 +15,8 @@ export default function Leaderboard({ profiles, currentUser, followingIds, onFol
   const sortedProfiles = [...profiles].sort((a, b) => b.total_points - a.total_points);
 
   return (
-    // تم توحيد العرض لـ max-w-2xl عشان يطابق باقي الصفحات في وضع الكمبيوتر
-    <div className="w-full max-w-2xl mx-auto px-4 md:px-0 animate-fade-in pb-24 md:pb-8">
+    // تم زيادة البادينج من تحت هنا لـ pb-36 بدل pb-24 عشان نرفع المحتوى 
+    <div className="w-full max-w-2xl mx-auto px-4 md:px-0 animate-fade-in pb-36 md:pb-8">
       
       {/* البانر العلوي بحواف دائرية ناعمة ومتناسقة */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl md:rounded-3xl p-6 md:p-8 text-white shadow-md mb-6 flex items-center justify-between">
@@ -85,6 +85,9 @@ export default function Leaderboard({ profiles, currentUser, followingIds, onFol
           );
         })}
       </div>
+
+      {/* مسافة إضافية في الموبايل عشان المحتوى ميتاكلش تحت الـ Navigation Bar */}
+      <div className="h-24 w-full md:hidden"></div>
     </div>
   );
 }
