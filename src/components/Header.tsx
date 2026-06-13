@@ -34,7 +34,6 @@ export default function Header({
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  // مرجع (Ref) لاكتشاف الضغط خارج القوائم
   const dropdownContainerRef = useRef<HTMLDivElement>(null);
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -70,7 +69,6 @@ export default function Header({
     setShowLogoutConfirm(false);
   };
 
-  // تأثير (Effect) لإغلاق القوائم عند الضغط في أي مكان خارجها
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownContainerRef.current && !dropdownContainerRef.current.contains(event.target as Node)) {
@@ -86,34 +84,32 @@ export default function Header({
     };
   }, []);
 
-  const unifiedBtnClass = "h-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer text-gray-700 dark:text-gray-200 font-bold";
+  const unifiedBtnClass = "h-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors cursor-pointer text-gray-700 dark:text-gray-200 font-bold";
   const unifiedIconClass = `${unifiedBtnClass} w-10`;
 
   return (
-    <header className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-gray-100 dark:border-slate-800 transition-all">
+    <header className="sticky top-0 z-50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 transition-all">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
         
         {/* Logo and Points */}
         <div className="flex items-center gap-3">
-          {/* Logo */}
           <div
             onClick={() => onNavigate("feed")}
             className="flex items-center gap-2 cursor-pointer select-none group"
           >
-            <div className="w-10 h-10 rounded-full bg-black dark:bg-white flex items-center justify-center text-white dark:text-black font-black text-2xl group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-full bg-black dark:bg-white flex items-center justify-center text-white dark:text-gray-900 font-black text-2xl group-hover:scale-105 transition-transform">
               @
             </div>
             <div className="hidden sm:block">
-              <h1 className="font-extrabold text-xl text-black dark:text-white tracking-tight leading-none">
+              <h1 className="font-extrabold text-xl text-gray-900 dark:text-white tracking-tight leading-none">
                 mem
               </h1>
             </div>
           </div>
 
-          {/* Points Pill */}
           <div 
             onClick={() => onNavigate("leaderboard")}
-            className="h-10 px-4 rounded-full bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center gap-1.5 text-sm font-bold cursor-pointer select-none transition-colors text-gray-800 dark:text-gray-200"
+            className="h-10 px-4 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center gap-1.5 text-sm font-bold cursor-pointer select-none transition-colors text-gray-800 dark:text-gray-200"
             title="لوحة الشرف"
           >
             <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
@@ -131,11 +127,11 @@ export default function Header({
             placeholder="ابحث عن ميمز, هاشتاج, أو نكتة..."
             value={searchQuery}
             onChange={handleSearchChange}
-            className="w-full h-10 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 focus:bg-white dark:focus:bg-slate-900 border-2 border-transparent focus:border-gray-300 dark:focus:border-slate-600 rounded-full py-2 pr-10 pl-4 text-sm text-gray-900 dark:text-white outline-none transition-all placeholder:text-gray-500 dark:placeholder:text-gray-400"
+            className="w-full h-10 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-gray-900 border-2 border-transparent focus:border-gray-300 dark:focus:border-gray-600 rounded-full py-2 pr-10 pl-4 text-sm text-gray-900 dark:text-white outline-none transition-all placeholder:text-gray-500 dark:placeholder:text-gray-400"
           />
         </div>
 
-        {/* Right Actions & Utilities (مربوطة بالـ Ref لإغلاق القوائم عند الخروج) */}
+        {/* Right Actions & Utilities */}
         <div ref={dropdownContainerRef} className="flex items-center gap-2">
           
           {/* Post Button */}
@@ -143,8 +139,8 @@ export default function Header({
             onClick={() => onNavigate("create-post")}
             className={`h-10 px-4 rounded-full flex items-center gap-2 font-bold text-sm transition-colors cursor-pointer ${
               activeTab === "create-post" 
-                ? "bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-200" 
-                : "bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-700"
+                ? "bg-blue-600 text-white hover:bg-blue-700" 
+                : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
             }`}
             title="انشر ميم جديد"
           >
@@ -159,20 +155,19 @@ export default function Header({
                 setShowNotificationsDropdown(!showNotificationsDropdown);
                 closeUserDropdown();
               }}
-              className={`relative ${unifiedIconClass} ${showNotificationsDropdown ? "!bg-gray-300 dark:!bg-slate-600" : ""}`}
+              className={`relative ${unifiedIconClass} ${showNotificationsDropdown ? "!bg-gray-300 dark:!bg-gray-600" : ""}`}
             >
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -left-1 bg-red-500 text-white font-extrabold text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-800">
+                <span className="absolute -top-1 -left-1 bg-red-500 text-white font-extrabold text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-800">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
             </button>
 
-            {/* Notifications Popover */}
             {showNotificationsDropdown && (
-              <div className="absolute top-full mt-2 w-[320px] max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl py-2 text-right z-50 shadow-2xl -left-12 sm:left-0 origin-top-left">
-                <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="absolute top-full mt-2 w-[320px] max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl py-2 text-right z-50 shadow-2xl -left-12 sm:left-0 origin-top-left">
+                <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
                   <h3 className="font-bold text-gray-900 dark:text-white text-sm">الإشعارات الحية</h3>
                   {unreadCount > 0 && (
                     <button onClick={onMarkNotificationsRead} className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline">
@@ -193,14 +188,14 @@ export default function Header({
                           if (notif.meme_id) onNavigate("feed");
                           setShowNotificationsDropdown(false);
                         }}
-                        className={`px-4 py-3 border-b border-gray-50 dark:border-slate-800/50 hover:bg-gray-50 dark:hover:bg-slate-800/50 flex items-start gap-3 cursor-pointer transition-colors ${
+                        className={`px-4 py-3 border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 flex items-start gap-3 cursor-pointer transition-colors ${
                           !notif.is_read ? "bg-blue-50/50 dark:bg-blue-900/20" : ""
                         }`}
                       >
                         {notif.actor?.avatar_url ? (
-                          <img src={notif.actor.avatar_url} alt="avatar" className="w-8 h-8 rounded-full object-cover bg-gray-100 dark:bg-slate-800" />
+                          <img src={notif.actor.avatar_url} alt="avatar" className="w-8 h-8 rounded-full object-cover bg-gray-100 dark:bg-gray-800" />
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-black">
+                          <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-black">
                             {notif.actor?.username?.[0]?.toUpperCase() || "M"}
                           </div>
                         )}
@@ -236,8 +231,8 @@ export default function Header({
               }}
               className={`h-10 pl-1 pr-3 flex items-center gap-2 rounded-full transition-colors cursor-pointer ${
                 showUserDropdown 
-                  ? "bg-gray-300 dark:bg-slate-600 text-gray-900 dark:text-white" 
-                  : "bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-800 dark:text-gray-200"
+                  ? "bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-white" 
+                  : "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
               }`}
             >
               <div className="hidden lg:block text-right">
@@ -249,11 +244,11 @@ export default function Header({
                 <img
                   src={currentUser.avatar_url}
                   alt={currentUser.username}
-                  className="w-8 h-8 rounded-full object-cover bg-white dark:bg-slate-700"
+                  className="w-8 h-8 rounded-full object-cover bg-white dark:bg-gray-700"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-700 text-gray-500 dark:text-gray-300 flex items-center justify-center text-xs font-black">
+                <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 flex items-center justify-center text-xs font-black">
                   <User className="w-4 h-4" />
                 </div>
               )}
@@ -261,59 +256,57 @@ export default function Header({
 
             {/* Profile Dropdown */}
             {showUserDropdown && (
-              <div className="absolute top-full mt-2 w-64 max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl py-2 text-right z-50 shadow-2xl -left-2 sm:left-0 origin-top-left">
+              <div className="absolute top-full mt-2 w-64 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl py-2 text-right z-50 shadow-2xl -left-2 sm:left-0 origin-top-left">
                 {isRealUser ? (
                   <>
-                    <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/80 rounded-t-2xl">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/80 rounded-t-2xl">
                       <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">حسابك الحالي</p>
                       <p className="font-extrabold text-gray-900 dark:text-white text-sm mt-0.5">{currentUser.username}</p>
                       <div className="flex items-center gap-2 mt-2">
-                        {/* تم إصلاح تباين الألوان هنا ليكون واضح جداً في كلا الوضعين */}
-                        <span className="text-[11px] bg-blue-50 text-blue-700 border border-blue-100 dark:bg-slate-800 dark:text-blue-400 dark:border-slate-600 px-3 py-1 rounded-full font-extrabold shadow-sm">
+                        <span className="text-[11px] bg-blue-50 text-blue-700 border border-blue-100 dark:bg-gray-800 dark:text-blue-400 dark:border-gray-600 px-3 py-1 rounded-full font-extrabold shadow-sm">
                           Level: {currentUser.meme_level}
                         </span>
                       </div>
                     </div>
 
                     <div className="py-2">
-                      {/* Theme Toggle */}
-                      <div className="px-3 pb-2 mb-1 border-b border-gray-100 dark:border-slate-800">
-                        <div className="bg-gray-100 dark:bg-slate-800 p-1 rounded-xl flex items-center">
+                      <div className="px-3 pb-2 mb-1 border-b border-gray-100 dark:border-gray-800">
+                        <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-xl flex items-center">
                           <button 
                             onClick={(e) => { e.stopPropagation(); toggleTheme('light'); }}
-                            className={`flex-1 flex justify-center items-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${!isDarkMode ? 'bg-white dark:bg-slate-600 text-black dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-300'}`}
+                            className={`flex-1 flex justify-center items-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${!isDarkMode ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-white'}`}
                           >
                             <Sun className="w-4 h-4" /> فاتح
                           </button>
                           <button 
                             onClick={(e) => { e.stopPropagation(); toggleTheme('dark'); }}
-                            className={`flex-1 flex justify-center items-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${isDarkMode ? 'bg-slate-700 text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-300'}`}
+                            className={`flex-1 flex justify-center items-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${isDarkMode ? 'bg-gray-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
                           >
                             <Moon className="w-4 h-4" /> داكن
                           </button>
                         </div>
                       </div>
 
-                      <button onClick={() => { onNavigate("profile"); closeUserDropdown(); }} className="w-full text-right px-4 py-2 hover:bg-gray-50 dark:hover:bg-slate-800 text-sm text-gray-700 dark:text-gray-200 font-bold flex items-center justify-between transition-colors">
+                      <button onClick={() => { onNavigate("profile"); closeUserDropdown(); }} className="w-full text-right px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 font-bold flex items-center justify-between transition-colors">
                         <span>المرجع والإعدادات</span>
                         <Settings className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                       </button>
 
-                      <button onClick={() => { onNavigate("leaderboard"); closeUserDropdown(); }} className="w-full text-right px-4 py-2 hover:bg-gray-50 dark:hover:bg-slate-800 text-sm text-gray-700 dark:text-gray-200 font-bold flex items-center justify-between transition-colors">
+                      <button onClick={() => { onNavigate("leaderboard"); closeUserDropdown(); }} className="w-full text-right px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 font-bold flex items-center justify-between transition-colors">
                         <span>المتصدرين</span>
                         <Trophy className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                       </button>
                     </div>
 
-                    <div className="border-t border-gray-100 dark:border-slate-800 mt-1">
+                    <div className="border-t border-gray-100 dark:border-gray-800 mt-1">
                       {showLogoutConfirm ? (
-                        <div className="px-4 py-3 bg-gray-50 dark:bg-slate-800/80 rounded-b-2xl">
+                        <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/80 rounded-b-2xl">
                           <p className="text-xs text-gray-800 dark:text-gray-200 font-bold mb-2 text-center">هل أنت متأكد من الخروج؟</p>
                           <div className="flex items-center justify-center gap-2">
-                            <button onClick={() => { onSignOutReal(); closeUserDropdown(); }} className="px-3 py-1.5 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 text-xs font-bold rounded-lg transition-colors flex-1">
+                            <button onClick={() => { onSignOutReal(); closeUserDropdown(); }} className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-colors flex-1">
                               نعم، خروج
                             </button>
-                            <button onClick={() => setShowLogoutConfirm(false)} className="px-3 py-1.5 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-800 dark:text-gray-200 text-xs font-bold rounded-lg transition-colors flex-1">
+                            <button onClick={() => setShowLogoutConfirm(false)} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors flex-1 ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}>
                               إلغاء
                             </button>
                           </div>
@@ -328,34 +321,33 @@ export default function Header({
                   </>
                 ) : (
                   <>
-                    <div className="px-4 py-4 border-b border-gray-100 dark:border-slate-800 text-center bg-gray-50/50 dark:bg-slate-800/80 rounded-t-2xl">
-                      <div className="w-12 h-12 bg-gray-200 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <div className="px-4 py-4 border-b border-gray-100 dark:border-gray-800 text-center bg-gray-50/50 dark:bg-gray-800/80 rounded-t-2xl">
+                      <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-2">
                         <User className="w-6 h-6 text-gray-400 dark:text-gray-500" />
                       </div>
                       <p className="font-bold text-gray-900 dark:text-white text-sm">أهلاً بك يا زائر!</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">سجل دخولك لتتمكن من النشر والتفاعل.</p>
                     </div>
                     
-                    {/* Theme Toggle for Visitor */}
                     <div className="py-2 px-3">
-                      <div className="bg-gray-100 dark:bg-slate-800 p-1 rounded-xl flex items-center">
+                      <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-xl flex items-center">
                         <button 
                           onClick={(e) => { e.stopPropagation(); toggleTheme('light'); }}
-                          className={`flex-1 flex justify-center items-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${!isDarkMode ? 'bg-white dark:bg-slate-600 text-black dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-300'}`}
+                          className={`flex-1 flex justify-center items-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${!isDarkMode ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-white'}`}
                         >
                           <Sun className="w-4 h-4" /> فاتح
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); toggleTheme('dark'); }}
-                          className={`flex-1 flex justify-center items-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${isDarkMode ? 'bg-slate-700 text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-300'}`}
+                          className={`flex-1 flex justify-center items-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${isDarkMode ? 'bg-gray-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
                         >
                           <Moon className="w-4 h-4" /> داكن
                         </button>
                       </div>
                     </div>
 
-                    <div className="p-3 border-t border-gray-100 dark:border-slate-800 mt-1">
-                      <button onClick={() => { onShowAuthModal(); closeUserDropdown(); }} className="w-full py-2.5 bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-black text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all">
+                    <div className="p-3 border-t border-gray-100 dark:border-gray-800 mt-1">
+                      <button onClick={() => { onShowAuthModal(); closeUserDropdown(); }} className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all">
                         <LogIn className="w-4 h-4" />
                         <span>دخول / إنشاء حساب</span>
                       </button>
@@ -369,4 +361,4 @@ export default function Header({
       </div>
     </header>
   );
-                      }
+                        }
