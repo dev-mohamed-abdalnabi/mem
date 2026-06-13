@@ -3,11 +3,11 @@ import {
   Home, Flame, Trophy, Bookmark, Cpu, 
   AlertTriangle, ShieldAlert, Sparkles, X, 
   Clock, PlusCircle, CheckCircle2, Award, 
-  HelpCircle, MessageCircle, AlertCircle, Trash2 
+  HelpCircle, MessageCircle, AlertCircle, Trash2, User
 } from "lucide-react";
 
 import { Profile, Meme, Notification, Report, UserRole } from "./types";
-import { dataService, MOCK_PROFILES, MOCK_MEMES, calculateMemeLevel } from "./services/dataService";
+import { dataService, calculateMemeLevel } from "./services/dataService";
 
 import Header from "./components/Header.tsx";
 import Sidebar from "./components/Sidebar.tsx";
@@ -15,13 +15,29 @@ import MemeCard from "./components/MemeCard.tsx";
 import MemeCreator from "./components/MemeCreator.tsx";
 import Leaderboard from "./components/Leaderboard.tsx";
 
+const initialGuestProfile: Profile = {
+  id: "guest-user-temp",
+  username: "زائر_مجهول",
+  avatar_url: "https://api.dicebear.com/7.x/bottts/svg?seed=guest",
+  bio: "يتصفح كزائر. سجل حساب لرفع صور حقيقية ومزامنة نقاطك! 🚀",
+  website: "",
+  role: "user",
+  meme_level: "زائر متصفح 👀",
+  total_points: 0,
+  followers_count: 0,
+  following_count: 0,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString()
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>("feed");
-  const [currentUser, setCurrentUser] = useState<Profile>(MOCK_PROFILES[0]);
+  const [currentUser, setCurrentUser] = useState<Profile>(initialGuestProfile);
   const [memes, setMemes] = useState<Meme[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [dbError, setDbError] = useState<string | null>(null);
   
   // Interaction and filtering state
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,9 +51,20 @@ export default function App() {
   const [newPostTags, setNewPostTags] = useState("");
   const [postError, setPostError] = useState("");
   const [postSuccess, setPostSuccess] = useState(false);
+  const [quickPostFile, setQuickPostFile] = useState<File | null>(null);
+
+  // Supabase Authentications Modal state values
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authUsername, setAuthUsername] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [authSuccess, setAuthSuccess] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
 
   // Level Up overlay / state
-  const [prevPoints, setPrevPoints] = useState(currentUser.total_points);
+  const [prevPoints, setPrevPoints] = useState(0);
   const [showLevelUpAlert, setShowLevelUpAlert] = useState(false);
   const [newLevelName, setNewLevelName] = useState("");
 
@@ -47,6 +74,7 @@ export default function App() {
 
   const loadAllData = async () => {
     setLoading(true);
+    setDbError(null);
     try {
       const dbCurrentUser = await dataService.getCurrentUser();
       setCurrentUser(dbCurrentUser);
@@ -64,8 +92,9 @@ export default function App() {
       // Read reports
       const savedReports = localStorage.getItem("memesbook_reports_list");
       setReports(savedReports ? JSON.parse(savedReports) : []);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.warn("Database connection initialization warning:", e);
+      setDbError(e.message || "فشلت الاتصالات المباشرة بجداول Supabase. يرجى تهيئة الجداول.");
     } finally {
       setLoading(false);
     }
@@ -222,10 +251,32 @@ export default function App() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 8 * 1024 * 1024) {
+        setPostError("يا رايق حجم ملف الميم ده كبير بزيادة! الحد الأقصى هو 8 ميجابايت.");
+        return;
+      }
+      setQuickPostFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setNewPostImage(event.target.result as string);
+          setPostError("");
+        }
+      };
+      reader.onerror = () => {
+        setPostError("فشل قراءة الصورة المرفوعة.");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleQuickPostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPostImage.trim()) {
-      setPostError("يا رايق، لازم تحط رابط صورة الميم عشان نضحك سوا!");
+      setPostError("يا رايق، لازم ترفع صورة الميم أو تختار ملف من جهازك الأول عشان ننشرها!");
       return;
     }
 
@@ -233,22 +284,103 @@ export default function App() {
     setPostSuccess(false);
 
     try {
-      // Split tags
+      let finalImageUrl = newPostImage.trim();
+      if (quickPostFile) {
+        finalImageUrl = await dataService.uploadMemeFile(quickPostFile);
+      }
+
       const splitTags = newPostTags
         .split(" ")
         .filter(t => t.startsWith("#"))
         .map(t => t.replace("#", ""));
 
-      await handlePublishMeme(newPostCaption.trim(), newPostImage.trim(), splitTags);
+      await handlePublishMeme(newPostCaption.trim(), finalImageUrl, splitTags);
       
       setPostSuccess(true);
       setNewPostImage("");
       setNewPostCaption("");
       setNewPostTags("");
+      setQuickPostFile(null);
       
-      setTimeout(() => setPostSuccess(false), 4000);
+      setTimeout(() => setPostSuccess(false), 4400);
     } catch (err: any) {
       setPostError(err.message || "حدث خطأ أثناء النشر.");
+    }
+  };
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError("");
+    setAuthSuccess("");
+    try {
+      const profile = await dataService.signIn(authEmail, authPassword);
+      setCurrentUser(profile);
+      setPrevPoints(profile.total_points);
+      setAuthSuccess("تم تسجيل الدخول بنجاح! نورت منصتك يا غالي 🎉");
+      setAuthEmail("");
+      setAuthPassword("");
+      setTimeout(() => {
+        setShowAuthModal(false);
+        loadAllData();
+      }, 1500);
+    } catch (err: any) {
+      setAuthError(err.message || "فشل تسجيل الدخول. تأكد من البريد والرمز السري.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authUsername.trim()) {
+      setAuthError("يا غالي من فضلك اكتب اسم مستخدم مميز لك!");
+      return;
+    }
+    setAuthLoading(true);
+    setAuthError("");
+    setAuthSuccess("");
+    try {
+      const profile = await dataService.signUp(authEmail, authPassword, authUsername.trim());
+      setCurrentUser(profile);
+      setPrevPoints(profile.total_points);
+      setAuthSuccess("تم إنشاء الحساب بنجاح! أهلاً بك في العائلة 😄🎉");
+      setAuthEmail("");
+      setAuthPassword("");
+      setAuthUsername("");
+      setTimeout(() => {
+        setShowAuthModal(false);
+        loadAllData();
+      }, 1500);
+    } catch (err: any) {
+      setAuthError(err.message || "تعذّر إنشاء الحساب. تأكد من البيانات أو طول الرقم السري (6 رموز على الأقل).");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleSignOutReal = async () => {
+    try {
+      await dataService.signOut();
+      const guest: Profile = {
+        id: "guest-user-temp",
+        username: "زائر_مجهول",
+        avatar_url: "https://api.dicebear.com/7.x/bottts/svg?seed=guest",
+        bio: "يتصفح كزائر. سجل حساب لرفع صور حقيقية ومزامنة نقاطك! 🚀",
+        website: "",
+        role: "user",
+        meme_level: "زائر متصفح 👀",
+        total_points: 0,
+        followers_count: 0,
+        following_count: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      setCurrentUser(guest);
+      setPrevPoints(0);
+      loadAllData();
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -372,8 +504,16 @@ export default function App() {
         onSearch={(query) => setSearchQuery(query)}
         activeTab={activeTab}
         onUserSwitch={handleUserSwitch}
-        availableProfiles={MOCK_PROFILES}
+        availableProfiles={profiles}
         onMarkNotificationsRead={handleMarkNotificationsRead}
+        onShowAuthModal={() => {
+          setShowAuthModal(true);
+          setAuthTab("signin");
+          setAuthError("");
+          setAuthSuccess("");
+        }}
+        onSignOutReal={handleSignOutReal}
+        isRealUser={currentUser ? currentUser.id !== "guest-user-temp" : false}
       />
 
       {/* Main stage layout block */}
@@ -435,6 +575,191 @@ export default function App() {
 
         {/* Central main viewport panel: Feed items or selected tab components */}
         <div className="flex-1 max-w-full md:max-w-2xl order-2">
+          {dbError && (
+            <div className="bg-amber-50 border border-amber-300 rounded-2xl p-5 mb-6 text-right text-gray-800">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-extrabold text-amber-950 text-sm">تهيئة جداول قاعدة البيانات بـ Supabase 🛠️</h3>
+                  <p className="text-xs text-amber-900 mt-1 leading-relaxed">
+                    تحذير: لم يُعثر على جداول قاعدة البيانات الحقيقية في مشروع Supabase الخاص بك. لتفعيل الحسابات ونشر ميمز وحفظ حقيقي دائم، يرجى نسخ وتشغيل الكود التالي في لوحة تحكم Supabase (SQL Editor):
+                  </p>
+
+                  {/* Copyable SQL snippet */}
+                  <pre className="bg-gray-950 text-gray-100 text-[10px] font-mono leading-normal p-3.5 rounded-xl border border-gray-800 text-left overflow-x-auto mt-3 max-h-48 text-right [direction:ltr]">
+{`-- 1. Create Profiles Table (Retained for Auth Users)
+create table if not exists public.profiles (
+  id uuid references auth.users on delete cascade primary key,
+  username text unique not null,
+  avatar_url text,
+  bio text,
+  website text,
+  role text default 'user',
+  meme_level text default 'مبتدئ سكرولر 🥱',
+  total_points integer default 0,
+  followers_count integer default 0,
+  following_count integer default 0,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- 2. Create Memes Table
+create table if not exists public.memes (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  image_url text not null,
+  caption text,
+  likes_count integer default 0,
+  comments_count integer default 0,
+  shares_count integer default 0,
+  saves_count integer default 0,
+  views_count integer default 0,
+  status text default 'approved',
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now()),
+  tags text[] default '{}'
+);
+
+-- 3. Create Comments Table
+create table if not exists public.comments (
+  id uuid default gen_random_uuid() primary key,
+  meme_id uuid references public.memes(id) on delete cascade not null,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  content text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- 4. Create Likes Table
+create table if not exists public.likes (
+  id uuid default gen_random_uuid() primary key,
+  meme_id uuid references public.memes(id) on delete cascade not null,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  unique (meme_id, user_id)
+);
+
+-- 5. Create Saved Memes Table
+create table if not exists public.saved_memes (
+  id uuid default gen_random_uuid() primary key,
+  meme_id uuid references public.memes(id) on delete cascade not null,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  unique (meme_id, user_id)
+);
+
+-- 6. Create Follows Table
+create table if not exists public.follows (
+  id uuid default gen_random_uuid() primary key,
+  follower_id uuid references public.profiles(id) on delete cascade not null,
+  following_id uuid references public.profiles(id) on delete cascade not null,
+  unique (follower_id, following_id)
+);
+
+-- 7. Create Notifications Table
+create table if not exists public.notifications (
+  id uuid default gen_random_uuid() primary key,
+  recipient_id uuid references public.profiles(id) on delete cascade not null,
+  actor_id uuid references public.profiles(id) on delete cascade,
+  type text not null,
+  meme_id uuid references public.memes(id) on delete cascade,
+  content text,
+  is_read boolean default false,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);`}
+                  </pre>
+
+                  <div className="flex gap-2.5 mt-4">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`create table if not exists public.profiles (
+  id uuid references auth.users on delete cascade primary key,
+  username text unique not null,
+  avatar_url text,
+  bio text,
+  website text,
+  role text default 'user',
+  meme_level text default 'مبتدئ سكرولر 🥱',
+  total_points integer default 0,
+  followers_count integer default 0,
+  following_count integer default 0,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+create table if not exists public.memes (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  image_url text not null,
+  caption text,
+  likes_count integer default 0,
+  comments_count integer default 0,
+  shares_count integer default 0,
+  saves_count integer default 0,
+  views_count integer default 0,
+  status text default 'approved',
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now()),
+  tags text[] default '{}'
+);
+
+create table if not exists public.comments (
+  id uuid default gen_random_uuid() primary key,
+  meme_id uuid references public.memes(id) on delete cascade not null,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  content text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+create table if not exists public.likes (
+  id uuid default gen_random_uuid() primary key,
+  meme_id uuid references public.memes(id) on delete cascade not null,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  unique (meme_id, user_id)
+);
+
+create table if not exists public.saved_memes (
+  id uuid default gen_random_uuid() primary key,
+  meme_id uuid references public.memes(id) on delete cascade not null,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  unique (meme_id, user_id)
+);
+
+create table if not exists public.follows (
+  id uuid default gen_random_uuid() primary key,
+  follower_id uuid references public.profiles(id) on delete cascade not null,
+  following_id uuid references public.profiles(id) on delete cascade not null,
+  unique (follower_id, following_id)
+);
+
+create table if not exists public.notifications (
+  id uuid default gen_random_uuid() primary key,
+  recipient_id uuid references public.profiles(id) on delete cascade not null,
+  actor_id uuid references public.profiles(id) on delete cascade,
+  type text not null,
+  meme_id uuid references public.memes(id) on delete cascade,
+  content text,
+  is_read boolean default false,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);`);
+                        alert("تم نسخ الكود بنجاح! الصقه في الـ SQL Editor لـ Supabase وشغّله.");
+                      }}
+                      className="bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer"
+                    >
+                      📋 نسخ كود الـ SQL
+                    </button>
+                    
+                    <button
+                      onClick={() => loadAllData()}
+                      className="bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 font-extrabold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer"
+                    >
+                      🔄 تحديث بعد تشغيل السكربت
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {selectedTag && (
             <div className="bg-blue-50 border border-blue-100 px-4 py-3 rounded-2xl text-xs sm:text-sm text-blue-700 font-extrabold flex items-center justify-between mb-4 animate-fade-in shadow-sm">
               <span className="flex items-center gap-1.5">
@@ -452,7 +777,6 @@ export default function App() {
             </div>
           )}
 
-          {/* ACTIVE PORT DETAILS SWITCHES */}
           {activeTab === "feed" && (
             <div className="flex flex-col gap-4">
               {/* Simple Facebook-Style New Post widget */}
@@ -461,52 +785,83 @@ export default function App() {
                   {currentUser.avatar_url ? (
                     <img
                       src={currentUser.avatar_url}
-                      alt=""
-                      className="w-10 h-10 rounded-xl object-cover ring-2 ring-gray-100"
+                      alt={currentUser.username}
+                      className="w-10 h-10 rounded-xl object-cover shrink-0 border border-gray-150"
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center font-bold text-blue-600">M</div>
+                    <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-sm font-black shrink-0">
+                      U
+                    </div>
                   )}
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-400 font-bold">إيه الأخبار يا زميلي؟</p>
-                    <p className="text-sm font-extrabold text-gray-800 mt-0.5">انشر ميم جديد وفرفش صحابك...</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-500 font-bold">مشاركة ميم جديد فوري</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">انشر قفشة جديدة حية لتراها باقي العقول المفرفشة!</p>
                   </div>
                 </div>
 
-                <form onSubmit={handleQuickPostSubmit} className="flex flex-col gap-2">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      placeholder="رابط صورة الميم (JPEG/PNG URL) 🔗"
-                      value={newPostImage}
-                      onChange={(e) => setNewPostImage(e.target.value)}
-                      className="bg-gray-50 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded-xl px-3 py-2 text-xs font-semibold"
-                    />
-                    <input
-                      type="text"
-                      placeholder="وصف مضحك مكمل للصورة..."
-                      value={newPostCaption}
-                      onChange={(e) => setNewPostCaption(e.target.value)}
-                      className="bg-gray-50 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded-xl px-3 py-2 text-xs font-semibold"
-                    />
+                <form onSubmit={handleQuickPostSubmit} className="flex flex-col gap-3">
+                  {/* File Upload Selector & Preview Section */}
+                  <div className="flex flex-col gap-3">
+                    {!newPostImage ? (
+                      <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 hover:border-blue-500 hover:bg-blue-50/20 bg-gray-50 rounded-2xl py-6 px-4 cursor-pointer text-center transition-all group">
+                        <PlusCircle className="w-8 h-8 text-blue-500 mb-2 group-hover:scale-110 transition-transform animate-pulse" />
+                        <span className="text-xs font-black text-gray-800">📁 اضغط لتنزيل أو اختيار ملف ميم حقيقي من موبايلك أو جهازك</span>
+                        <span className="text-[10px] text-gray-400 mt-1 font-semibold">تترفع فوراً وتظهر في الفيد الحقيقي!</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                    ) : (
+                      <div className="relative rounded-2xl overflow-hidden border border-gray-100 max-h-64 bg-gray-900 flex items-center justify-center p-2">
+                        <img
+                          src={newPostImage}
+                          alt="preview"
+                          className="max-h-60 object-contain rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setNewPostImage("")}
+                          className="absolute top-3 left-3 bg-red-600 hover:bg-red-700 text-white rounded-full px-3 py-1.5 shadow-lg cursor-pointer hover:scale-105 transition-all font-black text-[10px] flex items-center gap-1"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>تغيير الصورة ❌</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Meta Input Fields */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        placeholder="اكتب تعليق مضحك أو إفه يكمل الصورة... 💬"
+                        value={newPostCaption}
+                        onChange={(e) => setNewPostCaption(e.target.value)}
+                        className="bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl px-3 py-2.5 text-xs font-extrabold text-gray-950"
+                      />
+                      <input
+                        type="text"
+                        placeholder="هاشتاجات مرافقة: #برمجة #طالب (مسافة للفصل) 🏷️"
+                        value={newPostTags}
+                        onChange={(e) => setNewPostTags(e.target.value)}
+                        className="bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl px-3 py-2.5 text-xs font-mono text-gray-950"
+                      />
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="هاشتاجات مرافقة: #برمجة #طالب (مسافة للفصل) 🏷️"
-                      value={newPostTags}
-                      onChange={(e) => setNewPostTags(e.target.value)}
-                      className="flex-1 bg-gray-50 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded-xl px-3 py-2 text-xs font-mono"
-                    />
-                    
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-50">
+                    <span className="text-[10px] text-gray-500 font-bold">
+                       {newPostImage ? "✨ مبروك! الصورة جاهزة للبلع والنشر" : "⚠️ يرجى اختيار ملف صورة ميم أولاً"}
+                    </span>
                     <button
                       type="submit"
-                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-2 text-xs font-black flex items-center gap-1 cursor-pointer transition-all"
+                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-5 py-2.5 text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all shadow-md shadow-blue-100 hover:scale-[1.03] active:scale-95"
                     >
-                      <PlusCircle className="w-3.5 h-3.5" />
-                      <span>انشر الكوميك</span>
+                      <PlusCircle className="w-4 h-4" />
+                      <span>انشر الكوميك الحقيقي 🚀</span>
                     </button>
                   </div>
                 </form>
@@ -934,6 +1289,120 @@ export default function App() {
           <span className="text-[9px] font-bold">المحفوظات</span>
         </button>
       </nav>
+
+      {/* Authentic Supabase Signin / Signup Modal */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 shadow-2xl" dir="rtl">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 text-right border border-gray-100 shadow-2xl relative animate-fade-in">
+            <button 
+              onClick={() => setShowAuthModal(false)}
+              className="absolute top-4 left-4 text-gray-400 hover:text-gray-905 cursor-pointer pointer-events-auto p-1.5"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto text-blue-600 mb-2">
+                <User className="w-6 h-6" />
+              </div>
+              <h3 className="font-extrabold text-lg text-gray-950">
+                انضم لعشاق الضحك والكوميديا الحقيقية 🎭
+              </h3>
+              <p className="text-xs text-gray-400 mt-1.5">
+                سجل بحساب حقيقي ومستقل في داتابيز ميمزبوك لترفع الصور الحقيقية من جهازك مباشرة وتجمع نقاط XP متزامنة مع السيرفر!
+              </p>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex bg-gray-100 p-1 rounded-2xl mb-4">
+              <button
+                onClick={() => { setAuthTab("signin"); setAuthError(""); setAuthSuccess(""); }}
+                className={`flex-1 text-center py-2 text-xs font-black rounded-xl cursor-pointer transition-all ${
+                  authTab === "signin" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                }`}
+              >
+                تسجيل الدخول 👋
+              </button>
+              <button
+                onClick={() => { setAuthTab("signup"); setAuthError(""); setAuthSuccess(""); }}
+                className={`flex-1 text-center py-2 text-xs font-black rounded-xl cursor-pointer transition-all ${
+                  authTab === "signup" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                }`}
+              >
+                إنشاء حساب جديد 🚀
+              </button>
+            </div>
+
+            <form onSubmit={authTab === "signin" ? handleSignIn : handleSignUp} className="flex flex-col gap-3">
+              <div>
+                <label className="block text-[11px] font-extrabold text-gray-500 mb-1">البريد الإلكتروني 📧</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="name@example.com"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl px-3 py-2.5 text-xs text-gray-900"
+                />
+              </div>
+
+              {authTab === "signup" && (
+                <div>
+                  <label className="block text-[11px] font-extrabold text-gray-500 mb-1">الاسم المستعار / اليوزر نيم 🎭</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="مثال: وزير_الميمز_المصري"
+                    value={authUsername}
+                    onChange={(e) => {
+                      setAuthUsername(e.target.value.replace(/\s+/g, '_'));
+                    }}
+                    className="w-full bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-905"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[11px] font-extrabold text-gray-500 mb-1">الرقم السري 🔒</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl px-3 py-2.5 text-xs font-mono text-gray-900"
+                />
+              </div>
+
+              {authError && (
+                <div className="text-xs text-red-600 font-extrabold bg-red-50 border border-red-100 p-2.5 rounded-xl flex items-center gap-1.5 mt-1 leading-relaxed">
+                  <ShieldAlert className="w-4 h-4 text-red-500 shrink-0" />
+                  <span>{authError}</span>
+                </div>
+              )}
+
+              {authSuccess && (
+                <div className="text-xs text-green-700 font-black bg-green-50 border border-green-100 p-2.5 rounded-xl flex items-center gap-1.5 mt-1 animate-fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                  <span>{authSuccess}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full mt-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-black py-3 rounded-2xl text-xs shadow-md shadow-blue-100 cursor-pointer transition-all flex items-center justify-center gap-2"
+              >
+                {authLoading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <span>{authTab === "signin" ? "اعتماد تسجيل الدخول 👍" : "إنشاء حسابي وتفعيل الرتبة 🚀"}</span>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
