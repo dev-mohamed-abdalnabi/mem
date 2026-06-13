@@ -5,7 +5,7 @@ import { Profile, Meme, Notification, Report } from "./types";
 import { dataService, calculateMemeLevel } from "./services/dataService";
 
 import Header from "./components/Header";
-import RightSidebar from "./components/RightSidebar";
+import RightSidebar from "./components/RightSidebar"; // ده بقى القائمة الرئيسية
 
 import FeedPage from "./pages/FeedPage";
 import CreatePostPage from "./pages/CreatePostPage";
@@ -14,6 +14,7 @@ import TrendingPage from "./pages/TrendingPage";
 import ProfilePage from "./pages/ProfilePage";
 import Leaderboard from "./components/Leaderboard";
 
+// ... (باقي الـ initial states كما هي)
 const initialGuestProfile: Profile = {
   id: "guest-user-temp",
   username: "زائر_مجهول",
@@ -38,6 +39,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
 
+  // ... (باقي الـ states الخاصة بالنشر والأوث كما هي)
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
@@ -45,10 +47,9 @@ export default function App() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
 
-  // 1. التعديل الأول: الفيتش بيحصل مرة واحدة بس لما التطبيق يفتح عشان نمنع الراستر المتكرر
   useEffect(() => {
     loadAllData();
-  }, []); // مصفوفة فاضية هنا تمنع التحميل مع كل نقلة تاب
+  }, [activeTab]);
 
   const loadAllData = async () => {
     setLoading(true);
@@ -61,11 +62,7 @@ export default function App() {
       setProfiles(dbProfiles);
       const dbFollowingIds = await dataService.getFollowingList(dbCurrentUser.id);
       setFollowingIds(dbFollowingIds);
-    } catch (e) { 
-      console.warn(e); 
-    } finally { 
-      setLoading(false); 
-    }
+    } catch (e) { console.warn(e); } finally { setLoading(false); }
   };
 
   const isRealUser = currentUser.id !== "guest-user-temp";
@@ -73,7 +70,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 flex flex-col antialiased" dir="rtl">
       
-      {/* لايت بوكس الصور */}
+      {/* لايت بوكس للصور */}
       {lightboxImage && (
         <div className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center backdrop-blur-sm" onClick={() => setLightboxImage(null)}>
           <button className="absolute top-4 right-4 text-white bg-white/10 p-3 rounded-full"><X className="w-6 h-6" /></button>
@@ -81,7 +78,7 @@ export default function App() {
         </div>
       )}
 
-      {/* الهيدر */}
+      {/* الهيدر العلوي */}
       <Header
         currentUser={currentUser} notifications={notifications} activeTab={activeTab} isRealUser={isRealUser} availableProfiles={profiles}
         onNavigate={(tab) => { setActiveTab(tab); setSelectedTag(null); }} onSearch={setSearchQuery}
@@ -92,7 +89,7 @@ export default function App() {
       {/* جسد التطبيق */}
       <main className="max-w-7xl mx-auto px-0 md:px-4 py-6 w-full flex-1 flex gap-6">
         
-        {/* قائمة الأقسام الرئيسية اليمين */}
+        {/* الشريط الجانبي (القائمة الرئيسية) - لاحظ تمرير الـ activeTab */}
         <RightSidebar
           isRealUser={isRealUser} 
           profiles={profiles}
@@ -102,45 +99,25 @@ export default function App() {
           activeTab={activeTab} 
         />
 
-        {/* 2. التعديل الثاني: ضفنا pb-32 هنا لحماية كل الصفحات من الاختفاء تحت الـ Navbar في الموبايل */}
-        <div className="flex-1 max-w-full md:max-w-[640px] xl:max-w-2xl mx-auto order-2 w-full pb-32 md:pb-0">
-          
-          {/* 3. التعديل الثالث: استبدال الـ Conditional Rendering بـ wrapper يحمل كلاسات hidden/block */}
-          {/* صفحة الـ Feed */}
-          <div className={activeTab === "feed" ? "block" : "hidden"}>
-            <FeedPage isRealUser={isRealUser} loading={loading} filteredMemes={memes.filter(m => m.caption.includes(searchQuery))} currentUser={currentUser} followingIds={followingIds} setMemes={setMemes} setShowAuthModal={setShowAuthModal} setAuthTab={setAuthTab} setSearchQuery={setSearchQuery} setSelectedTag={setSelectedTag} handleLikeToggle={async()=>{}} handleSaveToggle={async()=>{}} handleFollowToggle={async()=>{}} handleReportSubmit={()=>{}} handleShareCompleted={async()=>{}} handleDeleteMeme={async()=>{}} setSelectedProfileId={setSelectedProfileId} setActiveTab={setActiveTab} setLightboxImage={setLightboxImage} />
-          </div>
-
-          {/* صفحة الترند */}
-          <div className={activeTab === "trending" ? "block" : "hidden"}>
-            <TrendingPage memes={memes} currentUser={currentUser} followingIds={followingIds} handleLikeToggle={async()=>{}} handleSaveToggle={async()=>{}} handleFollowToggle={async()=>{}} setSelectedTag={setSelectedTag} handleReportSubmit={()=>{}} handleShareCompleted={async()=>{}} handleDeleteMeme={async()=>{}} setSelectedProfileId={setSelectedProfileId} setActiveTab={setActiveTab} setLightboxImage={setLightboxImage} />
-          </div>
-
-          {/* صفحة الحفظ */}
-          <div className={activeTab === "saves" ? "block" : "hidden"}>
-            <SavesPage memes={memes} currentUser={currentUser} followingIds={followingIds} handleLikeToggle={async()=>{}} handleSaveToggle={async()=>{}} handleFollowToggle={async()=>{}} setSelectedTag={setSelectedTag} handleReportSubmit={()=>{}} handleShareCompleted={async()=>{}} handleDeleteMeme={async()=>{}} setSelectedProfileId={setSelectedProfileId} setActiveTab={setActiveTab} setLightboxImage={setLightboxImage} />
-          </div>
-
-          {/* صفحة الـ Leaderboard */}
-          <div className={activeTab === "leaderboard" ? "block" : "hidden"}>
-            <Leaderboard profiles={profiles} currentUser={currentUser} onNavigate={setActiveTab} onFollowToggle={async()=>{}} followingIds={followingIds} />
-          </div>
-
-          {/* صفحة الـ Profile والـ User Profile */}
-          <div className={(activeTab === "profile" || activeTab === "user-profile") ? "block" : "hidden"}>
-            <ProfilePage profile={activeTab === "profile" ? currentUser : (profiles.find(p => p.id === selectedProfileId) || currentUser)} currentUser={currentUser} isOwnProfile={activeTab === "profile" || selectedProfileId === currentUser.id} isRealUser={isRealUser} userMemes={memes.filter(m => m.user_id === (activeTab === "profile" ? currentUser.id : selectedProfileId))} followingIds={followingIds} setCurrentUser={setCurrentUser} setProfiles={setProfiles} setShowAuthModal={setShowAuthModal} handleFollowToggle={async()=>{}} handleLikeToggle={async()=>{}} handleSaveToggle={async()=>{}} setSelectedTag={setSelectedTag} handleReportSubmit={()=>{}} handleShareCompleted={async()=>{}} handleDeleteMeme={async()=>{}} setSelectedProfileId={setSelectedProfileId} setActiveTab={setActiveTab} setLightboxImage={setLightboxImage} />
-          </div>
-          
+        {/* مساحة الصفحات */}
+        <div className="flex-1 max-w-full md:max-w-[640px] xl:max-w-2xl mx-auto order-2 w-full">
+          {activeTab === "feed" && (
+            <FeedPage {.../* props */} isRealUser={isRealUser} loading={loading} filteredMemes={memes.filter(m => m.caption.includes(searchQuery))} currentUser={currentUser} followingIds={followingIds} setMemes={setMemes} setShowAuthModal={setShowAuthModal} setAuthTab={setAuthTab} setSearchQuery={setSearchQuery} setSelectedTag={setSelectedTag} handleLikeToggle={async()=>{}} handleSaveToggle={async()=>{}} handleFollowToggle={async()=>{}} handleReportSubmit={()=>{}} handleShareCompleted={async()=>{}} handleDeleteMeme={async()=>{}} setSelectedProfileId={setSelectedProfileId} setActiveTab={setActiveTab} setLightboxImage={setLightboxImage} />
+          )}
+          {activeTab === "trending" && <TrendingPage memes={memes} currentUser={currentUser} followingIds={followingIds} handleLikeToggle={async()=>{}} handleSaveToggle={async()=>{}} handleFollowToggle={async()=>{}} setSelectedTag={setSelectedTag} handleReportSubmit={()=>{}} handleShareCompleted={async()=>{}} handleDeleteMeme={async()=>{}} setSelectedProfileId={setSelectedProfileId} setActiveTab={setActiveTab} setLightboxImage={setLightboxImage} />}
+          {activeTab === "saves" && <SavesPage memes={memes} currentUser={currentUser} followingIds={followingIds} handleLikeToggle={async()=>{}} handleSaveToggle={async()=>{}} handleFollowToggle={async()=>{}} setSelectedTag={setSelectedTag} handleReportSubmit={()=>{}} handleShareCompleted={async()=>{}} handleDeleteMeme={async()=>{}} setSelectedProfileId={setSelectedProfileId} setActiveTab={setActiveTab} setLightboxImage={setLightboxImage} />}
+          {activeTab === "leaderboard" && <Leaderboard profiles={profiles} currentUser={currentUser} onNavigate={setActiveTab} onFollowToggle={async()=>{}} followingIds={followingIds} />}
+          {activeTab === "profile" && <ProfilePage profile={currentUser} currentUser={currentUser} isOwnProfile={true} isRealUser={isRealUser} userMemes={[]} followingIds={followingIds} setCurrentUser={setCurrentUser} setProfiles={setProfiles} setShowAuthModal={setShowAuthModal} handleFollowToggle={async()=>{}} handleLikeToggle={async()=>{}} handleSaveToggle={async()=>{}} setSelectedTag={setSelectedTag} handleReportSubmit={()=>{}} handleShareCompleted={async()=>{}} handleDeleteMeme={async()=>{}} setSelectedProfileId={setSelectedProfileId} setActiveTab={setActiveTab} setLightboxImage={setLightboxImage} />}
         </div>
       </main>
 
       {/* الملاحة السفلية (للموبايل فقط) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex items-center justify-around py-3 md:hidden shadow-[0_-5px_10px_rgba(0,0,0,0.05)]">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex items-center justify-around py-3 md:hidden">
         <button onClick={() => setActiveTab("feed")} className={activeTab === 'feed' ? 'text-blue-600' : 'text-gray-500'}><Home className="w-5 h-5" /></button>
         <button onClick={() => setActiveTab("trending")} className={activeTab === 'trending' ? 'text-blue-600' : 'text-gray-500'}><Flame className="w-5 h-5" /></button>
         <button onClick={() => setActiveTab("create-post")} className={activeTab === 'create-post' ? 'text-blue-600' : 'text-gray-500'}><PlusCircle className="w-5 h-5" /></button>
         <button onClick={() => setActiveTab("saves")} className={activeTab === 'saves' ? 'text-blue-600' : 'text-gray-500'}><Bookmark className="w-5 h-5" /></button>
-        <button onClick={() => setActiveTab("profile")} className={(activeTab === 'profile' || activeTab === 'user-profile') ? 'text-blue-600' : 'text-gray-500'}><User className="w-5 h-5" /></button>
+        <button onClick={() => setActiveTab("profile")} className={activeTab === 'profile' ? 'text-blue-600' : 'text-gray-500'}><User className="w-5 h-5" /></button>
       </nav>
     </div>
   );
