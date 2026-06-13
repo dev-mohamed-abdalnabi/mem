@@ -42,10 +42,10 @@ export default function Header({
     return false;
   });
 
-  const toggleTheme = () => {
-    const newMode = !isDarkMode;
-    setIsDarkMode(newMode);
-    if (newMode) {
+  const toggleTheme = (mode: 'light' | 'dark') => {
+    const isDark = mode === 'dark';
+    setIsDarkMode(isDark);
+    if (isDark) {
       document.documentElement.classList.add('dark');
       document.documentElement.classList.remove('light');
     } else {
@@ -67,7 +67,6 @@ export default function Header({
     setShowLogoutConfirm(false);
   };
 
-  // كلاسات موحدة لكل الأزرار لضمان تناسق الشكل بنسبة 100% ودعم الوضع الليلي
   const unifiedBtnClass = "h-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer text-gray-700 dark:text-gray-200 font-bold";
   const unifiedIconClass = `${unifiedBtnClass} w-10`;
 
@@ -151,9 +150,9 @@ export default function Header({
               )}
             </button>
 
-            {/* Notifications Popover */}
+            {/* Notifications Popover (تم إصلاح التموضع للموبايل) */}
             {showNotificationsDropdown && (
-              <div className="absolute top-full left-0 mt-2 w-[320px] max-w-[90vw] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl py-2 text-right z-50 shadow-xl">
+              <div className="absolute top-full mt-2 w-[320px] max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl py-2 text-right z-50 shadow-2xl -left-12 sm:left-0 origin-top-left">
                 <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
                   <h3 className="font-bold text-gray-900 dark:text-white text-sm">الإشعارات الحية</h3>
                   {unreadCount > 0 && (
@@ -199,7 +198,7 @@ export default function Header({
                             {new Date(notif.created_at).toLocaleTimeString("ar-EG", { hour: 'numeric', minute: '2-digit' })}
                           </span>
                         </div>
-                        {!notif.is_read && <div className="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400 mt-2"></div>}
+                        {!notif.is_read && <div className="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400 mt-2 flex-shrink-0"></div>}
                       </div>
                     ))
                   )}
@@ -241,9 +240,9 @@ export default function Header({
               )}
             </button>
 
-            {/* Profile Dropdown */}
+            {/* Profile Dropdown (تم إصلاح التموضع) */}
             {showUserDropdown && (
-              <div className="absolute top-full left-0 mt-2 w-64 max-w-[90vw] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl py-2 text-right z-50 shadow-xl">
+              <div className="absolute top-full mt-2 w-64 max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl py-2 text-right z-50 shadow-2xl -left-2 sm:left-0 origin-top-left">
                 {isRealUser ? (
                   <>
                     <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/80 rounded-t-2xl">
@@ -256,25 +255,31 @@ export default function Header({
                       </div>
                     </div>
 
-                    <div className="py-1">
-                      {/* Theme Toggle in Dropdown */}
-                      <button 
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          toggleTheme(); 
-                        }} 
-                        className="w-full text-right px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-slate-800 text-sm text-gray-700 dark:text-gray-200 font-bold flex items-center justify-between transition-colors"
-                      >
-                        <span>{isDarkMode ? "الوضع الفاتح" : "الوضع الليلي"}</span>
-                        {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-500" />}
-                      </button>
+                    <div className="py-2">
+                      {/* Theme Toggle (شكل جديد احترافي) */}
+                      <div className="px-3 pb-2 mb-1 border-b border-gray-100 dark:border-slate-800">
+                        <div className="bg-gray-100 dark:bg-slate-800 p-1 rounded-xl flex items-center">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); toggleTheme('light'); }}
+                            className={`flex-1 flex justify-center items-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${!isDarkMode ? 'bg-white dark:bg-slate-600 text-black dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-300'}`}
+                          >
+                            <Sun className="w-4 h-4" /> فاتح
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); toggleTheme('dark'); }}
+                            className={`flex-1 flex justify-center items-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${isDarkMode ? 'bg-slate-700 text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-300'}`}
+                          >
+                            <Moon className="w-4 h-4" /> داكن
+                          </button>
+                        </div>
+                      </div>
 
-                      <button onClick={() => { onNavigate("profile"); closeUserDropdown(); }} className="w-full text-right px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-slate-800 text-sm text-gray-700 dark:text-gray-200 font-bold flex items-center justify-between transition-colors">
+                      <button onClick={() => { onNavigate("profile"); closeUserDropdown(); }} className="w-full text-right px-4 py-2 hover:bg-gray-50 dark:hover:bg-slate-800 text-sm text-gray-700 dark:text-gray-200 font-bold flex items-center justify-between transition-colors">
                         <span>المرجع والإعدادات</span>
                         <Settings className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                       </button>
 
-                      <button onClick={() => { onNavigate("leaderboard"); closeUserDropdown(); }} className="w-full text-right px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-slate-800 text-sm text-gray-700 dark:text-gray-200 font-bold flex items-center justify-between transition-colors">
+                      <button onClick={() => { onNavigate("leaderboard"); closeUserDropdown(); }} className="w-full text-right px-4 py-2 hover:bg-gray-50 dark:hover:bg-slate-800 text-sm text-gray-700 dark:text-gray-200 font-bold flex items-center justify-between transition-colors">
                         <span>المتصدرين</span>
                         <Trophy className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                       </button>
@@ -312,17 +317,21 @@ export default function Header({
                     </div>
                     
                     {/* Theme Toggle for Visitor */}
-                    <div className="py-1">
-                      <button 
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          toggleTheme(); 
-                        }} 
-                        className="w-full text-right px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-slate-800 text-sm text-gray-700 dark:text-gray-200 font-bold flex items-center justify-between transition-colors"
-                      >
-                        <span>{isDarkMode ? "الوضع الفاتح" : "الوضع الليلي"}</span>
-                        {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-500" />}
-                      </button>
+                    <div className="py-2 px-3">
+                      <div className="bg-gray-100 dark:bg-slate-800 p-1 rounded-xl flex items-center">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); toggleTheme('light'); }}
+                          className={`flex-1 flex justify-center items-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${!isDarkMode ? 'bg-white dark:bg-slate-600 text-black dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-300'}`}
+                        >
+                          <Sun className="w-4 h-4" /> فاتح
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); toggleTheme('dark'); }}
+                          className={`flex-1 flex justify-center items-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${isDarkMode ? 'bg-slate-700 text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-300'}`}
+                        >
+                          <Moon className="w-4 h-4" /> داكن
+                        </button>
+                      </div>
                     </div>
 
                     <div className="p-3 border-t border-gray-100 dark:border-slate-800 mt-1">
@@ -340,4 +349,4 @@ export default function Header({
       </div>
     </header>
   );
-            }
+                            }
