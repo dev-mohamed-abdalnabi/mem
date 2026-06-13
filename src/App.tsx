@@ -90,6 +90,10 @@ export default function App() {
       const dbNotifs = await dataService.getNotifications(dbCurrentUser.id);
       setNotifications(dbNotifs);
 
+      // Load following list from database
+      const dbFollowingIds = await dataService.getFollowingList(dbCurrentUser.id);
+      setFollowingIds(dbFollowingIds);
+
       // Read reports
       const savedReports = localStorage.getItem("memesbook_reports_list");
       setReports(savedReports ? JSON.parse(savedReports) : []);
@@ -147,17 +151,16 @@ export default function App() {
     }
 
     try {
-      const { liked } = await dataService.toggleLike(memeId, currentUser.id);
+      const { liked, likesCount } = await dataService.toggleLike(memeId, currentUser.id);
       
-      // Update local UI representation dynamically
+      // Update local UI representation with ACTUAL count from database
       setMemes((prev) => 
         prev.map((m) => {
           if (m.id === memeId) {
-            const isLiked = !m.liked_by_me;
             return {
               ...m,
-              likes_count: isLiked ? m.likes_count + 1 : Math.max(0, m.likes_count - 1),
-              liked_by_me: isLiked
+              likes_count: likesCount,
+              liked_by_me: liked
             };
           }
           return m;
@@ -196,9 +199,18 @@ export default function App() {
 
   const handleFollowToggle = async (followerId: string, followingId: string) => {
     try {
+      // Check if already following to prevent duplicates
+      if (followingIds.includes(followingId)) {
+        return; // Already following
+      }
+      
       const success = await dataService.followUser(followerId, followingId);
       if (success) {
-        setFollowingIds((prev) => [...prev, followingId]);
+        setFollowingIds((prev) => {
+          // Prevent duplicates
+          if (prev.includes(followingId)) return prev;
+          return [...prev, followingId];
+        });
         
         // Dynamic increments of following-counts inside profiles
         setProfiles((prev) => prev.map((p) => {
@@ -209,6 +221,8 @@ export default function App() {
 
         if (currentUser.id === followerId) {
           setCurrentUser(prev => ({ ...prev, following_count: prev.following_count + 1 }));
+          // Update localStorage to persist the change
+          localStorage.setItem("memesbook_current_user", JSON.stringify({ ...currentUser, following_count: currentUser.following_count + 1 }));
         }
 
         if (currentUser.id === followingId) {

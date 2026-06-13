@@ -424,8 +424,34 @@ export const dataService = {
       liked = true;
     }
 
-    const { data: updatedMeme } = await supabase.from("memes").select("likes_count").eq("id", dbMemeId).single();
+    // Fetch the actual count from database after the operation
+    const { data: updatedMeme, error: countError } = await supabase
+      .from("memes")
+      .select("likes_count")
+      .eq("id", dbMemeId)
+      .single();
+    
+    if (countError) {
+      console.warn("Failed to fetch updated likes count:", countError);
+      return { likesCount: 0, liked };
+    }
+    
     return { likesCount: updatedMeme?.likes_count ?? 0, liked };
+  },
+
+  getLikedByMe: async (memeId: string, currentUserId: string): Promise<boolean> => {
+    if (currentUserId === "guest-user-temp") return false;
+    const dbUserId = ensureUUID(currentUserId);
+    const dbMemeId = ensureUUID(memeId);
+    const { data, error } = await supabase
+      .from("likes")
+      .select("*")
+      .eq("meme_id", dbMemeId)
+      .eq("user_id", dbUserId)
+      .maybeSingle();
+    
+    if (error) throw error;
+    return !!data;
   },
 
   toggleSave: async (memeId: string, currentUserId: string): Promise<boolean> => {
@@ -486,6 +512,18 @@ export const dataService = {
     
     setStored("current_user", profile);
     return profile;
+  },
+
+  getFollowingList: async (userId: string): Promise<string[]> => {
+    if (userId === "guest-user-temp") return [];
+    const dbUserId = ensureUUID(userId);
+    const { data, error } = await supabase
+      .from("follows")
+      .select("following_id")
+      .eq("follower_id", dbUserId);
+    
+    if (error) throw error;
+    return (data || []).map(f => f.following_id);
   },
 
   deleteComment: async (commentId: string): Promise<boolean> => {
