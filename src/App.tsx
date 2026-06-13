@@ -6,6 +6,7 @@ import { dataService } from "./services/dataService";
 
 import Header from "./components/Header";
 import RightSidebar from "./components/RightSidebar";
+import AuthModal from "./components/AuthModal"; // <-- تم إضافة الاستيراد هنا
 
 import FeedPage from "./pages/FeedPage";
 import CreatePostPage from "./pages/CreatePostPage";
@@ -72,6 +73,15 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 flex flex-col antialiased" dir="rtl">
       
+      {/* مودال تسجيل الدخول - تمت الإضافة هنا عشان يظهر لما تدوس على الزرار */}
+      {showAuthModal && (
+        <AuthModal 
+          isOpen={showAuthModal} 
+          onClose={() => setShowAuthModal(false)} 
+          initialTab={authTab}
+        />
+      )}
+
       {/* لايت بوكس للصور */}
       {lightboxImage && (
         <div className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center backdrop-blur-sm" onClick={() => setLightboxImage(null)}>
@@ -97,10 +107,10 @@ export default function App() {
         onSignOutReal={async () => { setCurrentUser(initialGuestProfile); loadAllData(); }}
       />
 
-      {/* جسد التطبيق - تم تعديل الـ Flex هنا لضمان ظهور القائمة صح */}
+      {/* جسد التطبيق */}
       <main className="max-w-7xl mx-auto px-0 md:px-4 py-6 w-full flex-1 flex lg:flex-row flex-col gap-6 items-start">
         
-        {/* القائمة الجانبية (هتظهر بس على الشاشات الكبيرة بسبب كلاس hidden lg:flex اللي جواها) */}
+        {/* القائمة الجانبية */}
         <RightSidebar
           isRealUser={isRealUser} 
           profiles={profiles}
@@ -153,4 +163,3 @@ export default function App() {
     </div>
   );
 }
-
