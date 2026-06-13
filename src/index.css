@@ -149,35 +149,69 @@ a {
   color: #93c5fd !important;
 }
 
-/* ===== HEADER ===== */
+/* ===== HEADER - LIGHT MODE ONLY ===== */
+:root.light header,
 header {
-  background-color: rgba(26, 31, 46, 0.9) !important;
-  border-bottom-color: var(--border) !important;
-  color: var(--foreground) !important;
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  border-bottom-color: #e2e8f0 !important;
+  color: #0f172a !important;
 }
 
+:root.light header .text-black,
 header .text-black {
-  color: var(--foreground) !important;
+  color: #0f172a !important;
 }
 
+:root.light header .text-gray-900,
 header .text-gray-900 {
-  color: var(--foreground) !important;
+  color: #0f172a !important;
 }
 
-/* ===== BOTTOM NAVIGATION ===== */
+/* ===== HEADER - DARK MODE ===== */
+:root.dark header {
+  background-color: rgba(26, 31, 46, 0.9) !important;
+  border-bottom-color: #2d3748 !important;
+  color: #ffffff !important;
+}
+
+:root.dark header .text-black {
+  color: #ffffff !important;
+}
+
+:root.dark header .text-gray-900 {
+  color: #ffffff !important;
+}
+
+/* ===== BOTTOM NAVIGATION - LIGHT MODE ONLY ===== */
+:root.light nav,
 nav {
-  background-color: rgba(26, 31, 46, 0.95) !important;
-  border-top-color: var(--border) !important;
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  border-top-color: #e2e8f0 !important;
   backdrop-filter: blur(10px);
 }
 
+:root.light nav button,
 nav button {
-  color: var(--muted-foreground) !important;
+  color: #64748b !important;
 }
 
-nav button.text-black,
+:root.light nav button.text-black,
 nav button[class*="text-black"] {
-  color: var(--foreground) !important;
+  color: #0f172a !important;
+}
+
+/* ===== BOTTOM NAVIGATION - DARK MODE ===== */
+:root.dark nav {
+  background-color: rgba(26, 31, 46, 0.95) !important;
+  border-top-color: #2d3748 !important;
+}
+
+:root.dark nav button {
+  color: #cbd5e1 !important;
+}
+
+:root.dark nav button.text-black {
+  color: #ffffff !important;
 }
 
 /* ===== DROPDOWN MENUS ===== */
