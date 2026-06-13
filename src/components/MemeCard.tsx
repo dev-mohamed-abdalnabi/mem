@@ -132,7 +132,7 @@ export default function MemeCard({
           <span
             key={i}
             onClick={() => onTagClick(cleanTag)}
-            className="text-blue-600 hover:underline hover:text-blue-700 cursor-pointer text-xs font-bold font-mono ml-1"
+            className="text-blue-600 dark:text-blue-400 hover:underline hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer text-xs font-bold font-mono ml-1"
           >
             {word}
           </span>
@@ -155,7 +155,7 @@ export default function MemeCard({
   };
 
   return (
-    <article className="bg-white border-b border-gray-100 text-right flex flex-col mb-0 transition-all hover:bg-gray-50/30">
+    <article className="bg-white dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700 text-right flex flex-col mb-0 transition-all hover:bg-gray-50/30 dark:hover:bg-slate-700/30">
       <div className="flex gap-3 p-4">
         {/* Left Column (Threads Style Line) */}
         <div className="flex flex-col items-center gap-2 shrink-0">
@@ -168,26 +168,29 @@ export default function MemeCard({
                 <img
                   src={creator.avatar_url}
                   alt=""
-                  className="w-10 h-10 rounded-full object-cover border border-gray-100"
+                  className="w-10 h-10 rounded-full object-cover border border-gray-100 dark:border-slate-700"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-xs">
+                <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-slate-400 font-bold flex items-center justify-center text-xs">
                   {creator.username[0]}
                 </div>
               )}
             </div>
-            <button 
-              onClick={() => onFollowToggle(currentUser.id, creator.id)}
-              className="absolute -bottom-1 -left-1 bg-black text-white rounded-full w-4 h-4 flex items-center justify-center border-2 border-white hover:scale-110 transition-transform"
-            >
-              <PlusCircle className="w-3 h-3" />
-            </button>
+            {currentUser.id !== creator.id && (
+              <button 
+                onClick={() => onFollowToggle(currentUser.id, creator.id)}
+                className="absolute -bottom-1 -left-1 bg-blue-600 dark:bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center border-2 border-white dark:border-slate-800 hover:scale-110 transition-transform"
+                title="متابعة"
+              >
+                <PlusCircle className="w-3 h-3" />
+              </button>
+            )}
           </div>
-          <div className="w-0.5 grow bg-gray-100 rounded-full"></div>
+          <div className="w-0.5 grow bg-gray-100 dark:bg-slate-700 rounded-full"></div>
           <div className="flex -space-x-1.5 rtl:space-x-reverse mb-1">
-            <div className="w-4 h-4 rounded-full bg-gray-200 border border-white"></div>
-            <div className="w-4 h-4 rounded-full bg-gray-300 border border-white"></div>
+            <div className="w-4 h-4 rounded-full bg-gray-200 dark:bg-slate-700 border border-white dark:border-slate-800"></div>
+            <div className="w-4 h-4 rounded-full bg-gray-300 dark:bg-slate-600 border border-white dark:border-slate-800"></div>
           </div>
         </div>
 
@@ -196,12 +199,12 @@ export default function MemeCard({
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-1.5">
               <span 
-                className="font-bold text-sm text-gray-900 hover:underline cursor-pointer"
+                className="font-bold text-sm text-gray-900 dark:text-white hover:underline cursor-pointer"
                 onClick={() => onUserProfileClick(creator.id)}
               >
                 {creator.username}
               </span>
-              <span className="text-gray-400 text-xs">
+              <span className="text-gray-400 dark:text-slate-500 text-xs">
                 {new Date(meme.created_at).toLocaleDateString("ar-EG", { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
@@ -209,26 +212,26 @@ export default function MemeCard({
               {(currentUser.id === creator.id || currentUser.role === "admin") && (
                 <button 
                   onClick={() => onDeleteMeme(meme.id)} 
-                  className="text-gray-400 hover:text-red-500 transition-colors"
+                  className="text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                   title="حذف الميم"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               )}
-              <button onClick={() => setShowReportModal(true)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowReportModal(true)} className="text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors" title="إبلاغ">
                 <AlertOctagon className="w-4 h-4" />
               </button>
             </div>
           </div>
 
           {meme.caption && (
-            <div className="text-sm text-gray-800 leading-relaxed mb-3">
+            <div className="text-sm text-gray-800 dark:text-slate-200 leading-relaxed mb-3">
               {parseCaption(meme.caption)}
             </div>
           )}
 
           {meme.image_url && (
-            <div className="rounded-xl border border-gray-100 overflow-hidden mb-3 max-h-[500px] inline-block">
+            <div className="rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden mb-3 max-h-[500px] inline-block">
               <img
                 src={meme.image_url}
                 alt=""
@@ -242,31 +245,35 @@ export default function MemeCard({
           <div className="flex items-center gap-4 py-1">
             <button
               onClick={handleLike}
-              className={`flex items-center gap-1 hover:scale-110 transition-transform ${meme.liked_by_me ? "text-red-500" : "text-gray-800"}`}
+              className={`flex items-center gap-1 hover:scale-110 transition-transform ${meme.liked_by_me ? "text-red-500" : "text-gray-800 dark:text-slate-400"}`}
+              title="إعجاب"
             >
               <Heart className={`w-5 h-5 ${meme.liked_by_me ? "fill-red-500" : ""}`} />
             </button>
             <button
               onClick={() => setShowComments(!showComments)}
-              className="flex items-center gap-1 hover:scale-110 transition-transform text-gray-800"
+              className="flex items-center gap-1 hover:scale-110 transition-transform text-gray-800 dark:text-slate-400"
+              title="تعليقات"
             >
               <MessageCircle className="w-5 h-5" />
             </button>
             <button
               onClick={handleShareClick}
-              className="flex items-center gap-1 hover:scale-110 transition-transform text-gray-800"
+              className="flex items-center gap-1 hover:scale-110 transition-transform text-gray-800 dark:text-slate-400"
+              title="مشاركة"
             >
               <Share2 className="w-5 h-5" />
             </button>
             <button
               onClick={handleSave}
-              className={`flex items-center gap-1 hover:scale-110 transition-transform ${meme.saved_by_me ? "text-orange-500" : "text-gray-800"}`}
+              className={`flex items-center gap-1 hover:scale-110 transition-transform ${meme.saved_by_me ? "text-orange-500" : "text-gray-800 dark:text-slate-400"}`}
+              title="حفظ"
             >
               <Bookmark className={`w-5 h-5 ${meme.saved_by_me ? "fill-orange-500" : ""}`} />
             </button>
           </div>
 
-          <div className="flex items-center gap-2 mt-2 text-xs text-gray-400 font-medium">
+          <div className="flex items-center gap-2 mt-2 text-xs text-gray-400 dark:text-slate-500 font-medium">
             <span>{meme.likes_count} إعجاب</span>
             <span>•</span>
             <button onClick={() => setShowComments(!showComments)} className="hover:underline">
@@ -278,30 +285,30 @@ export default function MemeCard({
 
       {/* Copy Share Toast feedback */}
       {shareSuccess && (
-        <div className="bg-green-50 border-y border-green-100 px-4 py-2 text-xs text-green-700 font-extrabold flex items-center justify-between animate-fade-in">
+        <div className="bg-green-50 dark:bg-green-900/30 border-y border-green-100 dark:border-green-800 px-4 py-2 text-xs text-green-700 dark:text-green-400 font-extrabold flex items-center justify-between animate-fade-in">
           <span>تم نسخ رابط الميم بنجاح يا ميمر يا رايق! ابعته لصحابك يفرفشوا معاك 🚀🔗</span>
-          <Check className="w-4 h-4 text-green-600" />
+          <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
         </div>
       )}
 
       {/* Warning/Alert message triggers (e.g. rate limit error warning) */}
       {commentError && (
-        <div className="bg-red-50 border-y border-red-100 px-4 py-2.5 text-xs text-red-700 font-bold flex items-center gap-2">
-          <ShieldAlert className="w-4 h-4 shrink-0 text-red-600" />
+        <div className="bg-red-50 dark:bg-red-900/30 border-y border-red-100 dark:border-red-800 px-4 py-2.5 text-xs text-red-700 dark:text-red-400 font-bold flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 shrink-0 text-red-600 dark:text-red-400" />
           <span className="flex-1">{commentError}</span>
         </div>
       )}
 
       {/* Comments Drawer Tab */}
       {showComments && (
-        <div className="bg-gray-50/50 p-4 border-t border-gray-100 flex flex-col gap-3">
+        <div className="bg-gray-50/50 dark:bg-slate-700/30 p-4 border-t border-gray-100 dark:border-slate-700 flex flex-col gap-3">
           {/* List existing comments */}
           <div className="flex flex-col gap-2.5">
             {loadingComments ? (
-              <div className="text-center py-4 text-xs text-gray-400">تحميل الكمنتات...</div>
+              <div className="text-center py-4 text-xs text-gray-400 dark:text-slate-500">تحميل الكمنتات...</div>
             ) : commentsList.length === 0 ? (
-              <div className="text-center py-5 text-xs text-gray-400 flex flex-col items-center gap-1.5">
-                <Frown className="w-5 h-5 text-gray-300" />
+              <div className="text-center py-5 text-xs text-gray-400 dark:text-slate-500 flex flex-col items-center gap-1.5">
+                <Frown className="w-5 h-5 text-gray-300 dark:text-slate-600" />
                 <span>مفيش كومنتات خالص، خش اكتب أول إفيه يا كبير!</span>
               </div>
             ) : (
@@ -319,20 +326,20 @@ export default function MemeCard({
                       <img
                         src={commentUser.avatar_url}
                         alt=""
-                        className="w-8 h-8 rounded-lg object-cover mt-0.5 border border-gray-100"
+                        className="w-8 h-8 rounded-lg object-cover mt-0.5 border border-gray-100 dark:border-slate-700"
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-lg bg-gray-200 text-gray-600 flex items-center justify-center font-bold text-[10px] mt-0.5 shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-slate-400 flex items-center justify-center font-bold text-[10px] mt-0.5 shrink-0">
                         C
                       </div>
                     )}
 
-                    <div className="flex-1 bg-gray-100 p-2.5 rounded-2xl relative">
+                    <div className="flex-1 bg-gray-100 dark:bg-slate-700 p-2.5 rounded-2xl relative">
                       <div className="flex items-center justify-between gap-2 max-w-full">
                         <div className="flex items-center gap-1">
-                          <span className="font-extrabold text-xs text-gray-900">{commentUser.username}</span>
-                          <span className="text-[8px] bg-white text-gray-400 px-1 py-0.5 rounded border border-gray-100">
+                          <span className="font-extrabold text-xs text-gray-900 dark:text-white">{commentUser.username}</span>
+                          <span className="text-[8px] bg-white dark:bg-slate-600 text-gray-400 dark:text-slate-400 px-1 py-0.5 rounded border border-gray-100 dark:border-slate-600">
                             {commentUser.meme_level.split(" ")[0]}
                           </span>
                         </div>
@@ -341,21 +348,25 @@ export default function MemeCard({
                         {(currentUser.id === commentUser.id || currentUser.role === "admin") && (
                           <button
                             onClick={async () => {
-                              const success = await dataService.deleteComment(notifComment.id);
-                              if (success) {
-                                setCommentsList(commentsList.filter(c => c.id !== notifComment.id));
-                                onDeleteComment(notifComment.id);
+                              try {
+                                const success = await dataService.deleteComment(notifComment.id);
+                                if (success) {
+                                  setCommentsList(commentsList.filter(c => c.id !== notifComment.id));
+                                  onDeleteComment(notifComment.id);
+                                }
+                              } catch (err) {
+                                console.error("خطأ في حذف التعليق:", err);
                               }
                             }}
-                            className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer p-0.5"
+                            className="text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer p-0.5"
                             title="حذف هذا الكمنت"
                           >
                             <Trash2 className="w-3 h-3" />
                           </button>
                         )}
                       </div>
-                      <p className="text-xs text-gray-800 font-medium leading-relaxed mt-1">{notifComment.content}</p>
-                      <span className="text-[8px] text-gray-400 block mt-1">
+                      <p className="text-xs text-gray-800 dark:text-slate-200 font-medium leading-relaxed mt-1">{notifComment.content}</p>
+                      <span className="text-[8px] text-gray-400 dark:text-slate-500 block mt-1">
                         {new Date(notifComment.created_at).toLocaleTimeString("ar-EG", {
                           hour: 'numeric', minute: '2-digit'
                         })}
@@ -374,11 +385,12 @@ export default function MemeCard({
               placeholder="اكتب إفّييه أو تعليق مضحك..."
               value={newCommentText}
               onChange={(e) => setNewCommentText(e.target.value)}
-              className="flex-1 bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 px-4 py-2 rounded-xl text-xs sm:text-sm text-gray-900 font-bold placeholder:text-gray-400"
+              className="flex-1 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-500 dark:focus:border-blue-400 px-4 py-2 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white font-bold placeholder:text-gray-400 dark:placeholder:text-slate-500"
             />
             <button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white w-9 h-9 rounded-xl flex items-center justify-center shrink-0 cursor-pointer shadow-sm shadow-blue-100 hover:scale-105 transition-all"
+              className="bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 text-white w-9 h-9 rounded-xl flex items-center justify-center shrink-0 cursor-pointer shadow-sm shadow-blue-100 dark:shadow-blue-900 hover:scale-105 transition-all"
+              title="إرسال"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -389,20 +401,20 @@ export default function MemeCard({
       {/* Funny Egyptian Report Modal */}
       {showReportModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-right border border-gray-100 shadow-2xl relative">
-            <h3 className="font-extrabold text-lg text-gray-900 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-sm w-full p-6 text-right border border-gray-100 dark:border-slate-700 shadow-2xl relative">
+            <h3 className="font-extrabold text-lg text-gray-900 dark:text-white flex items-center gap-2">
               <AlertOctagon className="w-5 h-5 text-red-500 shrink-0" />
               <span>إبلاغ طوارئ للوزارة</span>
             </h3>
             
             {reportedMessage ? (
-              <div className="py-8 text-center text-green-600 font-black text-sm flex flex-col items-center gap-3">
+              <div className="py-8 text-center text-green-600 dark:text-green-400 font-black text-sm flex flex-col items-center gap-3">
                 <Sparkles className="w-8 h-8 text-yellow-500 animate-spin" />
                 <span>{reportedMessage}</span>
               </div>
             ) : (
               <>
-                <p className="text-xs text-gray-500 mt-2 font-semibold">
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-2 font-semibold">
                   شايف الميم ده مش مظبوط؟ قرر السبب وهنبعته للجنة الفرز والمراقبة تمسحه فورًا:
                 </p>
 
@@ -417,7 +429,7 @@ export default function MemeCard({
                     <button
                       key={idx}
                       onClick={() => handleReport(val)}
-                      className="w-full text-right p-3 rounded-xl border border-gray-100 hover:border-red-100 hover:bg-red-50/40 text-xs font-bold text-gray-700 transition-all cursor-pointer"
+                      className="w-full text-right p-3 rounded-xl border border-gray-100 dark:border-slate-700 hover:border-red-100 dark:hover:border-red-800 hover:bg-red-50/40 dark:hover:bg-red-900/20 text-xs font-bold text-gray-700 dark:text-slate-300 transition-all cursor-pointer"
                     >
                       {val}
                     </button>
@@ -427,7 +439,7 @@ export default function MemeCard({
                 <div className="mt-5 flex gap-2">
                   <button
                     onClick={() => setShowReportModal(false)}
-                    className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    className="w-full bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-300 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
                   >
                     إلغاء الأمر
                   </button>

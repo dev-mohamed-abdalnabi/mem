@@ -420,6 +420,38 @@ export const dataService = {
     return data as Comment[];
   },
 
+  signInAnonymously: async (username: string): Promise<Profile> => {
+    const defaultAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
+    
+    const profile: Profile = {
+      id: `anon-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+      username,
+      avatar_url: defaultAvatar,
+      bio: "عضو مجهول بدون حساب حقيقي",
+      website: "",
+      role: "user",
+      meme_level: "مبتدئ سكرولر 🥱",
+      total_points: 0,
+      followers_count: 0,
+      following_count: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    setStored("current_user", profile);
+    return profile;
+  },
+
+  deleteComment: async (commentId: string): Promise<boolean> => {
+    const { error } = await supabase
+      .from("comments")
+      .delete()
+      .eq("id", commentId);
+    
+    if (error) throw error;
+    return true;
+  },
+
   addComment: async (memeId: string, userId: string, content: string): Promise<Comment> => {
     if (userId === "guest-user-temp") {
       throw new Error("يجب تسجيل الدخول أو إنشاء حساب أولاً لإضافة تعليق.");

@@ -26,27 +26,27 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
         {/* Profile overview card Threads Style */}
         <div 
           onClick={() => onNavigate("profile")}
-          className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md cursor-pointer transition-all text-right group"
+          className="bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl p-5 shadow-sm hover:shadow-md cursor-pointer transition-all text-right group"
         >
           <div className="flex flex-col items-center gap-3">
             {currentUser.avatar_url ? (
               <img
                 src={currentUser.avatar_url}
                 alt=""
-                className="w-20 h-20 rounded-full object-cover border border-gray-100 group-hover:scale-105 transition-all"
+                className="w-20 h-20 rounded-full object-cover border border-gray-100 dark:border-slate-700 group-hover:scale-105 transition-all"
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <div className="w-20 h-20 rounded-full bg-gray-100 text-gray-400 font-extrabold flex items-center justify-center text-2xl">
+              <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-400 dark:text-slate-500 font-extrabold flex items-center justify-center text-2xl">
                 {currentUser.username[0]}
               </div>
             )}
             <div className="text-center">
-              <h4 className="font-black text-lg text-gray-900 flex items-center justify-center gap-1.5">
+              <h4 className="font-black text-lg text-gray-900 dark:text-white flex items-center justify-center gap-1.5">
                 <span>{currentUser.username}</span>
-                {isStaff && <ShieldCheck className="w-4 h-4 text-black shrink-0" />}
+                {isStaff && <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />}
               </h4>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
                 @{currentUser.username.toLowerCase().replace(/\s+/g, '_')}
               </p>
             </div>
@@ -54,19 +54,19 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
 
           <div className="mt-6 flex items-center justify-center gap-6 text-center">
             <div>
-              <p className="text-sm font-black text-gray-900">{currentUser.followers_count}</p>
-              <p className="text-[10px] text-gray-400 font-bold">متابع</p>
+              <p className="text-sm font-black text-gray-900 dark:text-white">{currentUser.followers_count}</p>
+              <p className="text-[10px] text-gray-400 dark:text-slate-500 font-bold">متابع</p>
             </div>
-            <div className="w-px h-4 bg-gray-100" />
+            <div className="w-px h-4 bg-gray-100 dark:bg-slate-700" />
             <div>
-              <p className="text-sm font-black text-gray-900">{currentUser.total_points}</p>
-              <p className="text-[10px] text-gray-400 font-bold">نقطة</p>
+              <p className="text-sm font-black text-gray-900 dark:text-white">{currentUser.total_points}</p>
+              <p className="text-[10px] text-gray-400 dark:text-slate-500 font-bold">نقطة</p>
             </div>
           </div>
         </div>
 
         {/* Sidebar Menu Item Lists */}
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-2 flex flex-col gap-1 text-right">
+        <div className="bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl shadow-sm p-2 flex flex-col gap-1 text-right">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isSelected = activeTab === item.id;
@@ -76,16 +76,16 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
                 onClick={() => onNavigate(item.id)}
                 className={`w-full flex items-center justify-between px-4 py-4 rounded-xl transition-all cursor-pointer group text-right ${
                   isSelected
-                    ? "bg-gray-50 text-black"
-                    : "text-gray-500 hover:bg-gray-50 hover:text-black"
+                    ? "bg-gray-50 dark:bg-slate-700 text-slate-900 dark:text-white"
+                    : "text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 <div className="flex items-center gap-4">
                   <div className="transition-transform group-hover:scale-110">
-                    <Icon className={`w-6 h-6 ${isSelected ? "text-black" : "text-gray-400 group-hover:text-black"}`} />
+                    <Icon className={`w-6 h-6 ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white"}`} />
                   </div>
                   <div>
-                    <p className={`text-sm font-bold leading-none ${isSelected ? "text-black" : ""}`}>
+                    <p className={`text-sm font-bold leading-none ${isSelected ? "text-slate-900 dark:text-white" : ""}`}>
                       {item.name}
                     </p>
                   </div>
@@ -95,8 +95,8 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
                   <span
                     className={`text-[8px] font-black px-2 py-0.5 rounded-full ${
                       isSelected
-                        ? "bg-white text-blue-700"
-                        : "bg-red-50 text-red-600 font-mono"
+                        ? "bg-white dark:bg-slate-600 text-blue-700 dark:text-blue-300"
+                        : "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-mono"
                     }`}
                   >
                     {item.badge}
@@ -108,23 +108,23 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
 
           {/* Admin Emergency Reports Check */}
           {isStaff && (
-            <div className="mt-3 pt-3 border-t border-gray-100">
-              <p className="px-3 text-[10px] text-red-400 font-black mb-1">صلاحيات الإشراف</p>
+            <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
+              <p className="px-3 text-[10px] text-red-600 dark:text-red-400 font-black mb-1">صلاحيات الإشراف</p>
               <button
                 onClick={() => onNavigate("moderation")}
                 className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl transition-all cursor-pointer text-right ${
                   activeTab === "moderation"
-                    ? "bg-red-600 text-white shadow-sm"
-                    : "text-red-700 hover:bg-red-50"
+                    ? "bg-red-600 dark:bg-red-700 text-white shadow-sm"
+                    : "text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`p-1.5 rounded-lg ${activeTab === 'moderation' ? 'bg-white/10 text-white' : 'bg-red-50 text-red-600'}`}>
+                  <div className={`p-1.5 rounded-lg ${activeTab === 'moderation' ? 'bg-white/10 text-white' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'}`}>
                     <AlertTriangle className="w-4 h-4 animate-bounce" />
                   </div>
                   <div>
                     <p className="text-xs font-bold leading-none">مراجعة البلاغات</p>
-                    <p className={`text-[9px] mt-1 ${activeTab === 'moderation' ? 'not-italic text-red-100' : 'text-red-400'}`}>
+                    <p className={`text-[9px] mt-1 ${activeTab === 'moderation' ? 'not-italic text-red-100' : 'text-red-600 dark:text-red-400'}`}>
                       الميمز المبلغ عنها من المستخدمين
                     </p>
                   </div>
@@ -136,10 +136,10 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
 
         {/* Humorous Egypt Status/Credits line */}
         <div className="px-4 text-center">
-          <p className="text-[10px] text-gray-400 leading-normal">
+          <p className="text-[10px] text-gray-400 dark:text-slate-500 leading-normal">
             صُنع بحب في مصر
           </p>
-          <p className="text-[9px] text-gray-300 mt-1">
+          <p className="text-[9px] text-gray-300 dark:text-slate-600 mt-1">
             جميع الحقوق محفوظة للمنصة ٢٠٢٦ ©
           </p>
         </div>
