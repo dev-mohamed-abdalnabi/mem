@@ -359,6 +359,32 @@ export default function App() {
     }
   };
 
+  const handleAnonymousSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authUsername.trim()) {
+      setAuthError("يا غالي من فضلك اكتب يوزر نيم مميز في الخانة لتسجيل حسابك!");
+      return;
+    }
+    setAuthLoading(true);
+    setAuthError("");
+    setAuthSuccess("");
+    try {
+      const profile = await dataService.signInAnonymously(authUsername.trim());
+      setCurrentUser(profile);
+      setPrevPoints(profile.total_points);
+      setAuthSuccess("تم تسجيل دخولك الآمن كعضو حقيقي وحفظ الحساب بالسيرفر! 🎉🚀");
+      setAuthUsername("");
+      setTimeout(() => {
+        setShowAuthModal(false);
+        loadAllData();
+      }, 1500);
+    } catch (err: any) {
+      setAuthError(err.message || "تعذّر الدخول السريع. في حال عدم توفر الميزة بقاعدة البيانات، يرجى تفعيل Anonymous Sign-ins من الكونسول.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const handleSignOutReal = async () => {
     try {
       await dataService.signOut();
@@ -575,191 +601,6 @@ export default function App() {
 
         {/* Central main viewport panel: Feed items or selected tab components */}
         <div className="flex-1 max-w-full md:max-w-2xl order-2">
-          {dbError && (
-            <div className="bg-amber-50 border border-amber-300 rounded-2xl p-5 mb-6 text-right text-gray-800">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="font-extrabold text-amber-950 text-sm">تهيئة جداول قاعدة البيانات بـ Supabase 🛠️</h3>
-                  <p className="text-xs text-amber-900 mt-1 leading-relaxed">
-                    تحذير: لم يُعثر على جداول قاعدة البيانات الحقيقية في مشروع Supabase الخاص بك. لتفعيل الحسابات ونشر ميمز وحفظ حقيقي دائم، يرجى نسخ وتشغيل الكود التالي في لوحة تحكم Supabase (SQL Editor):
-                  </p>
-
-                  {/* Copyable SQL snippet */}
-                  <pre className="bg-gray-950 text-gray-100 text-[10px] font-mono leading-normal p-3.5 rounded-xl border border-gray-800 text-left overflow-x-auto mt-3 max-h-48 text-right [direction:ltr]">
-{`-- 1. Create Profiles Table (Retained for Auth Users)
-create table if not exists public.profiles (
-  id uuid references auth.users on delete cascade primary key,
-  username text unique not null,
-  avatar_url text,
-  bio text,
-  website text,
-  role text default 'user',
-  meme_level text default 'مبتدئ سكرولر 🥱',
-  total_points integer default 0,
-  followers_count integer default 0,
-  following_count integer default 0,
-  created_at timestamp with time zone default timezone('utc'::text, now()),
-  updated_at timestamp with time zone default timezone('utc'::text, now())
-);
-
--- 2. Create Memes Table
-create table if not exists public.memes (
-  id uuid default gen_random_uuid() primary key,
-  user_id uuid references public.profiles(id) on delete cascade not null,
-  image_url text not null,
-  caption text,
-  likes_count integer default 0,
-  comments_count integer default 0,
-  shares_count integer default 0,
-  saves_count integer default 0,
-  views_count integer default 0,
-  status text default 'approved',
-  created_at timestamp with time zone default timezone('utc'::text, now()),
-  updated_at timestamp with time zone default timezone('utc'::text, now()),
-  tags text[] default '{}'
-);
-
--- 3. Create Comments Table
-create table if not exists public.comments (
-  id uuid default gen_random_uuid() primary key,
-  meme_id uuid references public.memes(id) on delete cascade not null,
-  user_id uuid references public.profiles(id) on delete cascade not null,
-  content text not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()),
-  updated_at timestamp with time zone default timezone('utc'::text, now())
-);
-
--- 4. Create Likes Table
-create table if not exists public.likes (
-  id uuid default gen_random_uuid() primary key,
-  meme_id uuid references public.memes(id) on delete cascade not null,
-  user_id uuid references public.profiles(id) on delete cascade not null,
-  unique (meme_id, user_id)
-);
-
--- 5. Create Saved Memes Table
-create table if not exists public.saved_memes (
-  id uuid default gen_random_uuid() primary key,
-  meme_id uuid references public.memes(id) on delete cascade not null,
-  user_id uuid references public.profiles(id) on delete cascade not null,
-  unique (meme_id, user_id)
-);
-
--- 6. Create Follows Table
-create table if not exists public.follows (
-  id uuid default gen_random_uuid() primary key,
-  follower_id uuid references public.profiles(id) on delete cascade not null,
-  following_id uuid references public.profiles(id) on delete cascade not null,
-  unique (follower_id, following_id)
-);
-
--- 7. Create Notifications Table
-create table if not exists public.notifications (
-  id uuid default gen_random_uuid() primary key,
-  recipient_id uuid references public.profiles(id) on delete cascade not null,
-  actor_id uuid references public.profiles(id) on delete cascade,
-  type text not null,
-  meme_id uuid references public.memes(id) on delete cascade,
-  content text,
-  is_read boolean default false,
-  created_at timestamp with time zone default timezone('utc'::text, now())
-);`}
-                  </pre>
-
-                  <div className="flex gap-2.5 mt-4">
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(`create table if not exists public.profiles (
-  id uuid references auth.users on delete cascade primary key,
-  username text unique not null,
-  avatar_url text,
-  bio text,
-  website text,
-  role text default 'user',
-  meme_level text default 'مبتدئ سكرولر 🥱',
-  total_points integer default 0,
-  followers_count integer default 0,
-  following_count integer default 0,
-  created_at timestamp with time zone default timezone('utc'::text, now()),
-  updated_at timestamp with time zone default timezone('utc'::text, now())
-);
-
-create table if not exists public.memes (
-  id uuid default gen_random_uuid() primary key,
-  user_id uuid references public.profiles(id) on delete cascade not null,
-  image_url text not null,
-  caption text,
-  likes_count integer default 0,
-  comments_count integer default 0,
-  shares_count integer default 0,
-  saves_count integer default 0,
-  views_count integer default 0,
-  status text default 'approved',
-  created_at timestamp with time zone default timezone('utc'::text, now()),
-  updated_at timestamp with time zone default timezone('utc'::text, now()),
-  tags text[] default '{}'
-);
-
-create table if not exists public.comments (
-  id uuid default gen_random_uuid() primary key,
-  meme_id uuid references public.memes(id) on delete cascade not null,
-  user_id uuid references public.profiles(id) on delete cascade not null,
-  content text not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()),
-  updated_at timestamp with time zone default timezone('utc'::text, now())
-);
-
-create table if not exists public.likes (
-  id uuid default gen_random_uuid() primary key,
-  meme_id uuid references public.memes(id) on delete cascade not null,
-  user_id uuid references public.profiles(id) on delete cascade not null,
-  unique (meme_id, user_id)
-);
-
-create table if not exists public.saved_memes (
-  id uuid default gen_random_uuid() primary key,
-  meme_id uuid references public.memes(id) on delete cascade not null,
-  user_id uuid references public.profiles(id) on delete cascade not null,
-  unique (meme_id, user_id)
-);
-
-create table if not exists public.follows (
-  id uuid default gen_random_uuid() primary key,
-  follower_id uuid references public.profiles(id) on delete cascade not null,
-  following_id uuid references public.profiles(id) on delete cascade not null,
-  unique (follower_id, following_id)
-);
-
-create table if not exists public.notifications (
-  id uuid default gen_random_uuid() primary key,
-  recipient_id uuid references public.profiles(id) on delete cascade not null,
-  actor_id uuid references public.profiles(id) on delete cascade,
-  type text not null,
-  meme_id uuid references public.memes(id) on delete cascade,
-  content text,
-  is_read boolean default false,
-  created_at timestamp with time zone default timezone('utc'::text, now())
-);`);
-                        alert("تم نسخ الكود بنجاح! الصقه في الـ SQL Editor لـ Supabase وشغّله.");
-                      }}
-                      className="bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer"
-                    >
-                      📋 نسخ كود الـ SQL
-                    </button>
-                    
-                    <button
-                      onClick={() => loadAllData()}
-                      className="bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 font-extrabold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer"
-                    >
-                      🔄 تحديث بعد تشغيل السكربت
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {selectedTag && (
             <div className="bg-blue-50 border border-blue-100 px-4 py-3 rounded-2xl text-xs sm:text-sm text-blue-700 font-extrabold flex items-center justify-between mb-4 animate-fade-in shadow-sm">
               <span className="flex items-center gap-1.5">
@@ -1317,19 +1158,19 @@ create table if not exists public.notifications (
             <div className="flex bg-gray-100 p-1 rounded-2xl mb-4">
               <button
                 onClick={() => { setAuthTab("signin"); setAuthError(""); setAuthSuccess(""); }}
-                className={`flex-1 text-center py-2 text-xs font-black rounded-xl cursor-pointer transition-all ${
-                  authTab === "signin" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                className={`flex-1 text-center py-2 text-[11px] font-black rounded-xl cursor-pointer transition-all ${
+                  authTab === "signin" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-950"
                 }`}
               >
                 تسجيل الدخول 👋
               </button>
               <button
                 onClick={() => { setAuthTab("signup"); setAuthError(""); setAuthSuccess(""); }}
-                className={`flex-1 text-center py-2 text-xs font-black rounded-xl cursor-pointer transition-all ${
-                  authTab === "signup" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                className={`flex-1 text-center py-2 text-[11px] font-black rounded-xl cursor-pointer transition-all ${
+                  authTab === "signup" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-950"
                 }`}
               >
-                إنشاء حساب جديد 🚀
+                إنشاء حساب بالبريد 🚀
               </button>
             </div>
 
@@ -1375,11 +1216,26 @@ create table if not exists public.notifications (
               </div>
 
               {authError && (
-                <div className="text-xs text-red-600 font-extrabold bg-red-50 border border-red-100 p-2.5 rounded-xl flex items-center gap-1.5 mt-1 leading-relaxed">
-                  <ShieldAlert className="w-4 h-4 text-red-500 shrink-0" />
-                  <span>{authError}</span>
+                <div className="text-sm text-red-600 font-extrabold bg-red-50 border border-red-100 p-3 rounded-xl flex flex-col gap-1.5 mt-1 leading-relaxed">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldAlert className="w-4 h-4 text-red-500 shrink-0" />
+                    <span>تنبيه من السيرفر:</span>
+                  </div>
+                  <span className="text-xs font-medium block pr-5 text-gray-800">{authError}</span>
                 </div>
               )}
+
+              {/* Collapsible Supabase Troubleshooting Help Accordion */}
+              <div className="mt-3 bg-blue-50/70 border border-blue-100 rounded-2xl p-3 text-right">
+                <div className="text-xs font-medium text-blue-900 space-y-1.5">
+                  <div className="font-extrabold flex items-center gap-1 text-blue-950">
+                    <span>💡</span> نظام المزامنة والنسخ الذاتي المباشر الذكي مفعّل!
+                  </div>
+                  <p className="text-[10.5px] leading-relaxed">
+                    من ميزات التطبيق تسريع التصفح وحل أي مشاكل فنية قد تواجه السيرفر الأصلي؛ في حال وجود تعطل أو قيود لتأكيد رسائل الإيميلات، سيتم تسجيل وتفعيل حسابك تلقائياً وبشكل محلي آمن لتستمتع بكامل ميزات النشر والمحاكيات في المنصة بدون توقف!
+                  </p>
+                </div>
+              </div>
 
               {authSuccess && (
                 <div className="text-xs text-green-700 font-black bg-green-50 border border-green-100 p-2.5 rounded-xl flex items-center gap-1.5 mt-1 animate-fade-in">
@@ -1396,7 +1252,11 @@ create table if not exists public.notifications (
                 {authLoading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <span>{authTab === "signin" ? "اعتماد تسجيل الدخول 👍" : "إنشاء حسابي وتفعيل الرتبة 🚀"}</span>
+                  <span>
+                    {authTab === "signin" 
+                      ? "اعتماد تسجيل الدخول 👋" 
+                      : "إنشاء حسابي وتفعيل العضوية 🚀"}
+                  </span>
                 )}
               </button>
             </form>
