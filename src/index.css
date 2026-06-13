@@ -19,26 +19,26 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --background: #0f172a;
-    --foreground: #f8fafc;
-    --card: #1e293b;
-    --card-foreground: #f8fafc;
-    --border: #334155;
+    --background: #0a0e27;
+    --foreground: #f1f5f9;
+    --card: #1a1f3a;
+    --card-foreground: #f1f5f9;
+    --border: #2d3748;
     --primary: #60a5fa;
-    --muted: #1e293b;
-    --muted-foreground: #94a3b8;
+    --muted: #111827;
+    --muted-foreground: #cbd5e1;
   }
 }
 
 :root.dark {
-  --background: #0f172a;
-  --foreground: #f8fafc;
-  --card: #1e293b;
-  --card-foreground: #f8fafc;
-  --border: #334155;
+  --background: #0a0e27;
+  --foreground: #f1f5f9;
+  --card: #1a1f3a;
+  --card-foreground: #f1f5f9;
+  --border: #2d3748;
   --primary: #60a5fa;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
+  --muted: #111827;
+  --muted-foreground: #cbd5e1;
 }
 
 body {
@@ -46,14 +46,111 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   direction: rtl;
-  transition: background-color 0.3s, color 0.3s;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Update common components to use variables */
-.bg-white { background-color: var(--card) !important; }
-.text-slate-900 { color: var(--foreground) !important; }
-.text-slate-600 { color: var(--muted-foreground) !important; }
-.border-slate-100, .border-slate-200 { border-color: var(--border) !important; }
-.bg-slate-50 { background-color: var(--muted) !important; }
+.bg-white { 
+  background-color: var(--card) !important;
+  color: var(--card-foreground) !important;
+}
 
+.text-slate-900 { 
+  color: var(--foreground) !important; 
+}
 
+.text-slate-600 { 
+  color: var(--muted-foreground) !important; 
+}
+
+.text-slate-700 {
+  color: var(--foreground) !important;
+}
+
+.text-gray-900 {
+  color: var(--foreground) !important;
+}
+
+.text-gray-800 {
+  color: var(--foreground) !important;
+}
+
+.text-gray-700 {
+  color: var(--foreground) !important;
+}
+
+.text-gray-600 {
+  color: var(--muted-foreground) !important;
+}
+
+.text-gray-500 {
+  color: var(--muted-foreground) !important;
+}
+
+.text-gray-400 {
+  color: var(--muted-foreground) !important;
+}
+
+.border-slate-100, 
+.border-slate-200,
+.border-gray-100,
+.border-gray-200 { 
+  border-color: var(--border) !important; 
+}
+
+.bg-slate-50,
+.bg-gray-50 { 
+  background-color: var(--muted) !important; 
+}
+
+.bg-gray-100 {
+  background-color: var(--muted) !important;
+  color: var(--foreground) !important;
+}
+
+.bg-gray-200 {
+  background-color: #2d3748 !important;
+  color: var(--foreground) !important;
+}
+
+/* Header specific fixes */
+header {
+  background-color: rgba(var(--card-rgb), 0.8) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+/* Input fields */
+input, textarea {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
+
+input::placeholder {
+  color: var(--muted-foreground) !important;
+}
+
+/* Card backgrounds */
+.rounded-2xl {
+  background-color: var(--card) !important;
+  color: var(--card-foreground) !important;
+}
+
+/* Make sure buttons contrast well */
+button {
+  color: var(--foreground) !important;
+}
+
+.hover\:bg-gray-50:hover,
+.hover\:bg-gray-100:hover {
+  background-color: var(--muted) !important;
+}
+
+/* Links and interactive text */
+a, .text-blue-600 {
+  color: var(--primary) !important;
+}
+
+.text-blue-700 {
+  color: #93c5fd !important;
+}
