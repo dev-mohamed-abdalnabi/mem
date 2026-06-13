@@ -71,6 +71,14 @@ export default function App() {
 
   useEffect(() => {
     loadAllData();
+    
+    // Check for shared meme in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedMemeId = urlParams.get('meme');
+    if (sharedMemeId) {
+      // In a real app we'd fetch just this meme or scroll to it
+      console.log("Shared meme ID:", sharedMemeId);
+    }
   }, []);
 
   const loadAllData = async () => {
@@ -232,9 +240,10 @@ export default function App() {
         }));
 
         if (currentUser.id === followerId) {
-          setCurrentUser(prev => ({ ...prev, following_count: prev.following_count + 1 }));
+          const updatedUser = { ...currentUser, following_count: currentUser.following_count + 1 };
+          setCurrentUser(updatedUser);
           // Update localStorage to persist the change
-          localStorage.setItem("memesbook_current_user", JSON.stringify({ ...currentUser, following_count: currentUser.following_count + 1 }));
+          localStorage.setItem("memesbook_current_user", JSON.stringify(updatedUser));
         }
 
         if (currentUser.id === followingId) {
@@ -1174,6 +1183,50 @@ export default function App() {
           )}
 
 
+          {activeTab === "saves" && (
+            <div className="flex flex-col gap-4 animate-fade-in">
+              <div className="bg-white border border-gray-100 rounded-3xl p-6 text-right relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-full h-24 bg-gradient-to-l from-orange-500 to-yellow-600 opacity-10 rounded-t-3xl"></div>
+                <div className="relative">
+                  <h2 className="font-black text-xl text-gray-900 flex items-center gap-2">
+                    <Bookmark className="w-6 h-6 text-orange-500" />
+                    <span>الميمز المحفوظة</span>
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-1">الميمز اللي عجبتك وشيلتها عشان تضحك عليها تاني بعدين! 😂</p>
+                </div>
+              </div>
+
+              {memes.filter(m => m.saved_by_me).length === 0 ? (
+                <div className="bg-white border border-gray-100 rounded-3xl p-12 text-center text-gray-400">
+                  <Bookmark className="w-12 h-12 mx-auto text-gray-200 mb-4" />
+                  <p className="font-extrabold text-sm text-gray-700">لسه محفظتش أي ميم يا كبير!</p>
+                  <p className="text-xs text-gray-400 mt-1">دوس على علامة الحفظ في أي ميم وهتلاقيه مستنيك هنا.</p>
+                </div>
+              ) : (
+                memes.filter(m => m.saved_by_me).map((meme) => (
+                  <MemeCard
+                    key={meme.id}
+                    meme={meme}
+                    currentUser={currentUser}
+                    onLikeToggle={handleLikeToggle}
+                    onSaveToggle={handleSaveToggle}
+                    onFollowToggle={handleFollowToggle}
+                    onTagClick={(tag) => setSelectedTag(tag)}
+                    onDeleteComment={() => {}}
+                    onReportSubmit={handleReportSubmit}
+                    onShareCompleted={handleShareCompleted}
+                    onDeleteMeme={handleDeleteMeme}
+                    onUserProfileClick={(uid) => {
+                      setSelectedProfileId(uid);
+                      setActiveTab("user-profile");
+                    }}
+                    isFollowingCreator={followingIds.includes(meme.user_id)}
+                  />
+                ))
+              )}
+            </div>
+          )}
+
           {activeTab === "moderation" && (
             <div className="bg-white border border-gray-100 rounded-3xl shadow-sm p-6 text-right flex flex-col gap-5 animate-fade-in">
               <div>
@@ -1302,12 +1355,12 @@ export default function App() {
 
         <button
           onClick={() => {
-            setActiveTab("leaderboard");
+            setActiveTab("saves");
             setSelectedTag(null);
           }}
-          className={`${activeTab === 'leaderboard' ? 'text-black' : 'text-gray-400'}`}
+          className={`${activeTab === 'saves' ? 'text-black' : 'text-gray-400'}`}
         >
-          <Trophy className="w-6 h-6" />
+          <Bookmark className="w-6 h-6" />
         </button>
 
         <button

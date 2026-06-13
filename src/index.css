@@ -20,27 +20,27 @@
 
 /* ===== DARK MODE (EXPLICIT .dark CLASS) ===== */
 :root.dark {
-  --background: #000000;
-  --foreground: #e7e9ea;
-  --card: #000000;
-  --card-foreground: #e7e9ea;
-  --border: #2f3336;
-  --primary: #1d9bf0;
-  --muted: #16181c;
-  --muted-foreground: #71767b;
+  --background: #0f1419;
+  --foreground: #ffffff;
+  --card: #1a1f2e;
+  --card-foreground: #ffffff;
+  --border: #2d3748;
+  --primary: #60a5fa;
+  --muted: #0a0e17;
+  --muted-foreground: #e2e8f0;
 }
 
 /* ===== DARK MODE (SYSTEM PREFERENCE - ONLY IF NO .light CLASS) ===== */
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --background: #000000;
-    --foreground: #e7e9ea;
-    --card: #000000;
-    --card-foreground: #e7e9ea;
-    --border: #2f3336;
-    --primary: #1d9bf0;
-    --muted: #16181c;
-    --muted-foreground: #71767b;
+    --background: #0f1419;
+    --foreground: #ffffff;
+    --card: #1a1f2e;
+    --card-foreground: #ffffff;
+    --border: #2d3748;
+    --primary: #60a5fa;
+    --muted: #0a0e17;
+    --muted-foreground: #e2e8f0;
   }
 }
 
@@ -162,9 +162,9 @@ header {
 
 /* ===== BOTTOM NAVIGATION ===== */
 nav {
-  background-color: rgba(var(--card), 0.8) !important;
+  background-color: var(--card) !important;
   border-top-color: var(--border) !important;
-  backdrop-filter: blur(10px);
+  backdrop-filter: none !important;
   color: var(--foreground) !important;
 }
 

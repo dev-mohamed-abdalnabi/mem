@@ -102,9 +102,9 @@ export default function MemeCard({
     // Increment sharing counter via API
     onShareCompleted(meme.id);
     
-    // Copy fake link or trigger browser feedback
-    const fakeLink = `${window.location.origin}/memes/${meme.id}`;
-    navigator.clipboard.writeText(fakeLink).then(() => {
+    // Copy real link to the clipboard
+    const shareLink = `${window.location.origin}/?meme=${meme.id}`;
+    navigator.clipboard.writeText(shareLink).then(() => {
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
     }).catch(() => {
@@ -177,12 +177,19 @@ export default function MemeCard({
                 </div>
               )}
             </div>
-            <button 
-              onClick={() => onFollowToggle(currentUser.id, creator.id)}
-              className="absolute -bottom-1 -left-1 bg-black text-white rounded-full w-4 h-4 flex items-center justify-center border-2 border-white hover:scale-110 transition-transform"
-            >
-              <PlusCircle className="w-3 h-3" />
-            </button>
+            {!isFollowingCreator && currentUser.id !== creator.id && (
+              <button 
+                onClick={() => onFollowToggle(currentUser.id, creator.id)}
+                className="absolute -bottom-1 -left-1 bg-black text-white rounded-full w-4 h-4 flex items-center justify-center border-2 border-white hover:scale-110 transition-transform"
+              >
+                <PlusCircle className="w-3 h-3" />
+              </button>
+            )}
+            {isFollowingCreator && currentUser.id !== creator.id && (
+              <div className="absolute -bottom-1 -left-1 bg-green-500 text-white rounded-full w-4 h-4 flex items-center justify-center border-2 border-white">
+                <Check className="w-2.5 h-2.5" />
+              </div>
+            )}
           </div>
           <div className="w-0.5 grow bg-gray-100 rounded-full"></div>
           <div className="flex -space-x-1.5 rtl:space-x-reverse mb-1">

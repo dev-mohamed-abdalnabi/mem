@@ -84,8 +84,9 @@ export default function Header({
           <div 
             onClick={() => onNavigate("leaderboard")}
             className="bg-gray-50 text-black hover:bg-gray-100 px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold cursor-pointer select-none transition-all mr-2"
+            title="لوحة الشرف"
           >
-            <Flame className="w-4 h-4 text-black" />
+            <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
             <span>{currentUser.total_points}</span>
           </div>
         </div>
