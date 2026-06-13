@@ -48,14 +48,14 @@ export default function ProfilePage({
   setLightboxImage,
 }: ProfilePageProps) {
   
-  // إدارة حالات التعديل زي فيسبوك بالملي
+  // الـ States الخاصة بالتعديل والتبويبات
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempBio, setTempBio] = useState(profile.bio || "");
   const [tempName, setTempName] = useState(profile.username);
   
-  // التبويب النشط حالياً داخل الصفحة
-  const [localTab, setLocalTab] = useState<"posts" | "about">("posts");
+  // تبويب محلي آمن عشان نمنع الكراش الأسود نهائياً
+  const [currentTab, setCurrentTab] = useState<"posts" | "about">("posts");
 
   const onFollowClick = async () => {
     if (!isRealUser) {
@@ -65,7 +65,7 @@ export default function ProfilePage({
     await handleFollowToggle(currentUser.id, profile.id);
   };
 
-  // حفظ الاسم الجديد
+  // حفظ الاسم
   const handleSaveName = async () => {
     if (!tempName.trim()) return;
     try {
@@ -78,7 +78,7 @@ export default function ProfilePage({
     }
   };
 
-  // حفظ النبذة الجديدة
+  // حفظ النبذة
   const handleSaveBio = async () => {
     try {
       setCurrentUser(prev => ({ ...prev, bio: tempBio }));
@@ -93,11 +93,11 @@ export default function ProfilePage({
   return (
     <div className="w-full min-h-screen bg-[#F0F2F5] dark:bg-[#0B0F19] text-gray-950 dark:text-gray-100 font-sans pb-12">
       
-      {/* هيدر فيسبوك */}
+      {/* هيدر البروفايل */}
       <div className="w-full bg-white dark:bg-[#111827] shadow-md border-b border-gray-200 dark:border-gray-800/60 rounded-b-2xl sm:rounded-b-[2rem]">
         <div className="max-w-5xl mx-auto relative">
           
-          {/* الغلاف (Cover Photo) */}
+          {/* صورة الغلاف */}
           <div
             className="w-full h-52 sm:h-80 bg-gradient-to-r from-blue-600 to-indigo-700 relative bg-cover bg-center sm:rounded-b-2xl overflow-hidden cursor-pointer group"
             style={(profile as any).cover_url ? { backgroundImage: `url(${(profile as any).cover_url})` } : undefined}
@@ -128,12 +128,12 @@ export default function ProfilePage({
             )}
           </div>
 
-          {/* بيانات الحساب والأزرار الرئيسية */}
+          {/* تفاصيل الهيدر السفلي الأنيق */}
           <div className="px-4 sm:px-8 pb-2 flex flex-col md:flex-row items-center md:items-end justify-between relative -mt-20 sm:-mt-24 gap-6">
             
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 text-center sm:text-right w-full min-w-0">
               
-              {/* الأفاتار الشخصي */}
+              {/* صورة الأفاتار */}
               <div className="relative shrink-0 group">
                 <div
                   className="w-36 h-36 sm:w-44 sm:h-44 rounded-full border-4 border-white dark:border-[#111827] bg-gray-100 dark:bg-gray-800 shadow-xl overflow-hidden cursor-pointer relative"
@@ -166,7 +166,7 @@ export default function ProfilePage({
                 )}
               </div>
 
-              {/* الاسم والحالة المقاتلة */}
+              {/* نصوص الحساب والاسم */}
               <div className="pb-2 min-w-0 flex-1">
                 <div className="flex items-center justify-center sm:justify-start gap-2 mb-1 min-h-[44px]">
                   {isEditingName ? (
@@ -183,7 +183,7 @@ export default function ProfilePage({
                     <>
                       <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white truncate">{profile.username}</h1>
                       {isOwnProfile && (
-                        <button onClick={() => setIsEditingName(true)} className="p-1 text-gray-400 hover:text-blue-500 transition-colors" title="تعديل الاسم"><Edit2 className="w-4 h-4" /></button>
+                        <button onClick={() => setIsEditingName(true)} className="p-1 text-gray-400 hover:text-blue-500 transition-colors"><Edit2 className="w-4 h-4" /></button>
                       )}
                       <Flame className="w-5 h-5 text-orange-500 shrink-0 animate-pulse" />
                     </>
@@ -201,7 +201,7 @@ export default function ProfilePage({
               </div>
             </div>
 
-            {/* الأزرار التفاعلية على اليسار */}
+            {/* أزرار التحكم الرئيسية (تم تصليح الزرار الكبير هنا) */}
             <div className="flex gap-2 w-full md:w-auto justify-center shrink-0 mb-2">
               {!isOwnProfile && isRealUser ? (
                 <>
@@ -224,28 +224,36 @@ export default function ProfilePage({
                   تسجيل الدخول للمجرة
                 </button>
               ) : isOwnProfile ? (
-                <button onClick={() => setIsEditingBio(true)} className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 px-5 py-2.5 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all active:scale-95">
-                  <Edit2 className="w-4 h-4" /> <span>تعديل السيرة والنبذة</span>
+                /* زرار التعديل الكبير شغال ويقوم بفتح تعديل النبذة تلقائياً */
+                <button 
+                  onClick={() => {
+                    setIsEditingBio(true);
+                    // لو النبذة تحت في الصفحة مش باينة، هنعمل Scroll خفيف ليها
+                    document.getElementById("bio-section")?.scrollIntoView({ behavior: "smooth" });
+                  }} 
+                  className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 px-5 py-2.5 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all active:scale-95 border border-gray-200 dark:border-gray-700 shadow-sm"
+                >
+                  <Edit2 className="w-4 h-4 text-blue-500" /> <span>تعديل السيرة والنبذة</span>
                 </button>
               ) : null}
             </div>
 
           </div>
 
-          {/* شريط الأقسام (شغال حقيقي ومربوط بالستيت والـ Props) */}
+          {/* شريط التبويبات الفيس بوكي - آمن تماماً ضد الكراشات */}
           <div className="flex items-center px-4 sm:px-8 border-t border-gray-100 dark:border-gray-800/60 overflow-x-auto no-scrollbar">
             <button
-              onClick={() => { setLocalTab("posts"); setActiveTab("posts"); }}
+              onClick={() => setCurrentTab("posts")}
               className={`px-4 py-4 font-black text-sm whitespace-nowrap transition-all border-b-4 ${
-                localTab === "posts" ? "text-[#1877F2] border-[#1877F2]" : "text-gray-500 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                currentTab === "posts" ? "text-[#1877F2] border-[#1877F2]" : "text-gray-500 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50"
               }`}
             >
               المنشورات
             </button>
             <button
-              onClick={() => { setLocalTab("about"); }}
+              onClick={() => setCurrentTab("about")}
               className={`px-4 py-4 font-black text-sm whitespace-nowrap transition-all border-b-4 ${
-                localTab === "about" ? "text-[#1877F2] border-[#1877F2]" : "text-gray-500 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                currentTab === "about" ? "text-[#1877F2] border-[#1877F2]" : "text-gray-500 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50"
               }`}
             >
               حول العضو ومعلوماته
@@ -255,13 +263,13 @@ export default function ProfilePage({
         </div>
       </div>
 
-      {/* محتوى الصفحة السفلي */}
+      {/* المحتوى الفعلي حسب التبويب المختار */}
       <div className="max-w-5xl mx-auto w-full p-4 mt-2">
-        {localTab === "posts" ? (
+        {currentTab === "posts" ? (
           <div className="w-full flex flex-col md:flex-row gap-5">
             
             {/* اللوحة التعريفية الجانبية */}
-            <div className="w-full md:w-[350px] shrink-0 flex flex-col gap-4">
+            <div id="bio-section" className="w-full md:w-[350px] shrink-0 flex flex-col gap-4">
               <div className="bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 p-5 rounded-2xl shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-black text-lg text-gray-900 dark:text-white">اللوحة التعريفية</h3>
@@ -277,6 +285,7 @@ export default function ProfilePage({
                       onChange={(e) => setTempBio(e.target.value)}
                       className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 p-3 text-sm text-gray-800 dark:text-gray-200 rounded-xl resize-none text-center font-medium"
                       placeholder="اكتب إيفيه أو نبذة عنك يا أسطورة..." rows={3}
+                      autoFocus
                     />
                     <div className="flex gap-2 justify-end">
                       <button onClick={() => { setTempBio(profile.bio || ""); setIsEditingBio(false); }} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg text-xs font-bold">إلغاء</button>
@@ -306,7 +315,7 @@ export default function ProfilePage({
               </div>
             </div>
 
-            {/* الفيد الرئيسي للميمز */}
+            {/* الفيد الرئيسي للميمز المنشورة */}
             <div className="flex-1 flex flex-col gap-4">
               <div className="bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 p-4 rounded-2xl shadow-sm flex items-center justify-between">
                 <h3 className="font-black text-gray-900 dark:text-white text-base">أرشيف الإيفيهات المرفوعة</h3>
@@ -338,12 +347,12 @@ export default function ProfilePage({
 
           </div>
         ) : (
-          /* فيو تبويب "حول العضو" عشان الأزرار تبقا شغالة بجد */
-          <div className="w-full bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 p-6 rounded-2xl shadow-sm">
+          /* تبويب "حول العضو" الفرعي */
+          <div className="w-full bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 p-6 rounded-2xl shadow-sm animate-fade-in">
             <h3 className="font-black text-xl mb-4 text-gray-900 dark:text-white">تفاصيل ومجرة {profile.username}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm font-bold text-gray-600 dark:text-gray-300">
               <div className="bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl">
-                <p className="text-xs text-gray-400 mb-1">المستوى الحالي</p>
+                <p className="text-xs text-gray-400 mb-1">المستوى الحالي في الميمز</p>
                 <p className="text-lg font-black text-blue-600 dark:text-blue-400">{profile.meme_level}</p>
               </div>
               <div className="bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl">
