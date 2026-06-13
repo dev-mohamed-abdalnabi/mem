@@ -15,7 +15,7 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
   const menuItems = [
     { id: "feed", name: "الرئيسية الفكاهية", icon: Home, badge: null, desc: "أحدث الكوميكس والميمز" },
     { id: "trending", name: "التريند الشائع", icon: Flame, badge: "ساخن", desc: "أقوى الميمز في الـ 24 ساعة الماضية" },
-    { id: "creator", name: "صانع الميمز الفوري", icon: Cpu, badge: "جديد", desc: "اصنع ميم خاص بك بضغطة زر" },
+
     { id: "leaderboard", name: "لوحة الشرف", icon: Trophy, badge: "الشرف", desc: "أعظم صناع الكوميديا العربية" },
     { id: "saves", name: "الميمز المحفوظة", icon: Bookmark, badge: savedCount > 0 ? savedCount.toString() : null, desc: "الميمز المحفوظة لوقت لاحق" },
   ];
@@ -23,49 +23,44 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
   return (
     <aside className="w-64 shrink-0 hidden md:block">
       <div className="sticky top-20 flex flex-col gap-6">
-        {/* Profile overview card customized */}
+        {/* Profile overview card Threads Style */}
         <div 
           onClick={() => onNavigate("profile")}
-          className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md cursor-pointer transition-all text-right group"
+          className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md cursor-pointer transition-all text-right group"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col items-center gap-3">
             {currentUser.avatar_url ? (
               <img
                 src={currentUser.avatar_url}
                 alt=""
-                className="w-12 h-12 rounded-xl object-cover border-2 border-blue-500 group-hover:scale-105 transition-all"
+                className="w-20 h-20 rounded-full object-cover border border-gray-100 group-hover:scale-105 transition-all"
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 font-extrabold flex items-center justify-center">
-                M
+              <div className="w-20 h-20 rounded-full bg-gray-100 text-gray-400 font-extrabold flex items-center justify-center text-2xl">
+                {currentUser.username[0]}
               </div>
             )}
-            <div className="flex-1 min-w-0">
-              <h4 className="font-extrabold text-sm text-gray-900 truncate flex items-center gap-1.5">
+            <div className="text-center">
+              <h4 className="font-black text-lg text-gray-900 flex items-center justify-center gap-1.5">
                 <span>{currentUser.username}</span>
-                {isStaff && <ShieldCheck className="w-4 h-4 text-green-500 shrink-0" />}
+                {isStaff && <ShieldCheck className="w-4 h-4 text-black shrink-0" />}
               </h4>
-              <p className="text-[10px] text-orange-600 font-bold leading-none mt-1">
-                {currentUser.meme_level}
+              <p className="text-xs text-gray-500 mt-1">
+                @{currentUser.username.toLowerCase().replace(/\s+/g, '_')}
               </p>
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between text-center gap-2">
-            <div className="flex-1">
-              <p className="text-[11px] text-gray-400 font-bold">النقاط</p>
-              <p className="text-sm font-black text-gray-900 font-mono">{currentUser.total_points}</p>
+          <div className="mt-6 flex items-center justify-center gap-6 text-center">
+            <div>
+              <p className="text-sm font-black text-gray-900">{currentUser.followers_count}</p>
+              <p className="text-[10px] text-gray-400 font-bold">متابع</p>
             </div>
-            <div className="w-px h-6 bg-gray-100 shrink-0" />
-            <div className="flex-1">
-              <p className="text-[11px] text-gray-400 font-bold">المتابِعون</p>
-              <p className="text-sm font-black text-gray-900 font-mono">{currentUser.followers_count}</p>
-            </div>
-            <div className="w-px h-6 bg-gray-100 shrink-0" />
-            <div className="flex-1">
-              <p className="text-[11px] text-gray-400 font-bold">تابعهم</p>
-              <p className="text-sm font-black text-gray-900 font-mono">{currentUser.following_count}</p>
+            <div className="w-px h-4 bg-gray-100" />
+            <div>
+              <p className="text-sm font-black text-gray-900">{currentUser.total_points}</p>
+              <p className="text-[10px] text-gray-400 font-bold">نقطة</p>
             </div>
           </div>
         </div>
@@ -79,26 +74,19 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
               <button
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl transition-all cursor-pointer group text-right ${
+                className={`w-full flex items-center justify-between px-4 py-4 rounded-xl transition-all cursor-pointer group text-right ${
                   isSelected
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-gray-700 hover:bg-gray-50"
+                    ? "bg-gray-50 text-black"
+                    : "text-gray-500 hover:bg-gray-50 hover:text-black"
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`p-1.5 rounded-lg transition-transform group-hover:scale-110 ${
-                      isSelected ? "bg-white/10 text-white" : "bg-gray-50 text-gray-500 group-hover:bg-blue-50 group-hover:text-blue-600"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
+                <div className="flex items-center gap-4">
+                  <div className="transition-transform group-hover:scale-110">
+                    <Icon className={`w-6 h-6 ${isSelected ? "text-black" : "text-gray-400 group-hover:text-black"}`} />
                   </div>
                   <div>
-                    <p className={`text-xs font-bold leading-none ${isSelected ? "text-white" : "text-gray-800"}`}>
+                    <p className={`text-sm font-bold leading-none ${isSelected ? "text-black" : ""}`}>
                       {item.name}
-                    </p>
-                    <p className={`text-[9px] mt-1 hidden lg:block ${isSelected ? "text-blue-100" : "text-gray-400"}`}>
-                      {item.desc}
                     </p>
                   </div>
                 </div>

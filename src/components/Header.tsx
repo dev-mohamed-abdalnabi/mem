@@ -42,7 +42,7 @@ export default function Header({
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm transition-all">
+    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 transition-all">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
         {/* Logo and Branding (RTL Friendly) */}
         <div className="flex items-center gap-3">
@@ -51,29 +51,23 @@ export default function Header({
             className="flex items-center gap-2 cursor-pointer select-none group"
             id="brand_logo_main"
           >
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xl shadow-md group-hover:scale-105 transition-all">
-              M
+            <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center text-white font-black text-2xl shadow-md group-hover:scale-105 transition-all">
+              @
             </div>
             <div className="hidden sm:block">
-              <h1 className="font-extrabold text-lg text-gray-900 tracking-tight leading-none">
-                ميمز بوك
+              <h1 className="font-extrabold text-xl text-black tracking-tight leading-none">
+                MEM
               </h1>
-              <p className="text-[10px] text-blue-500 font-bold tracking-widest mt-0.5">
-                MEMESBOOK
-              </p>
             </div>
           </div>
 
           {/* Points Status */}
           <div 
             onClick={() => onNavigate("leaderboard")}
-            className="bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-semibold cursor-pointer select-none transition-all mr-2"
+            className="bg-gray-50 text-black hover:bg-gray-100 px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold cursor-pointer select-none transition-all mr-2"
           >
-            <Flame className="w-4 h-4 text-orange-500 fill-orange-500 animate-pulse" />
-            <span>{currentUser.total_points} نقطة</span>
-            <span className="hidden md:inline text-xs text-blue-500 bg-white/80 px-2 py-0.5 rounded-full border border-blue-200">
-              {currentUser.meme_level.split(" ")[0]}
-            </span>
+            <Flame className="w-4 h-4 text-black" />
+            <span>{currentUser.total_points}</span>
           </div>
         </div>
 
@@ -96,29 +90,16 @@ export default function Header({
           {/* Account Toggle/Status */}
           <button
             onClick={isRealUser ? onSignOutReal : onShowAuthModal}
-            className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black cursor-pointer shadow-sm transition-all flex items-center gap-1 shrink-0 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center gap-1 shrink-0 ${
               isRealUser 
-                ? "bg-green-100 text-green-800 hover:bg-green-200 border border-green-200"
-                : "bg-gradient-to-r from-orange-500 to-red-500 text-white hover:opacity-95"
+                ? "bg-white text-black border border-gray-200 hover:bg-gray-50"
+                : "bg-black text-white hover:bg-gray-800"
             }`}
           >
-            <span>{isRealUser ? "تسجيل الخروج" : "تسجيل الدخول"}</span>
+            <span>{isRealUser ? "خروج" : "دخول"}</span>
           </button>
 
-          {/* Create Meme Button */}
-          <button
-            onClick={() => onNavigate("creator")}
-            className={`px-2 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold flex items-center gap-1 cursor-pointer shadow-sm transition-all ${
-              activeTab === "creator"
-                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:opacity-95"
-                : "bg-blue-50 text-blue-600 hover:bg-blue-100"
-            }`}
-            id="create_meme_header_btn"
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span className="font-bold hidden sm:inline">استوديو الميمز</span>
-            <span className="font-bold sm:hidden">تصميم</span>
-          </button>
+
 
           {/* Notifications Trigger */}
           <div className="relative">
@@ -130,10 +111,10 @@ export default function Header({
                   onMarkNotificationsRead();
                 }
               }}
-              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-all cursor-pointer relative ${
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer relative ${
                 showNotificationsDropdown
-                  ? "bg-blue-50 border-blue-200 text-blue-600"
-                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                  ? "bg-gray-100 text-black"
+                  : "text-gray-400 hover:text-black hover:bg-gray-50"
               }`}
             >
               <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -229,12 +210,12 @@ export default function Header({
                 <img
                   src={currentUser.avatar_url}
                   alt={currentUser.username}
-                  className="w-8 h-8 rounded-xl object-cover border border-gray-200 ring-2 ring-blue-50"
+                  className="w-8 h-8 rounded-full object-cover border border-gray-100"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs font-black">
-                  U
+                <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center text-xs font-black">
+                  {currentUser.username[0]}
                 </div>
               )}
               <div className="hidden lg:block text-right">

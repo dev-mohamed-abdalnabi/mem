@@ -475,5 +475,25 @@ export const dataService = {
       .getPublicUrl(filePath);
 
     return publicUrl;
+  },
+
+  uploadAvatar: async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `avatars/${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from("memes")
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) throw new Error(`فشل رفع الصورة: ${error.message}`);
+
+    const { data: { publicUrl } } = supabase.storage
+      .from("memes")
+      .getPublicUrl(fileName);
+
+    return publicUrl;
   }
 };

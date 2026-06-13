@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { 
   Heart, MessageCircle, Share2, Bookmark, 
   Send, Trash2, AlertOctagon, UserPlus, Eye, 
-  Sparkles, Check, Frown, ShieldAlert 
+  Sparkles, Check, Frown, ShieldAlert, PlusCircle
 } from "lucide-react";
 import { Meme, Comment, Profile } from "../types";
 import { dataService } from "../services/dataService";
@@ -151,168 +151,106 @@ export default function MemeCard({
   };
 
   return (
-    <article className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden text-right flex flex-col mb-4 transition-all hover:shadow-md">
-      {/* Card Header */}
-      <div className="p-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          {creator.avatar_url ? (
-            <img
-              src={creator.avatar_url}
-              alt=""
-              className="w-10 h-10 rounded-xl object-cover border border-gray-100"
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-500 text-white font-extrabold flex items-center justify-center text-xs">
-              M
-            </div>
-          )}
-
-          <div>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-extrabold text-sm text-gray-900 hover:underline cursor-pointer">
-                {creator.username}
-              </span>
-              <span className="bg-orange-50 text-orange-600 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-orange-100 shrink-0">
-                {creator.meme_level}
-              </span>
-            </div>
-            <p className="text-[10px] text-gray-400 mt-0.5">
-              {new Date(meme.created_at).toLocaleDateString("ar-EG", {
-                weekday: 'long', hour: '2-digit', minute: '2-digit'
-              })}
-            </p>
+    <article className="bg-white border-b border-gray-100 text-right flex flex-col mb-0 transition-all hover:bg-gray-50/30">
+      <div className="flex gap-3 p-4">
+        {/* Left Column (Threads Style Line) */}
+        <div className="flex flex-col items-center gap-2 shrink-0">
+          <div className="relative">
+            {creator.avatar_url ? (
+              <img
+                src={creator.avatar_url}
+                alt=""
+                className="w-10 h-10 rounded-full object-cover border border-gray-100"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-xs">
+                {creator.username[0]}
+              </div>
+            )}
+            <button 
+              onClick={() => onFollowToggle(currentUser.id, creator.id)}
+              className="absolute -bottom-1 -left-1 bg-black text-white rounded-full w-4 h-4 flex items-center justify-center border-2 border-white hover:scale-110 transition-transform"
+            >
+              <PlusCircle className="w-3 h-3" />
+            </button>
+          </div>
+          <div className="w-0.5 grow bg-gray-100 rounded-full"></div>
+          <div className="flex -space-x-1.5 rtl:space-x-reverse mb-1">
+            <div className="w-4 h-4 rounded-full bg-gray-200 border border-white"></div>
+            <div className="w-4 h-4 rounded-full bg-gray-300 border border-white"></div>
           </div>
         </div>
 
-        {/* Follow Creator Trigger */}
-        {currentUser.id !== creator.id && (
-          <button
-            onClick={() => onFollowToggle(currentUser.id, creator.id)}
-            disabled={isFollowingCreator}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
-              isFollowingCreator
-                ? "bg-gray-50 text-gray-400 cursor-not-allowed border border-gray-100"
-                : "bg-blue-50 text-blue-600 hover:bg-blue-100"
-            }`}
-          >
-            {isFollowingCreator ? (
-              <>
-                <Check className="w-3.5 h-3.5" />
-                <span>متابع</span>
-              </>
-            ) : (
-              <>
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>متابعة</span>
-              </>
-            )}
-          </button>
-        )}
-      </div>
+        {/* Right Column (Content) */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-sm text-gray-900 hover:underline cursor-pointer">
+                {creator.username}
+              </span>
+              <span className="text-gray-400 text-xs">
+                {new Date(meme.created_at).toLocaleDateString("ar-EG", { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+            <button onClick={() => setShowReportModal(true)} className="text-gray-400 hover:text-gray-600">
+              <AlertOctagon className="w-4 h-4" />
+            </button>
+          </div>
 
-      {/* Meme Caption */}
-      {meme.caption && (
-        <div className="px-4 pb-2 text-sm text-gray-800 leading-relaxed font-semibold">
-          {parseCaption(meme.caption)}
+          {meme.caption && (
+            <div className="text-sm text-gray-800 leading-relaxed mb-3">
+              {parseCaption(meme.caption)}
+            </div>
+          )}
+
+          {meme.image_url && (
+            <div className="rounded-xl border border-gray-100 overflow-hidden mb-3 max-h-[500px] inline-block">
+              <img
+                src={meme.image_url}
+                alt=""
+                className="w-full h-full object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          )}
+
+          {/* Action Buttons (Threads Style) */}
+          <div className="flex items-center gap-4 py-1">
+            <button
+              onClick={handleLike}
+              className={`flex items-center gap-1 hover:scale-110 transition-transform ${meme.liked_by_me ? "text-red-500" : "text-gray-800"}`}
+            >
+              <Heart className={`w-5 h-5 ${meme.liked_by_me ? "fill-red-500" : ""}`} />
+            </button>
+            <button
+              onClick={() => setShowComments(!showComments)}
+              className="flex items-center gap-1 hover:scale-110 transition-transform text-gray-800"
+            >
+              <MessageCircle className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleShareClick}
+              className="flex items-center gap-1 hover:scale-110 transition-transform text-gray-800"
+            >
+              <Share2 className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleSave}
+              className={`flex items-center gap-1 hover:scale-110 transition-transform ${meme.saved_by_me ? "text-orange-500" : "text-gray-800"}`}
+            >
+              <Bookmark className={`w-5 h-5 ${meme.saved_by_me ? "fill-orange-500" : ""}`} />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 mt-2 text-xs text-gray-400 font-medium">
+            <span>{meme.likes_count} إعجاب</span>
+            <span>•</span>
+            <button onClick={() => setShowComments(!showComments)} className="hover:underline">
+              {meme.comments_count} ردود
+            </button>
+          </div>
         </div>
-      )}
-
-      {/* Meme Image Stage */}
-      <div className="bg-gray-50 relative border-y border-gray-50 flex items-center justify-center max-h-[480px] overflow-hidden group">
-        <img
-          src={meme.image_url}
-          alt="Meme Code"
-          className="w-full object-contain max-h-[480px] hover:scale-[1.01] transition-transform duration-300"
-          referrerPolicy="no-referrer"
-          id={`meme_image_${meme.id}`}
-        />
-        
-        {/* Floating views & actions banner */}
-        <div className="absolute bottom-3 right-3 bg-black/60 text-white text-[10px] px-2 py-1 rounded-lg backdrop-blur-sm flex items-center gap-1.5 font-bold">
-          <Eye className="w-3.5 h-3.5 text-blue-400" />
-          <span>{formatViews(meme.views_count)}</span>
-        </div>
-      </div>
-
-      {/* Statistics Row (Likes, Comments, Shares, Saves) */}
-      <div className="px-4 py-2 bg-gray-50/50 border-b border-gray-50 flex items-center justify-between text-xs text-gray-500 font-bold">
-        <div className="flex items-center gap-1">
-          <span className="text-gray-700 bg-red-100 p-1 rounded-full text-[10px] text-red-600">❤️</span>
-          <span>{meme.likes_count} لايك تفاعلي</span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button onClick={() => setShowComments(!showComments)} className="hover:underline">
-            {meme.comments_count} كمنت
-          </button>
-          <span>•</span>
-          <span>{meme.shares_count} شير</span>
-          <span>•</span>
-          <span>{meme.saves_count} حفظ</span>
-        </div>
-      </div>
-
-      {/* Reaction Control Buttons (Facebook Style) */}
-      <div className="px-2 py-1 border-b border-gray-100 flex items-center justify-between gap-1">
-        {/* Like */}
-        <button
-          onClick={handleLike}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-1 text-xs font-bold rounded-xl transition-all select-none cursor-pointer hover:bg-gray-50 ${
-            meme.liked_by_me
-              ? "text-red-500"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
-        >
-          <Heart
-            className={`w-4 h-4 transition-transform ${
-              meme.liked_by_me ? "fill-red-500 text-red-500 scale-125" : ""
-            } ${likeAnimating ? "animate-ping" : ""}`}
-          />
-          <span>{meme.liked_by_me ? "أعجبني ومصعّب" : "لايك مضحك"}</span>
-        </button>
-
-        {/* Comment toggle */}
-        <button
-          onClick={() => setShowComments(!showComments)}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-1 text-xs font-bold rounded-xl transition-all cursor-pointer hover:bg-gray-50 ${
-            showComments ? "text-blue-600 bg-blue-50/50" : "text-gray-600"
-          }`}
-        >
-          <MessageCircle className="w-4 h-4" />
-          <span>كمنت</span>
-        </button>
-
-        {/* Share */}
-        <button
-          onClick={handleShareClick}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-1 text-xs font-bold rounded-xl transition-all text-gray-600 cursor-pointer hover:bg-gray-50"
-        >
-          <Share2 className="w-4 h-4" />
-          <span>شير رابط</span>
-        </button>
-
-        {/* Save */}
-        <button
-          onClick={handleSave}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-1 text-xs font-bold rounded-xl transition-all cursor-pointer hover:bg-gray-50 ${
-            meme.saved_by_me ? "text-orange-500" : "text-gray-600"
-          }`}
-        >
-          <Bookmark 
-            className={`w-4 h-4 ${meme.saved_by_me ? "fill-orange-500 text-orange-500" : ""} ${saveAnimating ? "animate-bounce" : ""}`} 
-          />
-          <span>{meme.saved_by_me ? "محفوظ للزمن" : "حفظ الميم"}</span>
-        </button>
-
-        {/* Report Flag */}
-        <button
-          onClick={() => setShowReportModal(true)}
-          className="text-gray-400 hover:text-red-500 transition-colors p-2 rounded-xl"
-          title="إبلاغ عن ميم كرينج أو بياخة مفرطة"
-        >
-          <AlertOctagon className="w-4 h-4" />
-        </button>
       </div>
 
       {/* Copy Share Toast feedback */}

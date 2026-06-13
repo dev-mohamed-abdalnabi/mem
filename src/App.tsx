@@ -12,7 +12,7 @@ import { dataService, calculateMemeLevel } from "./services/dataService";
 import Header from "./components/Header.tsx";
 import Sidebar from "./components/Sidebar.tsx";
 import MemeCard from "./components/MemeCard.tsx";
-import MemeCreator from "./components/MemeCreator.tsx";
+// Removed MemeCreator as requested
 import Leaderboard from "./components/Leaderboard.tsx";
 
 const initialGuestProfile: Profile = {
@@ -243,11 +243,20 @@ export default function App() {
         tags
       });
 
-      // Insert on the feed
       setMemes((prev) => [newMeme, ...prev]);
-      updateUserPointsInState(5); // +5 Points for creating a funny meme!
+      updateUserPointsInState(5);
     } catch (err: any) {
-      throw err; // bubble up rating errors to MemeCreator
+      throw err;
+    }
+  };
+
+  const handleUpdateProfile = async (updates: Partial<Profile>) => {
+    try {
+      const updated = await dataService.updateProfile(updates);
+      setCurrentUser(updated);
+      setProfiles(prev => prev.map(p => p.id === updated.id ? updated : p));
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -817,16 +826,7 @@ export default function App() {
             </div>
           )}
 
-          {activeTab === "creator" && (
-            <MemeCreator
-              currentUser={currentUser}
-              onPublishMeme={handlePublishMeme}
-              onNavigate={(tab) => {
-                setActiveTab(tab);
-                setSelectedTag(null);
-              }}
-            />
-          )}
+
 
           {activeTab === "leaderboard" && (
             <Leaderboard
@@ -883,87 +883,111 @@ export default function App() {
           )}
 
           {activeTab === "profile" && (
-            <div className="bg-white border border-gray-100 rounded-3xl shadow-sm p-6 text-right flex flex-col gap-6 animate-fade-in">
-              <div className="flex flex-col sm:flex-row items-center gap-5 border-b border-gray-100 pb-6 text-center sm:text-right">
-                {currentUser.avatar_url ? (
-                  <img
-                    src={currentUser.avatar_url}
-                    alt={currentUser.username}
-                    className="w-20 h-20 rounded-2xl object-cover border-2 border-blue-500 shadow-md"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-2xl bg-blue-100 text-blue-600 font-extrabold flex items-center justify-center text-xl">U</div>
-                )}
-                
+            <div className="bg-white border border-gray-100 rounded-3xl shadow-sm p-8 text-right flex flex-col gap-6 animate-fade-in max-w-2xl mx-auto">
+              <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
-                  <h2 className="font-black text-xl text-gray-900">{currentUser.username}</h2>
-                  <p className="text-xs text-gray-400 font-mono mt-1">ID: {currentUser.id}</p>
-                  <p className="bg-slate-100 text-slate-700 font-bold px-3 py-1 rounded-full text-xs inline-block mt-2 font-semibold">
-                    الدور بالمنصة: {currentUser.role === 'admin' ? "مشرف رئيسي (كل الصلاحيات لك)" : "عضو نشط بالوزارة"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Score indicators */}
-              <div className="grid grid-cols-3 gap-3 bg-gray-50 border border-gray-100 p-4 rounded-2xl text-center">
-                <div>
-                  <h4 className="text-[11px] text-gray-400 font-bold">إجمالي النقاط (XP)</h4>
-                  <p className="text-lg font-black text-blue-600 font-mono">{currentUser.total_points}</p>
-                </div>
-                <div>
-                  <h4 className="text-[11px] text-gray-400 font-bold">المتابِعون</h4>
-                  <p className="text-lg font-black text-gray-900 font-mono">{currentUser.followers_count}</p>
-                </div>
-                <div>
-                  <h4 className="text-[11px] text-gray-400 font-bold">تتابعهم</h4>
-                  <p className="text-lg font-black text-gray-900 font-mono">{currentUser.following_count}</p>
-                </div>
-              </div>
-
-              {/* Bio & Details updates forms */}
-              <div className="flex flex-col gap-3">
-                <h3 className="font-extrabold text-sm text-gray-800">بيانات كارت التعريف الشخصي:</h3>
-                
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">النبذة التعريفية (Bio)</label>
+                  <h2 className="font-black text-2xl text-gray-900 mb-1">
+                    <input 
+                      type="text" 
+                      value={currentUser.username} 
+                      onChange={async (e) => {
+                        const newName = e.target.value;
+                        setCurrentUser(prev => ({ ...prev, username: newName }));
+                        try {
+                          await dataService.updateProfile({ username: newName });
+                        } catch (err) { console.error(err); }
+                      }}
+                      className="bg-transparent border-none focus:ring-0 p-0 w-full font-black"
+                      placeholder="اسم المستخدم"
+                    />
+                  </h2>
+                  <p className="text-sm text-gray-500 mb-4">{currentUser.username.toLowerCase().replace(/\s+/g, '_')}</p>
                   <textarea
-                    value={currentUser.bio || "ملك الميمز السكرولر والروح الرياضية الفكاهية 🕶️"}
-                    onChange={(e) => {
-                      const updated = { ...currentUser, bio: e.target.value };
-                      setCurrentUser(updated);
-                      localStorage.setItem("memesbook_current_user", JSON.stringify(updated));
+                    value={currentUser.bio || ""}
+                    onChange={async (e) => {
+                      const newBio = e.target.value;
+                      setCurrentUser(prev => ({ ...prev, bio: newBio }));
+                      try {
+                        await dataService.updateProfile({ bio: newBio });
+                      } catch (err) { console.error(err); }
                     }}
+                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm text-gray-800 resize-none"
+                    placeholder="اكتب نبذة عنك..."
                     rows={2}
-                    className="w-full bg-gray-50 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded-xl px-3 py-2 text-xs font-semibold"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">رابط الموقع الشخصي (Website)</label>
-                  <input
-                    type="text"
-                    value={currentUser.website || "memesbook.com/my-acc"}
-                    onChange={(e) => {
-                      const updated = { ...currentUser, website: e.target.value };
-                      setCurrentUser(updated);
-                      localStorage.setItem("memesbook_current_user", JSON.stringify(updated));
-                    }}
-                    className="w-full bg-gray-50 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded-xl px-3 py-2 text-xs font-mono"
-                  />
+                
+                <div className="relative group">
+                  <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 border border-gray-100 cursor-pointer relative">
+                    {currentUser.avatar_url ? (
+                      <img
+                        src={currentUser.avatar_url}
+                        alt={currentUser.username}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-400">
+                        {currentUser.username[0]}
+                      </div>
+                    )}
+                    <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                      <PlusCircle className="w-6 h-6 text-white" />
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            try {
+                              const url = await dataService.uploadAvatar(file);
+                              setCurrentUser(prev => ({ ...prev, avatar_url: url }));
+                              await dataService.updateProfile({ avatar_url: url });
+                            } catch (err) {
+                              alert("فشل رفع الصورة: " + (err as any).message);
+                            }
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
 
-              {/* User Levels Milestones details */}
-              <div className="pt-4 border-t border-gray-100 flex flex-col gap-3">
-                <h3 className="font-extrabold text-sm text-gray-800">مستواك الحالي وتطورك بالمنصة:</h3>
+              <div className="flex items-center gap-4 text-sm text-gray-400 mb-6">
+                <span>{currentUser.followers_count} متابع</span>
+                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                <a href={currentUser.website || "#"} className="hover:underline">{currentUser.website || "لا يوجد موقع"}</a>
+              </div>
+
+              <div className="flex gap-2 w-full">
+                <button 
+                  onClick={() => alert("سيتم حفظ التغييرات تلقائياً عند التعديل!")}
+                  className="flex-1 py-2 border border-gray-200 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors"
+                >
+                  تعديل الملف الشخصي
+                </button>
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    alert("تم نسخ رابط الملف الشخصي!");
+                  }}
+                  className="flex-1 py-2 border border-gray-200 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors"
+                >
+                  مشاركة الملف الشخصي
+                </button>
+              </div>
+
+              <div className="mt-8 border-t border-gray-100 pt-6">
+                <div className="flex justify-around border-b border-gray-100 pb-4">
+                  <button className="font-bold text-sm pb-4 border-b-2 border-black px-8">Threads</button>
+                  <button className="font-bold text-sm text-gray-400 pb-4 px-8">Replies</button>
+                  <button className="font-bold text-sm text-gray-400 pb-4 px-8">Reposts</button>
+                </div>
                 
-                <div className="bg-blue-50 border border-blue-100 px-4 py-3 rounded-2xl flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] text-blue-500 font-bold">اسم المستوى</p>
-                    <p className="font-bold text-sm text-blue-800 leading-tight mt-0.5">{currentUser.meme_level}</p>
-                  </div>
-                  <Award className="w-8 h-8 text-blue-600 fill-blue-100 shrink-0" />
+                <div className="py-12 text-center text-gray-400">
+                  <p className="text-sm">لم تقم بنشر أي ثريدز بعد.</p>
                 </div>
               </div>
             </div>
@@ -1073,17 +1097,16 @@ export default function App() {
         />
       </main>
 
-      {/* iOS/Android style bottom navigation bar for absolute mobile-friendly compliance */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 shadow-xl flex items-center justify-around py-3 md:hidden">
+      {/* Threads style bottom navigation bar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-xl border-t border-gray-100 flex items-center justify-around py-4 md:hidden">
         <button
           onClick={() => {
             setActiveTab("feed");
             setSelectedTag(null);
           }}
-          className={`flex flex-col items-center gap-1 cursor-pointer w-10 ${activeTab === 'feed' ? 'text-blue-600' : 'text-gray-400'}`}
+          className={`${activeTab === 'feed' ? 'text-black' : 'text-gray-400'}`}
         >
-          <Home className="w-5 h-5" />
-          <span className="text-[9px] font-bold">الرئيسية</span>
+          <Home className="w-6 h-6" />
         </button>
 
         <button
@@ -1091,21 +1114,9 @@ export default function App() {
             setActiveTab("trending");
             setSelectedTag(null);
           }}
-          className={`flex flex-col items-center gap-1 cursor-pointer w-10 ${activeTab === 'trending' ? 'text-blue-600' : 'text-gray-400'}`}
+          className={`${activeTab === 'trending' ? 'text-black' : 'text-gray-400'}`}
         >
-          <Flame className="w-5 h-5" />
-          <span className="text-[9px] font-bold">التريند</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveTab("creator");
-            setSelectedTag(null);
-          }}
-          className={`flex flex-col items-center gap-1 cursor-pointer w-10 ${activeTab === 'creator' ? 'text-blue-600' : 'text-gray-400'}`}
-        >
-          <Cpu className="w-5 h-5" />
-          <span className="text-[9px] font-bold">مصمم ميمز</span>
+          <Flame className="w-6 h-6" />
         </button>
 
         <button
@@ -1113,21 +1124,19 @@ export default function App() {
             setActiveTab("leaderboard");
             setSelectedTag(null);
           }}
-          className={`flex flex-col items-center gap-1 cursor-pointer w-10 ${activeTab === 'leaderboard' ? 'text-blue-600' : 'text-gray-400'}`}
+          className={`${activeTab === 'leaderboard' ? 'text-black' : 'text-gray-400'}`}
         >
-          <Trophy className="w-5 h-5" />
-          <span className="text-[9px] font-bold">المتصدرين</span>
+          <Trophy className="w-6 h-6" />
         </button>
 
         <button
           onClick={() => {
-            setActiveTab("saves");
+            setActiveTab("profile");
             setSelectedTag(null);
           }}
-          className={`flex flex-col items-center gap-1 cursor-pointer w-10 ${activeTab === 'saves' ? 'text-blue-600' : 'text-gray-400'}`}
+          className={`${activeTab === 'profile' ? 'text-black' : 'text-gray-400'}`}
         >
-          <Bookmark className="w-5 h-5" />
-          <span className="text-[9px] font-bold">المحفوظات</span>
+          <User className="w-6 h-6" />
         </button>
       </nav>
 
