@@ -11,6 +11,9 @@ interface HeaderProps {
   onUserSwitch: (profile: Profile) => void;
   availableProfiles: Profile[];
   onMarkNotificationsRead: () => void;
+  onShowAuthModal: () => void;
+  onSignOutReal: () => void;
+  isRealUser: boolean;
 }
 
 export default function Header({
@@ -21,7 +24,10 @@ export default function Header({
   activeTab,
   onUserSwitch,
   availableProfiles,
-  onMarkNotificationsRead
+  onMarkNotificationsRead,
+  onShowAuthModal,
+  onSignOutReal,
+  isRealUser
 }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -87,6 +93,18 @@ export default function Header({
 
         {/* Right Actions & Utilities */}
         <div className="flex items-center gap-2">
+          {/* Real Supabase Account Toggle/Status */}
+          <button
+            onClick={isRealUser ? onSignOutReal : onShowAuthModal}
+            className={`px-3 py-2 rounded-xl text-xs font-black cursor-pointer shadow-sm transition-all flex items-center gap-1 shrink-0 ${
+              isRealUser 
+                ? "bg-green-100 text-green-800 hover:bg-green-200 border border-green-300"
+                : "bg-gradient-to-r from-orange-500 to-red-500 text-white hover:opacity-95 shadow-md shadow-orange-100 animate-pulse"
+            }`}
+          >
+            <span>{isRealUser ? "تسجيل خروج حقيقي 🔓" : "🔐 حساب حقيقي (Supabase)"}</span>
+          </button>
+
           {/* Create Meme Button */}
           <button
             onClick={() => onNavigate("creator")}
@@ -237,40 +255,38 @@ export default function Header({
                   <p className="text-xs text-blue-600 font-mono mt-1">Level: {currentUser.meme_level}</p>
                 </div>
 
-                {/* Switcher */}
-                <div className="px-4 py-2 border-b border-gray-100 bg-gray-50/50">
-                  <p className="text-[10px] text-gray-400 font-bold mb-1.5">بدّل المستخدمين (للتجريب والتست):</p>
-                  <div className="flex flex-col gap-1">
-                    {availableProfiles.map((prof) => (
-                      <button
-                        key={prof.id}
-                        onClick={() => {
-                          onUserSwitch(prof);
-                          setShowUserDropdown(false);
-                        }}
-                        className={`flex items-center gap-2 p-1 rounded-xl text-right transition-colors w-full cursor-pointer ${
-                          prof.id === currentUser.id ? "bg-blue-50 text-blue-700" : "hover:bg-white border border-transparent hover:border-gray-200"
-                        }`}
-                      >
-                        {prof.avatar_url && (
-                          <img
-                            src={prof.avatar_url}
-                            alt=""
-                            className="w-6 h-6 rounded-lg object-cover border border-gray-200"
-                            referrerPolicy="no-referrer"
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold truncate leading-tight">{prof.username}</p>
-                          <p className="text-[8px] text-gray-400 leading-none truncate">{prof.meme_level}</p>
+                {/* Live Member Directory list */}
+                {availableProfiles && availableProfiles.length > 0 && (
+                  <div className="px-4 py-2 border-b border-gray-100 bg-gray-50/50">
+                    <p className="text-[10px] text-gray-400 font-bold mb-1.5">صنّاع ميمز مسجلين حالياً 🌟:</p>
+                    <div className="flex flex-col gap-1 max-h-36 overflow-y-auto">
+                      {availableProfiles.slice(0, 4).map((prof) => (
+                        <div
+                          key={prof.id}
+                          className={`flex items-center gap-2 p-1.5 rounded-lg text-right text-xs ${
+                            prof.id === currentUser.id ? "bg-blue-50/80 text-blue-800 font-semibold" : "text-gray-600"
+                          }`}
+                        >
+                          {prof.avatar_url && (
+                            <img
+                              src={prof.avatar_url}
+                              alt=""
+                              className="w-5 h-5 rounded-md object-cover border border-gray-200"
+                              referrerPolicy="no-referrer"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold truncate leading-none">{prof.username}</p>
+                            <p className="text-[8px] text-gray-400 leading-normal font-mono truncate">{prof.total_points} XP • {prof.meme_level.split(" ")[0]}</p>
+                          </div>
+                          {prof.id === currentUser.id && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-ping" />
+                          )}
                         </div>
-                        {prof.id === currentUser.id && (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 ml-1" />
-                        )}
-                      </button>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Navigations directly */}
                 <button
