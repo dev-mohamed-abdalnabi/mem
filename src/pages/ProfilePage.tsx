@@ -1,5 +1,5 @@
-import React from "react";
-import { Camera, CheckCircle2, PlusCircle, MessageCircle, Edit2, Award, Clock, Users, Flame } from "lucide-react";
+import React, { useState } from "react";
+import { Camera, CheckCircle2, PlusCircle, MessageCircle, Edit2, Award, Clock, Users, Flame, Check, X } from "lucide-react";
 import { Profile, Meme } from "../types";
 import MemeCard from "../components/MemeCard";
 import { dataService } from "../services/dataService";
@@ -48,7 +48,15 @@ export default function ProfilePage({
   setLightboxImage,
 }: ProfilePageProps) {
   
-  // تشغيل زرار المتابعة بشكل صريح ومضمون
+  // إدارة حالات التعديل زي فيسبوك بالملي
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempBio, setTempBio] = useState(profile.bio || "");
+  const [tempName, setTempName] = useState(profile.username);
+  
+  // التبويب النشط حالياً داخل الصفحة
+  const [localTab, setLocalTab] = useState<"posts" | "about">("posts");
+
   const onFollowClick = async () => {
     if (!isRealUser) {
       setShowAuthModal(true);
@@ -57,14 +65,39 @@ export default function ProfilePage({
     await handleFollowToggle(currentUser.id, profile.id);
   };
 
+  // حفظ الاسم الجديد
+  const handleSaveName = async () => {
+    if (!tempName.trim()) return;
+    try {
+      setCurrentUser(prev => ({ ...prev, username: tempName }));
+      setProfiles(prev => prev.map(p => p.id === currentUser.id ? { ...p, username: tempName } : p));
+      await dataService.updateProfile({ username: tempName });
+      setIsEditingName(false);
+    } catch (err) {
+      alert("فشل حفظ الاسم");
+    }
+  };
+
+  // حفظ النبذة الجديدة
+  const handleSaveBio = async () => {
+    try {
+      setCurrentUser(prev => ({ ...prev, bio: tempBio }));
+      setProfiles(prev => prev.map(p => p.id === currentUser.id ? { ...p, bio: tempBio } : p));
+      await dataService.updateProfile({ bio: tempBio });
+      setIsEditingBio(false);
+    } catch (err) {
+      alert("فشل حفظ النبذة");
+    }
+  };
+
   return (
     <div className="w-full min-h-screen bg-[#F0F2F5] dark:bg-[#0B0F19] text-gray-950 dark:text-gray-100 font-sans pb-12">
       
-      {/* هيدر فيسبوك البرو */}
+      {/* هيدر فيسبوك */}
       <div className="w-full bg-white dark:bg-[#111827] shadow-md border-b border-gray-200 dark:border-gray-800/60 rounded-b-2xl sm:rounded-b-[2rem]">
         <div className="max-w-5xl mx-auto relative">
           
-          {/* كفر الغلاف الصايع */}
+          {/* الغلاف (Cover Photo) */}
           <div
             className="w-full h-52 sm:h-80 bg-gradient-to-r from-blue-600 to-indigo-700 relative bg-cover bg-center sm:rounded-b-2xl overflow-hidden cursor-pointer group"
             style={(profile as any).cover_url ? { backgroundImage: `url(${(profile as any).cover_url})` } : undefined}
@@ -95,12 +128,12 @@ export default function ProfilePage({
             )}
           </div>
 
-          {/* الداتا والأزرار الشخصية */}
-          <div className="px-4 sm:px-8 pb-6 flex flex-col md:flex-row items-center md:items-end justify-between relative -mt-20 sm:-mt-24 gap-6">
+          {/* بيانات الحساب والأزرار الرئيسية */}
+          <div className="px-4 sm:px-8 pb-2 flex flex-col md:flex-row items-center md:items-end justify-between relative -mt-20 sm:-mt-24 gap-6">
             
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 text-center sm:text-right w-full min-w-0">
               
-              {/* الأفاتار المدور - فيسبوك ستايل */}
+              {/* الأفاتار الشخصي */}
               <div className="relative shrink-0 group">
                 <div
                   className="w-36 h-36 sm:w-44 sm:h-44 rounded-full border-4 border-white dark:border-[#111827] bg-gray-100 dark:bg-gray-800 shadow-xl overflow-hidden cursor-pointer relative"
@@ -133,26 +166,31 @@ export default function ProfilePage({
                 )}
               </div>
 
-              {/* الاسم واللقب القتالي */}
+              {/* الاسم والحالة المقاتلة */}
               <div className="pb-2 min-w-0 flex-1">
-                <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
-                  {isOwnProfile ? (
-                    <input
-                      type="text" value={profile.username}
-                      onChange={(e) => {
-                        const newName = e.target.value;
-                        setCurrentUser(prev => ({ ...prev, username: newName }));
-                        dataService.updateProfile({ username: newName });
-                      }}
-                      className="bg-transparent border-none focus:ring-2 focus:ring-blue-500 font-black text-2xl sm:text-3xl text-gray-900 dark:text-white text-center sm:text-right w-full max-w-sm rounded-lg p-1"
-                    />
+                <div className="flex items-center justify-center sm:justify-start gap-2 mb-1 min-h-[44px]">
+                  {isEditingName ? (
+                    <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 p-1 rounded-lg border border-gray-300 dark:border-gray-700 w-full max-w-sm">
+                      <input
+                        type="text" value={tempName}
+                        onChange={(e) => setTempName(e.target.value)}
+                        className="bg-transparent border-none focus:ring-0 font-bold text-lg text-gray-900 dark:text-white px-2 py-1 w-full"
+                      />
+                      <button onClick={handleSaveName} className="p-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"><Check className="w-4 h-4" /></button>
+                      <button onClick={() => { setTempName(profile.username); setIsEditingName(false); }} className="p-1.5 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 dark:bg-gray-700 dark:text-gray-300 transition-colors"><X className="w-4 h-4" /></button>
+                    </div>
                   ) : (
-                    <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white truncate">{profile.username}</h1>
+                    <>
+                      <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white truncate">{profile.username}</h1>
+                      {isOwnProfile && (
+                        <button onClick={() => setIsEditingName(true)} className="p-1 text-gray-400 hover:text-blue-500 transition-colors" title="تعديل الاسم"><Edit2 className="w-4 h-4" /></button>
+                      )}
+                      <Flame className="w-5 h-5 text-orange-500 shrink-0 animate-pulse" />
+                    </>
                   )}
-                  <Flame className="w-6 h-6 text-orange-500 shrink-0 animate-pulse" />
                 </div>
 
-                <p className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-3">
+                <p className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-2">
                   {profile.followers_count} متابع كفو • {profile.following_count || 0} يتابع
                 </p>
                 
@@ -163,8 +201,8 @@ export default function ProfilePage({
               </div>
             </div>
 
-            {/* الأزرار التفاعلية - شغالة طلقة */}
-            <div className="flex gap-2 w-full md:w-auto justify-center shrink-0 mt-2 md:mt-0">
+            {/* الأزرار التفاعلية على اليسار */}
+            <div className="flex gap-2 w-full md:w-auto justify-center shrink-0 mb-2">
               {!isOwnProfile && isRealUser ? (
                 <>
                   <button
@@ -186,111 +224,143 @@ export default function ProfilePage({
                   تسجيل الدخول للمجرة
                 </button>
               ) : isOwnProfile ? (
-                <div className="text-xs font-extrabold text-blue-500 bg-blue-50 dark:bg-blue-950/30 px-4 py-2 rounded-xl border border-blue-100 dark:border-blue-900/40">
-                  حسابك الشخصي يا غالي 👑
-                </div>
+                <button onClick={() => setIsEditingBio(true)} className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 px-5 py-2.5 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all active:scale-95">
+                  <Edit2 className="w-4 h-4" /> <span>تعديل السيرة والنبذة</span>
+                </button>
               ) : null}
             </div>
 
           </div>
 
-          {/* شريط الأقسام السريعة */}
+          {/* شريط الأقسام (شغال حقيقي ومربوط بالستيت والـ Props) */}
           <div className="flex items-center px-4 sm:px-8 border-t border-gray-100 dark:border-gray-800/60 overflow-x-auto no-scrollbar">
-            <button onClick={() => setActiveTab("posts")} className="px-4 py-4 text-[#1877F2] border-b-4 border-[#1877F2] font-black text-sm whitespace-nowrap">المنشورات</button>
-            <button className="px-4 py-4 text-gray-500 dark:text-gray-400 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl my-1 transition-colors whitespace-nowrap">السجل الكامل</button>
+            <button
+              onClick={() => { setLocalTab("posts"); setActiveTab("posts"); }}
+              className={`px-4 py-4 font-black text-sm whitespace-nowrap transition-all border-b-4 ${
+                localTab === "posts" ? "text-[#1877F2] border-[#1877F2]" : "text-gray-500 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50"
+              }`}
+            >
+              المنشورات
+            </button>
+            <button
+              onClick={() => { setLocalTab("about"); }}
+              className={`px-4 py-4 font-black text-sm whitespace-nowrap transition-all border-b-4 ${
+                localTab === "about" ? "text-[#1877F2] border-[#1877F2]" : "text-gray-500 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50"
+              }`}
+            >
+              حول العضو ومعلوماته
+            </button>
           </div>
 
         </div>
       </div>
 
-      {/* الجسم السفلي (التقسيمة المظبوطة) */}
-      <div className="max-w-5xl mx-auto w-full flex flex-col md:flex-row gap-5 p-4 mt-2">
-        
-        {/* الشمال: كارت النبذة والهيبة */}
-        <div className="w-full md:w-[350px] shrink-0 flex flex-col gap-4">
-          <div className="bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 p-5 rounded-2xl shadow-sm">
-            <h3 className="font-black text-lg text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <span>اللوحة التعريفية</span>
-            </h3>
+      {/* محتوى الصفحة السفلي */}
+      <div className="max-w-5xl mx-auto w-full p-4 mt-2">
+        {localTab === "posts" ? (
+          <div className="w-full flex flex-col md:flex-row gap-5">
             
-            {isOwnProfile ? (
-              <div className="space-y-2">
-                <textarea
-                  value={profile.bio || ""}
-                  onChange={(e) => {
-                    const newBio = e.target.value;
-                    setCurrentUser(prev => ({ ...prev, bio: newBio }));
-                    dataService.updateProfile({ bio: newBio });
-                  }}
-                  className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 p-3 text-sm text-gray-800 dark:text-gray-200 rounded-xl resize-none text-center font-medium"
-                  placeholder="اكتب إيفيه أو نبذة عنك يا أسطورة..." rows={3}
-                />
-                <div className="text-[10px] text-gray-400 text-center font-bold">التعديل بيحفظ تلقائي 😉</div>
-              </div>
-            ) : (
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 text-center leading-relaxed bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl border border-gray-100 dark:border-gray-800/40">
-                {profile.bio || "مفيش كابشن.. العضو ده بيمسي عليكم في صمت."}
-              </p>
-            )}
-
-            <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800/60 space-y-3.5 text-sm font-bold text-gray-600 dark:text-gray-300">
-              <div className="flex items-center gap-3">
-                <Award className="w-5 h-5 text-yellow-500 shrink-0" />
-                <span>الرصيد القتالي: <strong className="text-gray-900 dark:text-white font-black">{profile.total_points} XP</strong></span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-blue-500 shrink-0" />
-                <span>انضم للمجرة: <strong className="text-gray-900 dark:text-white font-black">{new Date(profile.created_at).getFullYear()}</strong></span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Users className="w-5 h-5 text-emerald-500 shrink-0" />
-                <span>الجمهور: <strong className="text-gray-900 dark:text-white font-black">{profile.followers_count}</strong> أساطير</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* اليمين: فيد الإيفيهات والميمز العظيمة */}
-        <div className="flex-1 flex flex-col gap-4">
-          
-          {/* شريط فرز الداتا */}
-          <div className="bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 p-4 rounded-2xl shadow-sm flex items-center justify-between">
-            <h3 className="font-black text-gray-900 dark:text-white text-base">أرشيف الإيفيهات المرفوعة</h3>
-            <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-3 py-1.5 rounded-xl border border-blue-100 dark:border-blue-900/40">
-              {userMemes.length} ميم قتالي
-            </span>
-          </div>
-
-          {/* رندرة المنشورات والميمز بالملي */}
-          {userMemes.length === 0 ? (
-            <div className="bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 rounded-2xl p-16 text-center text-gray-400 font-black shadow-sm text-lg">
-              العضو ده لسه منشرش ضحك هنا.. شكله مكسل! 😴
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4 w-full">
-              {userMemes.map((meme) => (
-                <div key={meme.id} className="w-full bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 rounded-2xl shadow-sm overflow-hidden p-1">
-                  <MemeCard
-                    meme={meme} 
-                    currentUser={currentUser} 
-                    onLikeToggle={handleLikeToggle} 
-                    onSaveToggle={handleSaveToggle} 
-                    onFollowToggle={handleFollowToggle} 
-                    onTagClick={setSelectedTag}
-                    onDeleteComment={() => {}} 
-                    onReportSubmit={handleReportSubmit} 
-                    onShareCompleted={handleShareCompleted} 
-                    onDeleteMeme={handleDeleteMeme}
-                    onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }}
-                    isFollowingCreator={followingIds.includes(meme.user_id)}
-                    onImageClick={setLightboxImage}
-                  />
+            {/* اللوحة التعريفية الجانبية */}
+            <div className="w-full md:w-[350px] shrink-0 flex flex-col gap-4">
+              <div className="bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 p-5 rounded-2xl shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-black text-lg text-gray-900 dark:text-white">اللوحة التعريفية</h3>
+                  {isOwnProfile && !isEditingBio && (
+                    <button onClick={() => setIsEditingBio(true)} className="text-xs text-[#1877F2] font-bold hover:underline">تعديل</button>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                
+                {isEditingBio ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={tempBio}
+                      onChange={(e) => setTempBio(e.target.value)}
+                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 p-3 text-sm text-gray-800 dark:text-gray-200 rounded-xl resize-none text-center font-medium"
+                      placeholder="اكتب إيفيه أو نبذة عنك يا أسطورة..." rows={3}
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button onClick={() => { setTempBio(profile.bio || ""); setIsEditingBio(false); }} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg text-xs font-bold">إلغاء</button>
+                      <button onClick={handleSaveBio} className="px-4 py-1.5 bg-[#1877F2] text-white hover:bg-[#166FE5] rounded-lg text-xs font-bold shadow-sm">حفظ</button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 text-center leading-relaxed bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl border border-gray-100 dark:border-gray-800/40">
+                    {profile.bio || "مفيش كابشن.. العضو ده بيمسي عليكم في صمت."}
+                  </p>
+                )}
 
+                <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800/60 space-y-3.5 text-sm font-bold text-gray-600 dark:text-gray-300">
+                  <div className="flex items-center gap-3">
+                    <Award className="w-5 h-5 text-yellow-500 shrink-0" />
+                    <span>الرصيد القتالي: <strong className="text-gray-900 dark:text-white font-black">{profile.total_points} XP</strong></span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-5 h-5 text-blue-500 shrink-0" />
+                    <span>انضم للمجرة: <strong className="text-gray-900 dark:text-white font-black">{new Date(profile.created_at).getFullYear()}</strong></span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Users className="w-5 h-5 text-emerald-500 shrink-0" />
+                    <span>الجمهور: <strong className="text-gray-900 dark:text-white font-black">{profile.followers_count}</strong> أساطير</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* الفيد الرئيسي للميمز */}
+            <div className="flex-1 flex flex-col gap-4">
+              <div className="bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 p-4 rounded-2xl shadow-sm flex items-center justify-between">
+                <h3 className="font-black text-gray-900 dark:text-white text-base">أرشيف الإيفيهات المرفوعة</h3>
+                <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-3 py-1.5 rounded-xl border border-blue-100 dark:border-blue-900/40">
+                  {userMemes.length} ميم قتالي
+                </span>
+              </div>
+
+              {userMemes.length === 0 ? (
+                <div className="bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 rounded-2xl p-16 text-center text-gray-400 font-black shadow-sm text-lg">
+                  العضو ده لسه منشرش ضحك هنا.. شكله مكسل! 😴
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4 w-full">
+                  {userMemes.map((meme) => (
+                    <div key={meme.id} className="w-full bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 rounded-2xl shadow-sm overflow-hidden p-1">
+                      <MemeCard
+                        meme={meme} currentUser={currentUser} onLikeToggle={handleLikeToggle} onSaveToggle={handleSaveToggle} onFollowToggle={handleFollowToggle} onTagClick={setSelectedTag}
+                        onDeleteComment={() => {}} onReportSubmit={handleReportSubmit} onShareCompleted={handleShareCompleted} onDeleteMeme={handleDeleteMeme}
+                        onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }}
+                        isFollowingCreator={followingIds.includes(meme.user_id)}
+                        onImageClick={setLightboxImage}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
+        ) : (
+          /* فيو تبويب "حول العضو" عشان الأزرار تبقا شغالة بجد */
+          <div className="w-full bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 p-6 rounded-2xl shadow-sm">
+            <h3 className="font-black text-xl mb-4 text-gray-900 dark:text-white">تفاصيل ومجرة {profile.username}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm font-bold text-gray-600 dark:text-gray-300">
+              <div className="bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl">
+                <p className="text-xs text-gray-400 mb-1">المستوى الحالي</p>
+                <p className="text-lg font-black text-blue-600 dark:text-blue-400">{profile.meme_level}</p>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl">
+                <p className="text-xs text-gray-400 mb-1">الرصيد الكلي للنقاط</p>
+                <p className="text-lg font-black text-yellow-500">{profile.total_points} XP</p>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl">
+                <p className="text-xs text-gray-400 mb-1">تاريخ الهبوط في الكوكب</p>
+                <p className="text-base text-gray-800 dark:text-white">{new Date(profile.created_at).toLocaleDateString("ar-EG")}</p>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl">
+                <p className="text-xs text-gray-400 mb-1">القوة الجماهيرية</p>
+                <p className="text-base text-gray-800 dark:text-white">يتابع {profile.following_count || 0} شخص ومتبوع بواسطة {profile.followers_count} مقاتل</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
