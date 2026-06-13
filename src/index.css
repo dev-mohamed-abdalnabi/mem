@@ -19,26 +19,26 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --background: #0a0e27;
-    --foreground: #f1f5f9;
-    --card: #1a1f3a;
-    --card-foreground: #f1f5f9;
+    --background: #0f1419;
+    --foreground: #ffffff;
+    --card: #1a1f2e;
+    --card-foreground: #ffffff;
     --border: #2d3748;
     --primary: #60a5fa;
-    --muted: #111827;
-    --muted-foreground: #cbd5e1;
+    --muted: #0a0e17;
+    --muted-foreground: #e2e8f0;
   }
 }
 
 :root.dark {
-  --background: #0a0e27;
-  --foreground: #f1f5f9;
-  --card: #1a1f3a;
-  --card-foreground: #f1f5f9;
+  --background: #0f1419;
+  --foreground: #ffffff;
+  --card: #1a1f2e;
+  --card-foreground: #ffffff;
   --border: #2d3748;
   --primary: #60a5fa;
-  --muted: #111827;
-  --muted-foreground: #cbd5e1;
+  --muted: #0a0e17;
+  --muted-foreground: #e2e8f0;
 }
 
 body {
@@ -49,29 +49,14 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Update common components to use variables */
-.bg-white { 
-  background-color: var(--card) !important;
-  color: var(--card-foreground) !important;
-}
-
+/* ===== TEXT COLORS ===== */
+.text-gray-900,
 .text-slate-900 { 
   color: var(--foreground) !important; 
 }
 
-.text-slate-600 { 
-  color: var(--muted-foreground) !important; 
-}
-
+.text-gray-800,
 .text-slate-700 {
-  color: var(--foreground) !important;
-}
-
-.text-gray-900 {
-  color: var(--foreground) !important;
-}
-
-.text-gray-800 {
   color: var(--foreground) !important;
 }
 
@@ -87,15 +72,18 @@ body {
   color: var(--muted-foreground) !important;
 }
 
-.text-gray-400 {
+.text-gray-400,
+.text-slate-600 { 
+  color: var(--muted-foreground) !important; 
+}
+
+.text-gray-300 {
   color: var(--muted-foreground) !important;
 }
 
-.border-slate-100, 
-.border-slate-200,
-.border-gray-100,
-.border-gray-200 { 
-  border-color: var(--border) !important; 
+/* ===== BACKGROUND COLORS ===== */
+.bg-white { 
+  background-color: var(--card) !important;
 }
 
 .bg-slate-50,
@@ -105,38 +93,40 @@ body {
 
 .bg-gray-100 {
   background-color: var(--muted) !important;
-  color: var(--foreground) !important;
 }
 
 .bg-gray-200 {
   background-color: #2d3748 !important;
-  color: var(--foreground) !important;
 }
 
-/* Header specific fixes */
-header {
-  background-color: rgba(var(--card-rgb), 0.8) !important;
-  border-bottom-color: var(--border) !important;
+/* ===== BORDER COLORS ===== */
+.border-slate-100, 
+.border-slate-200,
+.border-gray-100,
+.border-gray-200 { 
+  border-color: var(--border) !important; 
 }
 
-/* Input fields */
-input, textarea {
+/* ===== INPUTS & TEXTAREAS ===== */
+input, 
+textarea {
   background-color: var(--card) !important;
   color: var(--foreground) !important;
   border-color: var(--border) !important;
 }
 
-input::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: var(--muted-foreground) !important;
 }
 
-/* Card backgrounds */
-.rounded-2xl {
+input:focus,
+textarea:focus {
   background-color: var(--card) !important;
-  color: var(--card-foreground) !important;
+  color: var(--foreground) !important;
 }
 
-/* Make sure buttons contrast well */
+/* ===== BUTTONS ===== */
 button {
   color: var(--foreground) !important;
 }
@@ -146,11 +136,94 @@ button {
   background-color: var(--muted) !important;
 }
 
-/* Links and interactive text */
-a, .text-blue-600 {
+/* ===== LINKS ===== */
+a {
+  color: var(--primary) !important;
+}
+
+.text-blue-600 {
   color: var(--primary) !important;
 }
 
 .text-blue-700 {
   color: #93c5fd !important;
+}
+
+/* ===== HEADER ===== */
+header {
+  background-color: rgba(26, 31, 46, 0.9) !important;
+  border-bottom-color: var(--border) !important;
+  color: var(--foreground) !important;
+}
+
+header .text-black {
+  color: var(--foreground) !important;
+}
+
+header .text-gray-900 {
+  color: var(--foreground) !important;
+}
+
+/* ===== BOTTOM NAVIGATION ===== */
+nav {
+  background-color: rgba(26, 31, 46, 0.95) !important;
+  border-top-color: var(--border) !important;
+  backdrop-filter: blur(10px);
+}
+
+nav button {
+  color: var(--muted-foreground) !important;
+}
+
+nav button.text-black,
+nav button[class*="text-black"] {
+  color: var(--foreground) !important;
+}
+
+/* ===== DROPDOWN MENUS ===== */
+.absolute.left-0,
+.absolute.right-0 {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
+
+/* ===== CARDS ===== */
+.rounded-2xl,
+.rounded-3xl {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+}
+
+article {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
+
+/* ===== MODALS & OVERLAYS ===== */
+.fixed.inset-0 {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+}
+
+.fixed.inset-0 > div {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+}
+
+/* ===== ALERT BOXES ===== */
+.bg-red-50,
+.bg-green-50,
+.bg-blue-50,
+.bg-yellow-50 {
+  background-color: rgba(var(--primary-rgb), 0.1) !important;
+}
+
+/* ===== ENSURE PROPER CONTRAST ===== */
+:root.dark {
+  color-scheme: dark;
+}
+
+:root.light {
+  color-scheme: light;
 }
