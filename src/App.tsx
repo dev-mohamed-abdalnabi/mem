@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"; 
-import { Home, Flame, Trophy, Bookmark, Cpu, AlertTriangle, ShieldAlert, Sparkles, X, Clock, PlusCircle, CheckCircle2, Award, HelpCircle, MessageCircle, AlertCircle, Trash2, User, Camera, Edit2 } from "lucide-react";
+import { Home, Flame, Trophy, Bookmark, Cpu, AlertTriangle, ShieldAlert, Sparkles, X, Clock, PlusCircle, CheckCircle2, Award, HelpCircle, MessageCircle, AlertCircle, Trash2, User, Camera, Edit2, LogIn } from "lucide-react";
 
 import { Profile, Meme, Notification, Report, UserRole } from "./types"; 
 import { dataService, calculateMemeLevel } from "./services/dataService";
@@ -266,14 +266,6 @@ export default function App() {
     }
   };
 
-  const handleUpdateProfile = async (updates: Partial<Profile>) => { 
-    try { 
-      const updated = await dataService.updateProfile(updates); 
-      setCurrentUser(updated);
-      setProfiles(prev => prev.map(p => p.id === updated.id ? updated : p)); 
-    } catch (err) { console.error(err); } 
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => { 
     const file = e.target.files?.[0]; 
     if (file) { 
@@ -418,7 +410,6 @@ export default function App() {
     dataService.getNotifications(newProf.id).then(notifs => setNotifications(notifs));
   };
 
-  // التقاط الضغط على أي صورة بوست لفتحها في شاشة كاملة
   const handleGlobalImageClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (target.tagName === 'IMG') {
@@ -432,14 +423,12 @@ export default function App() {
 
   const filteredMemes = memes.filter((meme) => {
     if (meme.status === "deleted" || meme.status === "rejected") return false;
-
     if (selectedTag) {
       const lowerTag = selectedTag.toLowerCase();
       const match = meme.tags?.some(t => t.toLowerCase() === lowerTag) || 
                     meme.caption?.toLowerCase().includes(`#${lowerTag}`);
       if (!match) return false;
     }
-
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const userMatch = meme.profiles?.username.toLowerCase().includes(q);
@@ -447,7 +436,6 @@ export default function App() {
       const tagMatch = meme.tags?.some(t => t.toLowerCase().includes(q));
       return userMatch || capMatch || tagMatch;
     }
-
     return true;
   });
 
@@ -456,27 +444,29 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans selection:bg-blue-200 dark:selection:bg-blue-900" dir="rtl">
-      {/* 
-        إصلاحات حواف البوستات والصور لتبدو دائرية انسيابية 
-      */}
       <style>{`
+        /* تنسيقات حواف الميمز */
         .post-wrapper > div, .post-wrapper > article {
-          border-radius: 16px !important;
+          border-radius: 12px !important;
           overflow: hidden !important;
         }
         .post-wrapper img:not(.rounded-full) {
           cursor: pointer;
-          border-radius: 12px !important;
+          border-radius: 8px !important;
         }
+        
+        /* حلول عامة لمشكلة خروج نصوص وزر المتابعة في قائمة الأوائل وغيرها */
+        .min-w-0 { min-width: 0; }
+        .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .flex-1 { flex: 1 1 0%; }
       `}</style>
 
-      {/* Lightbox for Images (فيسبوك ستايل) */}
+      {/* Lightbox */}
       {lightboxImage && (
         <div 
-          className="fixed inset-0 z-[9999] bg-black flex items-center justify-center backdrop-blur-none transition-opacity duration-300"
+          className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center backdrop-blur-sm transition-opacity duration-300"
           onClick={() => setLightboxImage(null)}
         >
-          {/* خلفية سوداء صلبة مثل فيسبوك وزر إغلاق واضح */}
           <button 
             className="absolute top-4 right-4 md:top-6 md:right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2 md:p-3 rounded-full transition-all z-50 cursor-pointer"
             onClick={() => setLightboxImage(null)}
@@ -496,7 +486,7 @@ export default function App() {
       {/* Level Up Notification Banners */}
       {showLevelUpAlert && (   
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl text-center flex flex-col items-center max-w-sm w-full relative animate-bounce-short">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-2xl text-center flex flex-col items-center max-w-sm w-full relative animate-bounce-short">
             <button
               onClick={() => setShowLevelUpAlert(false)} 
               className="absolute top-4 left-4 text-gray-400 hover:text-gray-900 dark:hover:text-white cursor-pointer" 
@@ -506,26 +496,21 @@ export default function App() {
             <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto text-yellow-500 shadow">
               <Award className="w-10 h-10" />
             </div>
-
             <h3 className="font-extrabold text-xl text-gray-900 dark:text-white mt-4 leading-tight">
               ألف مبروك يا الغالي! ترقيت 🚀🔥
             </h3>
-            
             <p className="text-xs text-blue-600 dark:text-blue-400 font-extrabold mt-1.5 uppercase tracking-wide">
               المستوى الجديد المحقق
             </p>
-
-            <div className="bg-blue-50 dark:bg-blue-900/40 border border-blue-100 dark:border-blue-800 py-3 px-5 rounded-2xl inline-block mt-3 text-blue-700 dark:text-blue-300 font-extrabold text-lg">
+            <div className="bg-blue-50 dark:bg-blue-900/40 border border-blue-100 dark:border-blue-800 py-3 px-5 rounded-xl inline-block mt-3 text-blue-700 dark:text-blue-300 font-extrabold text-lg">
               {newLevelName}
             </div>
-
             <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold leading-relaxed mt-4">
               إمكانيات ميمزبوك بتفتح معاك! استمر بنشر أحلى الإفيهات.
             </p>
-
             <button
               onClick={() => setShowLevelUpAlert(false)}
-              className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-2xl text-sm shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95"
+              className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-xl text-sm shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95"
             >
               جاهز! 👍
             </button>
@@ -537,79 +522,60 @@ export default function App() {
       <Header
         currentUser={currentUser}
         notifications={notifications}
-        onNavigate={(tab) => {
-          setActiveTab(tab);
-          setSelectedTag(null);
-        }}
+        onNavigate={(tab) => { setActiveTab(tab); setSelectedTag(null); }}
         onSearch={(query) => setSearchQuery(query)}
         activeTab={activeTab}
         onUserSwitch={handleUserSwitch}
         availableProfiles={profiles}
         onMarkNotificationsRead={handleMarkNotificationsRead}
-        onShowAuthModal={() => {
-          setShowAuthModal(true);
-          setAuthTab("signin");
-          setAuthError("");
-          setAuthSuccess("");
-        }}
+        onShowAuthModal={() => { setShowAuthModal(true); setAuthTab("signin"); }}
         onSignOutReal={handleSignOutReal}
         isRealUser={isRealUser}
       />
 
       {/* Main stage layout block */}
-      <main 
-        className="max-w-7xl mx-auto px-4 py-6 pb-24 md:pb-8 w-full flex-1 flex gap-6"
-        onClick={handleGlobalImageClick}
-      >
+      <main className="max-w-7xl mx-auto px-0 md:px-4 py-4 md:py-6 pb-24 md:pb-8 w-full flex-1 flex gap-6" onClick={handleGlobalImageClick}>
         
-        {/* Right side helper columns (الودجات الجانبية بشكل عصري وأنظف) */}
-        <div className="w-72 shrink-0 hidden lg:flex flex-col gap-5 order-3">
+        {/* Right side helper columns (تصميم نظيف واحترافي) */}
+        <div className="w-72 shrink-0 hidden lg:flex flex-col gap-4 order-3">
           
           {!isRealUser && (
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] p-6 shadow-sm text-center text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
-              <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mx-auto text-white mb-4 backdrop-blur-md relative z-10">
-                <User className="w-7 h-7" />
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm text-center flex flex-col items-center">
+              <div className="w-12 h-12 bg-blue-50 dark:bg-gray-800 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 mb-3">
+                <LogIn className="w-6 h-6" />
               </div>
-              <h4 className="font-extrabold text-base mb-2 relative z-10">انضم للمجتمع الآن 👋</h4>
-              <p className="text-xs text-blue-100 mb-5 font-medium relative z-10">سجل حسابك عشان تشارك وتنافس على الصدارة!</p>
+              <h4 className="font-bold text-gray-900 dark:text-white text-base mb-1">انضم لمجتمع ميمزبوك</h4>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 font-medium">سجل حسابك لتتمكن من الإعجاب والتعليق ورفع الميمز الخاصة بك.</p>
               <button
                 onClick={() => { setShowAuthModal(true); setAuthTab("signin"); }}
-                className="w-full bg-white text-blue-600 hover:bg-gray-50 font-black py-3 rounded-2xl text-sm shadow-md transition-all hover:scale-105 relative z-10"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm transition-colors"
               >
                 دخول / إنشاء حساب
               </button>
             </div>
           )}
 
-          {/* ودجت ترتيب الوزراء - تصميم نظيف وبدون حواف مزعجة */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] p-6 shadow-sm">
-            <h4 className="font-black text-sm text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-5">
-              <Trophy className="w-5 h-5 text-yellow-500" />
-              <span>توب التفاعل</span>
+          {/* ودجت ترتيب الوزراء - تصميم احترافي بدون حواف مبالغة */}
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm">
+            <h4 className="font-bold text-sm text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-4 border-b border-gray-100 dark:border-gray-800 pb-3">
+              <Trophy className="w-4 h-4 text-yellow-500" />
+              <span>أعلى المتفاعلين</span>
             </h4>
             
             <div className="flex flex-col gap-4">
-              {profiles.slice(0, 3).map((prof, index) => (
-                <div key={prof.id} className="flex items-center gap-3 group cursor-pointer" onClick={() => { setSelectedProfileId(prof.id); setActiveTab("user-profile"); }}>
-                  <div className="w-6 text-center text-base font-black text-gray-300 dark:text-gray-600 group-hover:text-blue-500 transition-colors">
+              {profiles.slice(0, 4).map((prof, index) => (
+                <div key={prof.id} className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 p-1.5 -mx-1.5 rounded-lg transition-colors" onClick={() => { setSelectedProfileId(prof.id); setActiveTab("user-profile"); }}>
+                  <div className={`w-5 text-center text-sm font-bold ${index === 0 ? 'text-yellow-500' : index === 1 ? 'text-gray-400' : index === 2 ? 'text-amber-600' : 'text-gray-300 dark:text-gray-600'}`}>
                     {index + 1}
                   </div>
                   {prof.avatar_url ? (
-                    <img
-                      src={prof.avatar_url}
-                      alt=""
-                      className="w-10 h-10 rounded-full object-cover border border-gray-100 dark:border-gray-700"
-                      referrerPolicy="no-referrer"
-                    />
+                    <img src={prof.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover border border-gray-100 dark:border-gray-700" referrerPolicy="no-referrer" />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 font-bold">
-                      {prof.username[0]}
-                    </div>
+                    <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 font-bold text-sm">{prof.username[0]}</div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-500 transition-colors">{prof.username}</p>
-                    <p className="text-[11px] text-blue-600 dark:text-blue-400 font-bold mt-0.5">{prof.total_points} نقطة</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{prof.username}</p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium truncate">{prof.meme_level}</p>
                   </div>
                 </div>
               ))}
@@ -617,52 +583,64 @@ export default function App() {
             
             <button
               onClick={() => setActiveTab("leaderboard")}
-              className="w-full text-center text-xs text-gray-500 hover:text-blue-600 dark:text-gray-400 font-bold hover:underline mt-5 pt-4 border-t border-gray-50 dark:border-gray-800 transition-colors block"
+              className="w-full text-center text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 transition-colors block"
             >
-              عرض الترتيب الكامل
+              عرض القائمة الكاملة
             </button>
           </div>
 
-          {/* ودجت القوانين - تصميم ناعم */}
-          <div className="bg-gray-50 dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800/60 rounded-[2rem] p-6 text-right flex flex-col gap-4">
-            <h4 className="font-black text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mb-1">
-              <HelpCircle className="w-4 h-4" />
-              <span>قواعد بسيطة</span>
+          {/* ودجت القوانين */}
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm">
+            <h4 className="font-bold text-sm text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-3 pb-2 border-b border-gray-100 dark:border-gray-800">
+              <HelpCircle className="w-4 h-4 text-gray-400" />
+              <span>قوانين المجتمع</span>
             </h4>
-            <ul className="text-[13px] text-gray-600 dark:text-gray-300 flex flex-col gap-3 font-medium pr-1">
-              <li className="flex items-start gap-2 before:content-['•'] before:text-blue-500 before:font-bold">الميمز الكرينج بتتمسح فوراً.</li>
-              <li className="flex items-start gap-2 before:content-['•'] before:text-blue-500 before:font-bold">خليك رايق وبلاش تجاوزات.</li>
-              <li className="flex items-start gap-2 before:content-['•'] before:text-blue-500 before:font-bold">ممنوع تكرار نفس البوست (سبام).</li>
+            <ul className="text-xs text-gray-600 dark:text-gray-400 flex flex-col gap-2.5 font-medium">
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500 font-bold mt-0.5">•</span>
+                <span>الميمز الكرينج والمكررة يتم إزالتها.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500 font-bold mt-0.5">•</span>
+                <span>احترم الجميع، ممنوع التجاوزات.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500 font-bold mt-0.5">•</span>
+                <span>استخدم جودة صور مناسبة للبوست.</span>
+              </li>
             </ul>
           </div>
         </div>
 
         {/* Central main viewport */}
-        <div className="flex-1 max-w-full md:max-w-[600px] lg:max-w-[640px] xl:max-w-2xl mx-auto order-2">
+        <div className="flex-1 max-w-full md:max-w-[600px] lg:max-w-[640px] xl:max-w-2xl mx-auto order-2 w-full">
           
           {selectedTag && (
-            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 px-4 py-3 rounded-2xl text-xs sm:text-sm text-blue-800 dark:text-blue-200 font-extrabold flex items-center justify-between mb-4 shadow-sm">
-              <span className="flex items-center gap-1.5">
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 px-4 py-3 rounded-xl text-sm text-blue-800 dark:text-blue-300 font-bold flex items-center justify-between mb-4 shadow-sm mx-4 md:mx-0">
+              <span className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-blue-500" />
-                <span>الميمز بالهاشتاج:</span>
-                <strong className="bg-white dark:bg-gray-800 px-2 py-0.5 rounded-lg">#{selectedTag}</strong>
+                <span>نتائج الهاشتاج:</span>
+                <strong className="bg-white dark:bg-gray-800 px-2 py-0.5 rounded-md">#{selectedTag}</strong>
               </span>
-              <button onClick={() => setSelectedTag(null)} className="hover:scale-110 transition-transform">
+              <button onClick={() => setSelectedTag(null)} className="hover:bg-blue-100 dark:hover:bg-blue-800 p-1 rounded-md transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
           )}
 
           {activeTab === "feed" && (
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-4 px-0 md:px-0">
               {!isRealUser && (
-                <div className="lg:hidden bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2rem] p-5 shadow-sm text-center text-white mb-2">
-                  <h4 className="font-extrabold text-base mb-2">انضم لمجتمعنا 👀</h4>
+                <div className="lg:hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 shadow-sm text-center mx-4 md:mx-0 flex items-center justify-between gap-4">
+                  <div className="text-right">
+                    <h4 className="font-bold text-sm text-gray-900 dark:text-white">أهلاً بك كزائر 👋</h4>
+                    <p className="text-xs text-gray-500">سجل لدعم صناع الميمز.</p>
+                  </div>
                   <button
                     onClick={() => { setShowAuthModal(true); setAuthTab("signin"); }}
-                    className="bg-white text-blue-600 hover:bg-gray-50 font-black py-3 px-4 rounded-xl text-sm w-full shadow-sm"
+                    className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg text-xs whitespace-nowrap"
                   >
-                    دخول / إنشاء حساب
+                    تسجيل الدخول
                   </button>
                 </div>
               )}
@@ -670,33 +648,21 @@ export default function App() {
               {loading ? (
                 <div className="text-center py-12 text-gray-400">جاري التحميل...</div>
               ) : filteredMemes.length === 0 ? (
-                <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] p-12 text-center flex flex-col items-center gap-3">
-                  <Clock className="w-12 h-12 text-gray-200 dark:text-gray-700 animate-spin" />
-                  <p className="font-extrabold text-base text-gray-700 dark:text-gray-300">مفيش ميمز تطابق استعلامك!</p>
-                  <button onClick={() => { setSearchQuery(""); setSelectedTag(null); }} className="mt-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-5 py-2.5 rounded-xl text-sm font-bold hover:scale-105 transition-transform">
-                    إعادة تعيين
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-12 text-center flex flex-col items-center gap-3 mx-4 md:mx-0">
+                  <Clock className="w-10 h-10 text-gray-300 dark:text-gray-600" />
+                  <p className="font-bold text-gray-500 dark:text-gray-400">لا توجد منشورات تطابق بحثك</p>
+                  <button onClick={() => { setSearchQuery(""); setSelectedTag(null); }} className="mt-2 text-blue-600 dark:text-blue-400 text-sm font-bold hover:underline">
+                    مسح البحث
                   </button>
                 </div>
               ) : (
                 filteredMemes.map((meme) => (
-                  <div key={meme.id} className="post-wrapper w-full mb-2">
+                  <div key={meme.id} className="post-wrapper w-full">
                     <MemeCard
-                      meme={meme}
-                      currentUser={currentUser}
-                      onLikeToggle={handleLikeToggle}
-                      onSaveToggle={handleSaveToggle}
-                      onFollowToggle={handleFollowToggle}
-                      onTagClick={(tag) => setSelectedTag(tag)}
-                      onDeleteComment={() => {
-                        setMemes(prev => prev.map(m => m.id === meme.id ? { ...m, comments_count: Math.max(0, m.comments_count - 1) } : m));
-                      }}
-                      onReportSubmit={handleReportSubmit}
-                      onShareCompleted={handleShareCompleted}
-                      onDeleteMeme={handleDeleteMeme}
-                      onUserProfileClick={(uid) => {
-                        setSelectedProfileId(uid);
-                        setActiveTab("user-profile");
-                      }}
+                      meme={meme} currentUser={currentUser} onLikeToggle={handleLikeToggle} onSaveToggle={handleSaveToggle} onFollowToggle={handleFollowToggle} onTagClick={(tag) => setSelectedTag(tag)}
+                      onDeleteComment={() => setMemes(prev => prev.map(m => m.id === meme.id ? { ...m, comments_count: Math.max(0, m.comments_count - 1) } : m))}
+                      onReportSubmit={handleReportSubmit} onShareCompleted={handleShareCompleted} onDeleteMeme={handleDeleteMeme}
+                      onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }}
                       isFollowingCreator={followingIds.includes(meme.user_id)}
                       onImageClick={(url: string) => setLightboxImage(url)} 
                     />
@@ -706,231 +672,201 @@ export default function App() {
             </div>
           )}
 
-          {/* صفحة إنشاء منشور (ستايل Threads) */}
           {activeTab === "create-post" && (
-            <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] p-5 sm:p-6 shadow-sm text-right flex flex-col gap-4 animate-fade-in mb-8 mx-auto max-w-xl">
-              {/* هيدر النشر */}
-              <div className="flex items-center justify-between pb-3 border-b border-gray-50 dark:border-gray-800/50">
-                <button onClick={() => setActiveTab("feed")} className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-sm font-bold">
-                  إلغاء
-                </button>
-                <h2 className="text-base font-black text-gray-900 dark:text-white">منشور جديد</h2>
-                <div className="w-10"></div> {/* Placeholder للموازنة */}
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm text-right flex flex-col gap-4 animate-fade-in mb-8 mx-4 md:mx-auto max-w-xl">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
+                <button onClick={() => setActiveTab("feed")} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors text-sm font-bold">إلغاء</button>
+                <h2 className="text-base font-bold text-gray-900 dark:text-white">إنشاء منشور</h2>
+                <div className="w-8"></div>
               </div>
 
               <form onSubmit={handleQuickPostSubmit} className="flex flex-col gap-2 pt-2">
-                {/* منطقة الإدخال بستايل ثريدز (صورة شخصية + خط عمودي + محتوى) */}
-                <div className="flex gap-3 relative">
-                  {/* العمود الأيمن: الصورة الشخصية */}
-                  <div className="flex flex-col items-center pt-1 z-10 bg-white dark:bg-gray-900 pb-2">
-                    <img 
-                      src={currentUser.avatar_url || "https://api.dicebear.com/7.x/bottts/svg?seed=guest"} 
-                      className="w-10 h-10 rounded-full object-cover border border-gray-100 dark:border-gray-800"
-                      alt="avatar"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="w-[2px] h-full bg-gray-100 dark:bg-gray-800 mt-2 rounded-full min-h-[40px]"></div>
+                <div className="flex gap-3">
+                  <div className="shrink-0">
+                    <img src={currentUser.avatar_url || "https://api.dicebear.com/7.x/bottts/svg?seed=guest"} className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-800" alt="avatar" referrerPolicy="no-referrer" />
                   </div>
-
-                  {/* العمود الأيسر: الإدخال */}
-                  <div className="flex-1 flex flex-col pt-1 pb-4">
-                    <span className="font-bold text-[15px] text-gray-900 dark:text-white mb-1.5">{currentUser.username}</span>
-                    
+                  <div className="flex-1 flex flex-col">
+                    <span className="font-bold text-sm text-gray-900 dark:text-white mb-1">{currentUser.username}</span>
                     <textarea
-                      placeholder="إيه اللي بيضحكك النهاردة؟..."
-                      value={newPostCaption}
-                      onChange={(e) => setNewPostCaption(e.target.value)}
-                      className="w-full bg-transparent border-none focus:ring-0 p-0 text-[15px] text-gray-800 dark:text-gray-100 resize-none min-h-[70px] placeholder-gray-400 dark:placeholder-gray-500"
+                      placeholder="بماذا تفكر يا غالي؟..."
+                      value={newPostCaption} onChange={(e) => setNewPostCaption(e.target.value)}
+                      className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm text-gray-800 dark:text-gray-100 resize-none min-h-[80px] placeholder-gray-400"
                       autoFocus
                     />
 
-                    {/* معاينة الصورة المرفوعة */}
                     {newPostImage && (
-                      <div className="relative mt-3 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 w-max max-w-full shadow-sm">
-                        <img src={newPostImage} className="max-h-72 w-auto object-contain rounded-xl" alt="Preview" />
-                        <button type="button" onClick={() => setNewPostImage("")} className="absolute top-2 right-2 bg-black/50 backdrop-blur-md text-white rounded-full p-1.5 hover:bg-black/70 transition-all cursor-pointer">
+                      <div className="relative mt-2 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 w-max max-w-full">
+                        <img src={newPostImage} className="max-h-64 w-auto object-contain" alt="Preview" />
+                        <button type="button" onClick={() => setNewPostImage("")} className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80 transition-colors">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
                     )}
 
-                    {/* أزرار الإرفاق السفلية */}
-                    <div className="flex items-center gap-3 mt-4 text-gray-400 relative z-10">
-                      <label className="p-2 -m-2 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-blue-500 rounded-full cursor-pointer transition-colors" title="إرفاق صورة">
+                    <div className="flex items-center gap-3 mt-4 text-gray-400 border-t border-gray-50 dark:border-gray-800/50 pt-3">
+                      <label className="p-2 -m-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-500 rounded-full cursor-pointer transition-colors" title="إرفاق صورة">
                         <Camera className="w-5 h-5" />
                         <input type="file" accept="image/*" onChange={handleFileChange} className="hidden"/>
                       </label>
                       <input 
-                        type="text" 
-                        placeholder="# ضيف_هاشتاج (اختياري)..." 
-                        value={newPostTags} 
-                        onChange={(e) => setNewPostTags(e.target.value)} 
-                        className="flex-1 bg-transparent border-none focus:ring-0 text-sm p-0 text-blue-500 placeholder-gray-300 dark:placeholder-gray-600" 
+                        type="text" placeholder="أضف هاشتاج #ميمز..." value={newPostTags} onChange={(e) => setNewPostTags(e.target.value)} 
+                        className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-3 py-1.5 text-sm focus:ring-1 focus:ring-blue-500 text-gray-900 dark:text-white" 
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* زر النشر */}
-                <div className="flex justify-end mt-2 pt-4 border-t border-gray-50 dark:border-gray-800/50">
-                  <button 
-                    type="submit" 
-                    disabled={(!newPostCaption.trim() && !newPostImage) || loading} 
-                    className="bg-black dark:bg-white text-white dark:text-black px-8 py-2.5 rounded-full text-sm font-black disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 transition-transform flex items-center justify-center min-w-[100px]"
-                  >
-                    {loading ? <Clock className="w-4 h-4 animate-spin" /> : "نشر"}
+                <div className="flex justify-end mt-4">
+                  <button type="submit" disabled={(!newPostCaption.trim() && !newPostImage) || loading} className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[100px]">
+                    {loading ? <Clock className="w-4 h-4 animate-spin" /> : "نشر الميم"}
                   </button>
                 </div>
               </form>
-              {postError && <p className="text-red-500 text-sm mt-2 text-center bg-red-50 dark:bg-red-900/20 p-2 rounded-lg font-bold">{postError}</p>}
+              {postError && <p className="text-red-500 text-sm mt-2 text-center font-bold bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">{postError}</p>}
             </div>
           )}
 
-          {/* PROFILE - REDESIGNED FB STYLE (With Cover Upload Fix) */}
+          {/* PROFILE - REDESIGNED FACEBOOK STYLE (Full width, No external Card) */}
           {(activeTab === "profile" || (activeTab === "user-profile" && selectedProfileId)) && (
-            <div className="flex flex-col gap-5 animate-fade-in">
+            <div className="flex flex-col w-full animate-fade-in md:pb-10">
               {(() => {
                 const isOwnProfile = activeTab === "profile" || selectedProfileId === currentUser.id;
                 const profile = isOwnProfile ? currentUser : profiles.find(p => p.id === selectedProfileId);
                 
-                if (!profile) return <div className="text-center py-10">المستخدم غير موجود</div>;
+                if (!profile) return <div className="text-center py-10 font-bold text-gray-500">المستخدم غير موجود</div>;
                 const userMemes = memes.filter(m => m.user_id === profile.id);
 
                 return (
-                  <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] overflow-hidden shadow-sm">
-                    {/* FB Style Cover Photo (تغيير البانر) */}
-                    <div 
-                      className="h-44 sm:h-60 bg-gradient-to-tr from-blue-600 to-indigo-800 relative group w-full bg-cover bg-center transition-all duration-300"
-                      style={(profile as any).cover_url ? { backgroundImage: `url(${(profile as any).cover_url})` } : {}}
-                    >
-                      {/* طبقة تظليل خفيفة لجعل الزر واضح */}
-                      <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-all pointer-events-none"></div>
+                  <>
+                    {/* Header Area (Cover + Avatar + Info) */}
+                    <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm mb-4 pb-6 md:rounded-b-2xl">
                       
-                      {isOwnProfile && (
-                        <label className="absolute bottom-4 right-4 bg-white/90 dark:bg-black/60 hover:bg-white dark:hover:bg-black backdrop-blur-md text-gray-900 dark:text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all cursor-pointer shadow-lg opacity-90 hover:opacity-100 hover:scale-105 z-10 border border-gray-200 dark:border-gray-700">
-                          <Camera className="w-4 h-4" />
-                          <span className="hidden sm:inline">تغيير الغلاف</span>
-                          <input 
-                            type="file" 
-                            className="hidden" 
-                            accept="image/*"
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                try {
-                                  // نقوم برفع الصورة واستخدامها كغلاف
-                                  const url = await dataService.uploadAvatar(file); // assuming same logic applies
-                                  const updated = { ...currentUser, cover_url: url } as any;
-                                  setCurrentUser(updated);
-                                  setProfiles(prev => prev.map(p => p.id === updated.id ? updated : p));
-                                  await dataService.updateProfile({ cover_url: url } as any);
-                                } catch (err: any) { alert("فشل رفع الغلاف: " + err.message); }
-                              }
-                            }}
-                          />
-                        </label>
-                      )}
-                    </div>
+                      {/* Cover Banner */}
+                      <div 
+                        className="w-full h-48 sm:h-72 bg-gray-200 dark:bg-gray-800 relative group bg-cover bg-center md:rounded-t-none"
+                        style={(profile as any).cover_url ? { backgroundImage: `url(${(profile as any).cover_url})` } : { backgroundImage: 'linear-gradient(to right, #3b82f6, #8b5cf6)' }}
+                      >
+                        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-all pointer-events-none"></div>
+                        
+                        {isOwnProfile && (
+                          <label className="absolute bottom-4 right-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer shadow border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors z-10">
+                            <Camera className="w-4 h-4" />
+                            <span className="hidden sm:inline">تعديل الغلاف</span>
+                            <span className="sm:hidden">الغلاف</span>
+                            <input 
+                              type="file" className="hidden" accept="image/*"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  try {
+                                    const url = await dataService.uploadAvatar(file); // assuming same logic applies
+                                    const updated = { ...currentUser, cover_url: url } as any;
+                                    setCurrentUser(updated);
+                                    setProfiles(prev => prev.map(p => p.id === updated.id ? updated : p));
+                                    await dataService.updateProfile({ cover_url: url } as any);
+                                  } catch (err: any) { alert("فشل رفع الغلاف"); }
+                                }
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
 
-                    {/* FB Style Avatar & Info Row */}
-                    <div className="px-6 relative flex flex-col sm:flex-row items-center sm:items-end justify-between -mt-16 sm:-mt-14 pb-5 border-b border-gray-100 dark:border-gray-800 gap-4">
-                      
-                      <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 w-full relative z-10">
-                        {/* Avatar */}
-                        <div className="relative group shrink-0">
-                          <div 
-                            className="w-32 h-32 sm:w-36 sm:h-36 rounded-full border-4 border-white dark:border-gray-900 bg-gray-100 shadow-xl overflow-hidden cursor-pointer"
-                            onClick={() => setLightboxImage(profile.avatar_url || null)}
-                          >
-                            {profile.avatar_url ? (
-                              <img src={profile.avatar_url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-5xl font-bold text-gray-300 dark:text-gray-600">{profile.username[0]}</div>
+                      {/* Avatar and Main Info Container */}
+                      <div className="px-4 sm:px-8 max-w-5xl mx-auto flex flex-col sm:flex-row items-center sm:items-end justify-between relative -mt-16 sm:-mt-20 gap-4 sm:gap-0">
+                        
+                        {/* Avatar & Name */}
+                        <div className="flex flex-col sm:flex-row items-center sm:items-end gap-3 sm:gap-5 w-full text-center sm:text-right">
+                          <div className="relative group shrink-0">
+                            <div 
+                              className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white dark:border-gray-900 bg-gray-100 dark:bg-gray-800 shadow-md overflow-hidden cursor-pointer"
+                              onClick={() => setLightboxImage(profile.avatar_url || null)}
+                            >
+                              {profile.avatar_url ? (
+                                <img src={profile.avatar_url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-5xl font-bold text-gray-300 dark:text-gray-600">{profile.username[0]}</div>
+                              )}
+                            </div>
+                            
+                            {isOwnProfile && (
+                              <label className="absolute bottom-2 right-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white p-2 sm:p-2.5 rounded-full cursor-pointer shadow border-2 border-white dark:border-gray-900 transition-colors">
+                                <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
+                                <input 
+                                  type="file" className="hidden" accept="image/*"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      try {
+                                        const url = await dataService.uploadAvatar(file);
+                                        setCurrentUser(prev => ({ ...prev, avatar_url: url }));
+                                        await dataService.updateProfile({ avatar_url: url });
+                                      } catch (err: any) { alert("فشل الرفع"); }
+                                    }
+                                  }}
+                                />
+                              </label>
                             )}
                           </div>
-                          
-                          {isOwnProfile && (
-                            <label className="absolute bottom-1 right-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-white p-3 rounded-full cursor-pointer shadow-lg transition-all border-4 border-white dark:border-gray-900 hover:scale-110">
-                              <Camera className="w-5 h-5" />
+
+                          <div className="pb-2 flex-1">
+                            {isOwnProfile ? (
                               <input 
-                                type="file" className="hidden" accept="image/*"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    try {
-                                      const url = await dataService.uploadAvatar(file);
-                                      setCurrentUser(prev => ({ ...prev, avatar_url: url }));
-                                      await dataService.updateProfile({ avatar_url: url });
-                                    } catch (err: any) { alert("فشل: " + err.message); }
-                                  }
+                                type="text" value={profile.username} 
+                                onChange={(e) => {
+                                  const newName = e.target.value;
+                                  setCurrentUser(prev => ({ ...prev, username: newName }));
+                                  dataService.updateProfile({ username: newName });
                                 }}
+                                className="bg-transparent border-none focus:ring-2 focus:ring-blue-400 p-0 text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white text-center sm:text-right w-full mb-1"
                               />
-                            </label>
-                          )}
+                            ) : (
+                              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-1">{profile.username}</h1>
+                            )}
+                            <p className="text-sm font-bold text-gray-500 mb-2">{profile.followers_count} متابع • {profile.following_count || 0} يتابع</p>
+                            <span className="text-xs text-blue-700 dark:text-blue-300 font-bold bg-blue-50 dark:bg-blue-900/40 px-2.5 py-1 rounded-md border border-blue-100 dark:border-blue-800/50">
+                              {profile.meme_level}
+                            </span>
+                          </div>
                         </div>
 
-                        {/* Name & Basic Stats */}
-                        <div className="flex-1 text-center sm:text-right mt-2 sm:mb-3 w-full">
-                          {isOwnProfile ? (
-                            <input 
-                              type="text" 
-                              value={profile.username} 
-                              onChange={async (e) => {
-                                const newName = e.target.value;
-                                setCurrentUser(prev => ({ ...prev, username: newName }));
-                                dataService.updateProfile({ username: newName });
-                              }}
-                              className="bg-transparent border-none focus:ring-2 focus:ring-blue-400 p-0 text-2xl sm:text-3xl font-black text-gray-900 dark:text-white text-center sm:text-right w-full"
-                            />
-                          ) : (
-                            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">{profile.username}</h1>
-                          )}
-                          <p className="text-sm font-bold text-gray-500 mt-1">{profile.followers_count} متابع • {profile.following_count || 0} يتابع</p>
-                          <p className="text-xs text-blue-600 dark:text-blue-400 font-bold mt-1.5 bg-blue-50 dark:bg-blue-900/30 inline-block px-3 py-1 rounded-lg">{profile.meme_level}</p>
+                        {/* Actions (Follow/Message) */}
+                        <div className="flex gap-2 w-full sm:w-auto justify-center pb-2 shrink-0">
+                          {!isOwnProfile && isRealUser ? (
+                            <>
+                              <button 
+                                onClick={() => handleFollowToggle(currentUser.id, profile.id)}
+                                className={`px-5 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
+                                  followingIds.includes(profile.id) 
+                                    ? "bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200" 
+                                    : "bg-blue-600 text-white hover:bg-blue-700"
+                                }`}
+                              >
+                                {followingIds.includes(profile.id) ? <><CheckCircle2 className="w-4 h-4"/> يتابع</> : <><PlusCircle className="w-4 h-4"/> متابعة</>}
+                              </button>
+                              <button className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
+                                <MessageCircle className="w-4 h-4" /> <span className="hidden sm:inline">مراسلة</span>
+                              </button>
+                            </>
+                          ) : isOwnProfile && !isRealUser ? (
+                            <button onClick={() => setShowAuthModal(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-bold">تسجيل الدخول</button>
+                          ) : isOwnProfile ? (
+                            <button className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors w-full sm:w-auto">
+                              <Edit2 className="w-4 h-4" /> تعديل النبذة
+                            </button>
+                          ) : null}
                         </div>
-                      </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex gap-2 sm:mb-3 w-full sm:w-auto justify-center">
-                        {!isOwnProfile && isRealUser ? (
-                          <>
-                            <button 
-                              onClick={() => handleFollowToggle(currentUser.id, profile.id)}
-                              className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-1.5 ${
-                                followingIds.includes(profile.id) 
-                                  ? "bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200" 
-                                  : "bg-blue-600 text-white hover:bg-blue-700"
-                              }`}
-                            >
-                              {followingIds.includes(profile.id) ? (
-                                <><CheckCircle2 className="w-4 h-4"/> يتابع</>
-                              ) : (
-                                <><PlusCircle className="w-4 h-4"/> متابعة</>
-                              )}
-                            </button>
-                            <button className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all">
-                              <MessageCircle className="w-4 h-4" /> مراسلة
-                            </button>
-                          </>
-                        ) : isOwnProfile && !isRealUser ? (
-                          <button onClick={() => setShowAuthModal(true)} className="bg-blue-600 text-white px-8 py-2.5 rounded-xl text-sm font-bold w-full">
-                            تسجيل الدخول
-                          </button>
-                        ) : isOwnProfile ? (
-                          <button className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all w-full sm:w-auto">
-                            <Edit2 className="w-4 h-4" /> تعديل الملف
-                          </button>
-                        ) : null}
                       </div>
                     </div>
 
-                    {/* FB Style Content Area */}
-                    <div className="flex flex-col md:flex-row p-5 gap-5 bg-gray-50/50 dark:bg-gray-950/30 min-h-[400px]">
+                    {/* Profile Content (Two Columns Layout like FB) */}
+                    <div className="flex flex-col md:flex-row gap-4 px-4 md:px-0">
                       
-                      {/* Left Sidebar (Intro/About) */}
-                      <div className="w-full md:w-1/3 flex flex-col gap-4">
-                        <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
-                          <h3 className="font-bold text-gray-900 dark:text-white mb-3 text-lg">حول</h3>
+                      {/* Left Sidebar (About Card) */}
+                      <div className="w-full md:w-[320px] shrink-0 flex flex-col gap-4">
+                        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-xl shadow-sm">
+                          <h3 className="font-bold text-gray-900 dark:text-white mb-3">نبذة</h3>
                           {isOwnProfile ? (
                             <textarea
                               value={profile.bio || ""}
@@ -939,56 +875,44 @@ export default function App() {
                                 setCurrentUser(prev => ({ ...prev, bio: newBio }));
                                 dataService.updateProfile({ bio: newBio });
                               }}
-                              className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 focus:ring-2 focus:ring-blue-400 p-3 text-sm text-gray-800 dark:text-gray-200 rounded-xl resize-none text-center"
-                              placeholder="اكتب نبذة عنك..."
-                              rows={3}
+                              className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:ring-1 focus:ring-blue-400 p-2 text-sm text-gray-800 dark:text-gray-200 rounded-lg resize-none"
+                              placeholder="اكتب شيئاً عنك..." rows={3}
                             />
                           ) : (
-                            <p className="text-sm text-gray-600 dark:text-gray-300 text-center leading-relaxed">{profile.bio || "لا يوجد وصف."}</p>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 text-center">{profile.bio || "لا يوجد وصف حالياً."}</p>
                           )}
                           
-                          <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800 space-y-3 text-sm text-gray-600 dark:text-gray-300">
-                            <div className="flex items-center gap-2.5">
-                              <Award className="w-5 h-5 text-gray-400" />
-                              <span>النقاط: <strong className="text-gray-900 dark:text-white">{profile.total_points} XP</strong></span>
+                          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 space-y-3 text-sm text-gray-600 dark:text-gray-400">
+                            <div className="flex items-center gap-2">
+                              <Award className="w-4 h-4" />
+                              <span>إجمالي النقاط: <strong className="text-gray-900 dark:text-white">{profile.total_points} XP</strong></span>
                             </div>
-                            <div className="flex items-center gap-2.5">
-                              <Clock className="w-5 h-5 text-gray-400" />
-                              <span>عضو منذ {new Date(profile.created_at).getFullYear()}</span>
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4" />
+                              <span>انضم في {new Date(profile.created_at).getFullYear()}</span>
                             </div>
                           </div>
                         </div>
                       </div>
 
                       {/* Right Feed (Posts) */}
-                      <div className="w-full md:w-2/3 flex flex-col gap-4">
-                        <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                          <h3 className="font-bold text-gray-900 dark:text-white text-lg">المنشورات</h3>
-                          <span className="text-sm font-bold text-gray-500 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg">{userMemes.length} منشور</span>
+                      <div className="flex-1 flex flex-col gap-4">
+                        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-xl shadow-sm flex items-center justify-between">
+                          <h3 className="font-bold text-gray-900 dark:text-white">المنشورات</h3>
+                          <span className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{userMemes.length} منشور</span>
                         </div>
 
                         {userMemes.length === 0 ? (
-                          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-10 text-center text-gray-400 font-bold">
+                          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-10 text-center text-gray-500 font-bold shadow-sm">
                             لا توجد ميمز هنا بعد.
                           </div>
                         ) : (
                           userMemes.map(meme => (
                             <div key={meme.id} className="post-wrapper w-full">
                               <MemeCard
-                                meme={meme}
-                                currentUser={currentUser}
-                                onLikeToggle={handleLikeToggle}
-                                onSaveToggle={handleSaveToggle}
-                                onFollowToggle={handleFollowToggle}
-                                onTagClick={(tag) => setSelectedTag(tag)}
-                                onDeleteComment={() => {}}
-                                onReportSubmit={handleReportSubmit}
-                                onShareCompleted={handleShareCompleted}
-                                onDeleteMeme={handleDeleteMeme}
-                                onUserProfileClick={(uid) => {
-                                  setSelectedProfileId(uid);
-                                  setActiveTab("user-profile");
-                                }}
+                                meme={meme} currentUser={currentUser} onLikeToggle={handleLikeToggle} onSaveToggle={handleSaveToggle} onFollowToggle={handleFollowToggle} onTagClick={(tag) => setSelectedTag(tag)}
+                                onDeleteComment={() => {}} onReportSubmit={handleReportSubmit} onShareCompleted={handleShareCompleted} onDeleteMeme={handleDeleteMeme}
+                                onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }}
                                 isFollowingCreator={followingIds.includes(meme.user_id)}
                                 onImageClick={(url: string) => setLightboxImage(url)}
                               />
@@ -998,20 +922,20 @@ export default function App() {
                       </div>
 
                     </div>
-                  </div>
+                  </>
                 );
               })()}
             </div>
           )}
 
           {activeTab === "trending" && (
-            <div className="flex flex-col gap-4 animate-fade-in">
-              <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] p-6 mb-2 shadow-sm">
-                <span className="text-[11px] bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/50 font-black px-3 py-1.5 rounded-full w-max flex items-center gap-1">التريند <Flame className="w-3 h-3"/></span>
-                <h2 className="font-extrabold text-2xl mt-3">الأعلى تفاعل</h2>
+            <div className="flex flex-col gap-4 animate-fade-in px-4 md:px-0">
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 shadow-sm text-right">
+                <h2 className="font-bold text-xl flex items-center gap-2">الأعلى تفاعلاً <Flame className="w-5 h-5 text-red-500" /></h2>
+                <p className="text-sm text-gray-500 mt-1">البوستات المولعة الساحة اليومين دول 🔥</p>
               </div>
               {[...memes].sort((a,b) => (b.likes_count*10 + b.comments_count*15) - (a.likes_count*10 + a.comments_count*15)).map((m) => (
-                <div key={m.id} className="post-wrapper w-full mb-2">
+                <div key={m.id} className="post-wrapper w-full">
                   <MemeCard meme={m} currentUser={currentUser} onLikeToggle={handleLikeToggle} onSaveToggle={handleSaveToggle} onFollowToggle={handleFollowToggle} onTagClick={setSelectedTag} onDeleteComment={() => {}} onReportSubmit={handleReportSubmit} onShareCompleted={handleShareCompleted} onDeleteMeme={handleDeleteMeme} onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }} isFollowingCreator={followingIds.includes(m.user_id)} onImageClick={(url: string) => setLightboxImage(url)} />
                 </div>
               ))}
@@ -1019,152 +943,68 @@ export default function App() {
           )}
 
           {activeTab === "leaderboard" && (
-            <Leaderboard profiles={profiles} currentUser={currentUser} onNavigate={setActiveTab} onFollowToggle={handleFollowToggle} followingIds={followingIds} />
+            <div className="px-4 md:px-0">
+              <Leaderboard profiles={profiles} currentUser={currentUser} onNavigate={setActiveTab} onFollowToggle={handleFollowToggle} followingIds={followingIds} />
+            </div>
           )}
 
           {activeTab === "saves" && (
-            <div className="flex flex-col gap-4">
-              <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] p-6 shadow-sm text-right">
-                <h2 className="font-extrabold text-2xl mt-1 flex items-center gap-2">المحفوظات <Bookmark className="w-6 h-6 text-blue-500" /></h2>
+            <div className="flex flex-col gap-4 px-4 md:px-0">
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 shadow-sm text-right">
+                <h2 className="font-bold text-xl flex items-center gap-2">المحفوظات <Bookmark className="w-5 h-5 text-blue-500" /></h2>
               </div>
+              {memes.filter(m => m.saved_by_me).length === 0 && (
+                <div className="text-center py-10 text-gray-500 font-bold bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">لم تقم بحفظ أي منشورات بعد.</div>
+              )}
               {memes.filter(m => m.saved_by_me).map((m) => (
-                <div key={m.id} className="post-wrapper w-full mb-2">
+                <div key={m.id} className="post-wrapper w-full">
                   <MemeCard meme={m} currentUser={currentUser} onLikeToggle={handleLikeToggle} onSaveToggle={handleSaveToggle} onFollowToggle={handleFollowToggle} onTagClick={setSelectedTag} onDeleteComment={() => {}} onReportSubmit={handleReportSubmit} onShareCompleted={handleShareCompleted} onDeleteMeme={handleDeleteMeme} onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }} isFollowingCreator={followingIds.includes(m.user_id)} onImageClick={(url: string) => setLightboxImage(url)} />
                 </div>
               ))}
             </div>
           )}
-
-          {activeTab === "moderation" && (
-            <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] shadow-sm p-6 text-right flex flex-col gap-5">
-              <h2 className="font-black text-xl flex items-center gap-1.5"><AlertTriangle className="w-5 h-5 text-red-500" /> البلاغات</h2>
-              {reports.length === 0 ? (
-                <div className="py-12 text-center text-gray-400">لا توجد بلاغات 🎉</div>
-              ) : (
-                reports.map((rep) => {
-                  const reportedMeme = memes.find(m => m.id === rep.meme_id);
-                  return (
-                    <div key={rep.id} className="p-4 bg-gray-50 dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800">
-                      <p className="text-xs font-bold mb-3">السبب: <span className="text-red-600">{rep.reason}</span></p>
-                      <div className="flex gap-2">
-                        <button onClick={() => { if(reportedMeme) setMemes(memes.map(m=>m.id===reportedMeme.id?{...m,status:"deleted"}:m)); const updated=reports.filter(r=>r.id!==rep.id); setReports(updated); localStorage.setItem("memesbook_reports_list", JSON.stringify(updated)); }} className="flex-1 bg-red-600 text-white rounded-xl py-2.5 text-sm font-black hover:bg-red-700 transition-colors">حذف البوست</button>
-                        <button onClick={() => { const updated=reports.filter(r=>r.id!==rep.id); setReports(updated); localStorage.setItem("memesbook_reports_list", JSON.stringify(updated)); }} className="flex-1 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-xl py-2.5 text-sm font-black hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors">تجاهل</button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
         </div>
 
-        <Sidebar
-          currentUser={currentUser}
-          activeTab={activeTab}
-          onNavigate={(tab) => { setActiveTab(tab); setSelectedTag(null); }}
-          savedCount={savedMemesCount}
-        />
+        <Sidebar currentUser={currentUser} activeTab={activeTab} onNavigate={(tab) => { setActiveTab(tab); setSelectedTag(null); }} savedCount={savedMemesCount} />
       </main>
 
       {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 flex items-center justify-around py-4 md:hidden shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)]">
-        <button onClick={() => setActiveTab("feed")} className={activeTab === 'feed' ? 'text-blue-600 dark:text-blue-400 scale-110 transition-transform' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}><Home className="w-6 h-6" /></button>
-        <button onClick={() => setActiveTab("trending")} className={activeTab === 'trending' ? 'text-blue-600 dark:text-blue-400 scale-110 transition-transform' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}><Flame className="w-6 h-6" /></button>
-        <button onClick={() => setActiveTab("saves")} className={activeTab === 'saves' ? 'text-blue-600 dark:text-blue-400 scale-110 transition-transform' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}><Bookmark className="w-6 h-6" /></button>
-        <button onClick={() => setActiveTab("profile")} className={activeTab === 'profile' ? 'text-blue-600 dark:text-blue-400 scale-110 transition-transform' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}><User className="w-6 h-6" /></button>
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex items-center justify-around py-3 md:hidden shadow-[0_-5px_10px_rgba(0,0,0,0.05)]">
+        <button onClick={() => setActiveTab("feed")} className={`flex flex-col items-center gap-1 ${activeTab === 'feed' ? 'text-blue-600' : 'text-gray-500'}`}><Home className="w-5 h-5" /><span className="text-[10px] font-bold">الرئيسية</span></button>
+        <button onClick={() => setActiveTab("trending")} className={`flex flex-col items-center gap-1 ${activeTab === 'trending' ? 'text-blue-600' : 'text-gray-500'}`}><Flame className="w-5 h-5" /><span className="text-[10px] font-bold">تريند</span></button>
+        <button onClick={() => setActiveTab("saves")} className={`flex flex-col items-center gap-1 ${activeTab === 'saves' ? 'text-blue-600' : 'text-gray-500'}`}><Bookmark className="w-5 h-5" /><span className="text-[10px] font-bold">محفوظات</span></button>
+        <button onClick={() => setActiveTab("profile")} className={`flex flex-col items-center gap-1 ${activeTab === 'profile' || activeTab === 'user-profile' ? 'text-blue-600' : 'text-gray-500'}`}><User className="w-5 h-5" /><span className="text-[10px] font-bold">حسابي</span></button>
       </nav>
 
-      {/* AUTHENTICATION MODAL */}
+      {/* MODAL الدخول */}
       {showAuthModal && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 shadow-2xl" dir="rtl">
-          <div className="bg-white dark:bg-gray-900 rounded-[2rem] max-w-md w-full p-7 text-right border border-gray-100 dark:border-gray-800 shadow-2xl relative animate-fade-in">
-            <button 
-              onClick={() => setShowAuthModal(false)}
-              className="absolute top-5 left-5 text-gray-400 hover:text-gray-900 dark:hover:text-white cursor-pointer p-1.5 bg-gray-50 dark:bg-gray-800 rounded-full transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="text-center mb-6 mt-2">
-              <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto text-blue-600 dark:text-blue-400 mb-3">
-                <User className="w-7 h-7" />
-              </div>
-              <h3 className="font-black text-xl text-gray-900 dark:text-white">
-                انضم لعشاق الضحك 🎭
-              </h3>
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 shadow-2xl" dir="rtl">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-sm w-full p-6 text-right border border-gray-200 dark:border-gray-800 shadow-xl relative animate-fade-in">
+            <button onClick={() => setShowAuthModal(false)} className="absolute top-4 left-4 text-gray-400 hover:text-gray-900 dark:hover:text-white p-1 bg-gray-100 dark:bg-gray-800 rounded-md transition-colors"><X className="w-5 h-5" /></button>
+            <div className="text-center mb-5 mt-2">
+              <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto text-blue-600 mb-2"><User className="w-6 h-6" /></div>
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white">أهلاً بك في ميمزبوك</h3>
             </div>
-
-            {/* Tabs */}
-            <div className="flex bg-gray-50 dark:bg-gray-950 p-1 rounded-2xl mb-5 border border-gray-100 dark:border-gray-800">
-              <button
-                onClick={() => { setAuthTab("signin"); setAuthError(""); setAuthSuccess(""); }}
-                className={`flex-1 text-center py-2.5 text-xs font-black rounded-xl cursor-pointer transition-all ${
-                  authTab === "signin" ? "bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm" : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                }`}
-              >
-                تسجيل الدخول 👋
-              </button>
-              <button
-                onClick={() => { setAuthTab("signup"); setAuthError(""); setAuthSuccess(""); }}
-                className={`flex-1 text-center py-2.5 text-xs font-black rounded-xl cursor-pointer transition-all ${
-                  authTab === "signup" ? "bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm" : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                }`}
-              >
-                إنشاء حساب 🚀
-              </button>
+            <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg mb-4">
+              <button onClick={() => { setAuthTab("signin"); setAuthError(""); setAuthSuccess(""); }} className={`flex-1 text-center py-2 text-sm font-bold rounded-md transition-all ${authTab === "signin" ? "bg-white dark:bg-gray-900 text-blue-600 shadow-sm" : "text-gray-500"}`}>تسجيل الدخول</button>
+              <button onClick={() => { setAuthTab("signup"); setAuthError(""); setAuthSuccess(""); }} className={`flex-1 text-center py-2 text-sm font-bold rounded-md transition-all ${authTab === "signup" ? "bg-white dark:bg-gray-900 text-blue-600 shadow-sm" : "text-gray-500"}`}>حساب جديد</button>
             </div>
-
-            <form onSubmit={authTab === "signin" ? handleSignIn : handleSignUp} className="flex flex-col gap-4">
+            <form onSubmit={authTab === "signin" ? handleSignIn : handleSignUp} className="flex flex-col gap-3">
               <div>
-                <label className="block text-[11px] font-extrabold text-gray-500 dark:text-gray-400 mb-1.5 ml-1">البريد الإلكتروني 📧</label>
-                <input
-                  type="email" required placeholder="name@example.com"
-                  value={authEmail} onChange={(e) => setAuthEmail(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-2xl px-4 py-3 text-sm text-gray-900 dark:text-white transition-all"
-                />
+                <input type="email" required placeholder="البريد الإلكتروني" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
               </div>
-
               {authTab === "signup" && (
                 <div>
-                  <label className="block text-[11px] font-extrabold text-gray-500 dark:text-gray-400 mb-1.5 ml-1">اليوزر نيم 🎭</label>
-                  <input
-                    type="text" required placeholder="وزير_الميمز"
-                    value={authUsername} onChange={(e) => setAuthUsername(e.target.value.replace(/\s+/g, '_'))}
-                    className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-2xl px-4 py-3 text-sm font-bold text-gray-900 dark:text-white transition-all"
-                  />
+                  <input type="text" required placeholder="اسم المستخدم (بدون مسافات)" value={authUsername} onChange={(e) => setAuthUsername(e.target.value.replace(/\s+/g, '_'))} className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
                 </div>
               )}
-
               <div>
-                <label className="block text-[11px] font-extrabold text-gray-500 dark:text-gray-400 mb-1.5 ml-1">الرقم السري 🔒</label>
-                <input
-                  type="password" required placeholder="••••••"
-                  value={authPassword} onChange={(e) => setAuthPassword(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-2xl px-4 py-3 text-sm font-mono text-gray-900 dark:text-white transition-all"
-                />
+                <input type="password" required placeholder="الرقم السري" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
               </div>
-
-              {authError && (
-                <div className="text-sm text-red-600 dark:text-red-400 font-extrabold bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/30 p-3 rounded-2xl flex items-center gap-2 mt-1">
-                  <ShieldAlert className="w-4 h-4 shrink-0" />
-                  <span className="text-xs">{authError}</span>
-                </div>
-              )}
-
-              {authSuccess && (
-                <div className="text-xs text-green-700 dark:text-green-400 font-black bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/30 p-3 rounded-2xl flex items-center gap-2 mt-1">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>{authSuccess}</span>
-                </div>
-              )}
-
-              <button
-                type="submit" disabled={authLoading}
-                className="w-full mt-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500 text-white font-black py-3.5 rounded-2xl text-sm cursor-pointer flex justify-center gap-2 transition-all hover:scale-105 active:scale-95"
-              >
-                {authLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : (
-                  <span>{authTab === "signin" ? "دخول 👋" : "إنشاء حساب 🚀"}</span>
-                )}
+              {authError && <div className="text-xs text-red-600 bg-red-50 p-2 rounded-lg flex items-center gap-1.5"><ShieldAlert className="w-4 h-4" /> <span>{authError}</span></div>}
+              {authSuccess && <div className="text-xs text-green-700 bg-green-50 p-2 rounded-lg flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" /> <span>{authSuccess}</span></div>}
+              <button type="submit" disabled={authLoading} className="w-full mt-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-2.5 rounded-lg text-sm transition-colors flex justify-center">
+                {authLoading ? <Clock className="w-4 h-4 animate-spin" /> : (<span>{authTab === "signin" ? "دخول" : "إنشاء الحساب"}</span>)}
               </button>
             </form>
           </div>
@@ -1172,4 +1012,4 @@ export default function App() {
       )}
     </div>
   ); 
-    }
+          }
