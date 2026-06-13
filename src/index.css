@@ -6,6 +6,7 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
+/* ===== LIGHT MODE (DEFAULT) ===== */
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
@@ -17,6 +18,19 @@
   --muted-foreground: #64748b;
 }
 
+/* ===== DARK MODE (EXPLICIT .dark CLASS) ===== */
+:root.dark {
+  --background: #0f1419;
+  --foreground: #ffffff;
+  --card: #1a1f2e;
+  --card-foreground: #ffffff;
+  --border: #2d3748;
+  --primary: #60a5fa;
+  --muted: #0a0e17;
+  --muted-foreground: #e2e8f0;
+}
+
+/* ===== DARK MODE (SYSTEM PREFERENCE - ONLY IF NO .light CLASS) ===== */
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
     --background: #0f1419;
@@ -28,17 +42,6 @@
     --muted: #0a0e17;
     --muted-foreground: #e2e8f0;
   }
-}
-
-:root.dark {
-  --background: #0f1419;
-  --foreground: #ffffff;
-  --card: #1a1f2e;
-  --card-foreground: #ffffff;
-  --border: #2d3748;
-  --primary: #60a5fa;
-  --muted: #0a0e17;
-  --muted-foreground: #e2e8f0;
 }
 
 body {
@@ -79,6 +82,10 @@ body {
 
 .text-gray-300 {
   color: var(--muted-foreground) !important;
+}
+
+.text-black {
+  color: var(--foreground) !important;
 }
 
 /* ===== BACKGROUND COLORS ===== */
@@ -149,69 +156,23 @@ a {
   color: #93c5fd !important;
 }
 
-/* ===== HEADER - LIGHT MODE ONLY ===== */
-:root.light header,
+/* ===== HEADER ===== */
 header {
-  background-color: rgba(255, 255, 255, 0.8) !important;
-  border-bottom-color: #e2e8f0 !important;
-  color: #0f172a !important;
+  background-color: rgba(var(--card), 0.8) !important;
+  border-bottom-color: var(--border) !important;
+  color: var(--foreground) !important;
 }
 
-:root.light header .text-black,
-header .text-black {
-  color: #0f172a !important;
-}
-
-:root.light header .text-gray-900,
-header .text-gray-900 {
-  color: #0f172a !important;
-}
-
-/* ===== HEADER - DARK MODE ===== */
-:root.dark header {
-  background-color: rgba(26, 31, 46, 0.9) !important;
-  border-bottom-color: #2d3748 !important;
-  color: #ffffff !important;
-}
-
-:root.dark header .text-black {
-  color: #ffffff !important;
-}
-
-:root.dark header .text-gray-900 {
-  color: #ffffff !important;
-}
-
-/* ===== BOTTOM NAVIGATION - LIGHT MODE ONLY ===== */
-:root.light nav,
+/* ===== BOTTOM NAVIGATION ===== */
 nav {
-  background-color: rgba(255, 255, 255, 0.8) !important;
-  border-top-color: #e2e8f0 !important;
+  background-color: rgba(var(--card), 0.8) !important;
+  border-top-color: var(--border) !important;
   backdrop-filter: blur(10px);
+  color: var(--foreground) !important;
 }
 
-:root.light nav button,
 nav button {
-  color: #64748b !important;
-}
-
-:root.light nav button.text-black,
-nav button[class*="text-black"] {
-  color: #0f172a !important;
-}
-
-/* ===== BOTTOM NAVIGATION - DARK MODE ===== */
-:root.dark nav {
-  background-color: rgba(26, 31, 46, 0.95) !important;
-  border-top-color: #2d3748 !important;
-}
-
-:root.dark nav button {
-  color: #cbd5e1 !important;
-}
-
-:root.dark nav button.text-black {
-  color: #ffffff !important;
+  color: var(--muted-foreground) !important;
 }
 
 /* ===== DROPDOWN MENUS ===== */
@@ -245,19 +206,17 @@ article {
   color: var(--foreground) !important;
 }
 
-/* ===== ALERT BOXES ===== */
-.bg-red-50,
-.bg-green-50,
-.bg-blue-50,
-.bg-yellow-50 {
-  background-color: rgba(var(--primary-rgb), 0.1) !important;
+/* ===== COLOR SCHEME ===== */
+:root {
+  color-scheme: light;
 }
 
-/* ===== ENSURE PROPER CONTRAST ===== */
 :root.dark {
   color-scheme: dark;
 }
 
-:root.light {
-  color-scheme: light;
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+  }
 }
