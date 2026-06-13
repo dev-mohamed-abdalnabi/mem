@@ -209,23 +209,23 @@ export default function MemeCreator({ currentUser, onPublishMeme, onNavigate }: 
         {/* Text modifiers */}
         <div className="flex flex-col gap-3">
           <div>
-            <label className="block text-xs font-black text-gray-700 mb-1">الكلمة فوق (رأس الميم) ✍️</label>
+            <label className="block text-xs font-black text-gray-700 mb-1">الكلمة فوق (رأس الميم)</label>
             <input
               type="text"
               value={topText}
               onChange={(e) => setTopText(e.target.value)}
-              placeholder="اكتب إفيه السطر العلوي..."
+              placeholder="اكتب إفّييه السطر العلوي..."
               className="w-full bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs font-bold text-gray-900 placeholder:text-gray-400"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-black text-gray-700 mb-1">الكلمة تحت (أسفل الميم) ✍️</label>
+            <label className="block text-xs font-black text-gray-700 mb-1">الكلمة تحت (أسفل الميم)</label>
             <input
               type="text"
               value={bottomText}
               onChange={(e) => setBottomText(e.target.value)}
-              placeholder="اكتب إفيه السطر السفلي..."
+              placeholder="اكتب إفّييه السطر السفلي..."
               className="w-full bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs font-bold text-gray-900 placeholder:text-gray-400"
             />
           </div>
@@ -303,7 +303,7 @@ export default function MemeCreator({ currentUser, onPublishMeme, onNavigate }: 
 
         {publishSuccess && (
           <p className="text-xs text-green-700 font-black bg-green-50 border border-green-100 p-3 rounded-xl animate-bounce">
-            تم نشر ابتكارك الكوميدي بنجاح وجاري إعادتك للرئيسية يا غالي! 🎉🚀 (+5 نقاط لمستواك)
+            تم النشر بنجاح وجاري إعادتك للرئيسية! (+5 نقاط لمستواك)
           </p>
         )}
 
@@ -315,7 +315,7 @@ export default function MemeCreator({ currentUser, onPublishMeme, onNavigate }: 
             className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 text-white py-3 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-100 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:bg-gray-400 disabled:shadow-none"
           >
             <Send className="w-4 h-4" />
-            <span>{publishing ? "جاري النشر بالسرية التامة..." : "انشر الآن على ميمز بوك 🚀"}</span>
+            <span>{publishing ? "جاري النشر..." : "انشر الآن على ميمز بوك"}</span>
           </button>
 
           {/* Download */}
@@ -346,7 +346,7 @@ export default function MemeCreator({ currentUser, onPublishMeme, onNavigate }: 
         </div>
         
         <p className="text-[10px] text-gray-400 mt-3 font-semibold">
-          💡 يمكنك تغيير الكلمات بالتكست وسوف يتحدث مصنع الميمز مباشرةً!
+          يمكنك تغيير الكلمات بالتكست وسوف يتحدث مصنع الميمز مباشرةً!
         </p>
       </div>
     </div>

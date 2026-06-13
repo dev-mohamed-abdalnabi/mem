@@ -37,13 +37,13 @@ export default function Leaderboard({
         
         <div className="relative z-10">
           <span className="bg-white/15 px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase mb-2 inline-block">
-            نخبة صُنّاع البهجة والضحك 🌟
+            نخبة صُنّاع البهجة والضحك
           </span>
           <h2 className="font-extrabold text-lg sm:text-xl leading-snug">
-            لوحة شرف الأباطرة والميم لوردز
+            لوحة شرف الأباطرة والرواد
           </h2>
           <p className="text-xs text-blue-100 mt-1 max-w-lg font-bold leading-relaxed">
-            اللايكات والكمنتات على ميمزك بتتحول لنقاط خبرة (XP) بترقّي مستواك فورًا من مجرد "سكرولر مبتدئ" لإمبراطور كوميديا مذهل!
+            اللايكات والكمنتات على ميمزك بتتحول لنقاط خبرة وترقّي مستواك فورًا من مجرد مستخدم مبدئ لقمم مستويات الإبداع!
           </p>
         </div>
       </div>
@@ -51,7 +51,7 @@ export default function Leaderboard({
       {/* Point Rules Grid */}
       <div>
         <h3 className="font-extrabold text-xs text-gray-700 flex items-center justify-end gap-1.5 mb-3">
-          <span>دليل مستويات الأرباح والنقاط 📈</span>
+          <span>دليل مستويات الأرباح والنقاط</span>
           <Target className="w-4 h-4 text-blue-500" />
         </h3>
 
@@ -59,8 +59,8 @@ export default function Leaderboard({
           {[
             { metric: "+5 نقاط", act: "لكل لايك على ميمزك" },
             { metric: "+2 نقطة", act: "لكل تعليق على ميمزك" },
-            { metric: "+10 نقاط", act: "لكل متابع جديد يحبك" },
-            { metric: "1500+ XP", act: "مستوى الإمبراطور 👑" }
+            { metric: "+10 نقاط", act: "لكل متابع جديد" },
+            { metric: "1500+ XP", act: "مستوى الإمبراطور" }
           ].map((rule, i) => (
             <div key={i} className="bg-gray-50 border border-gray-100 p-2.5 rounded-xl text-center">
               <p className="text-xs font-black text-blue-600 font-mono leading-none">{rule.metric}</p>

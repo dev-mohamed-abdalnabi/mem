@@ -92,31 +92,32 @@ export default function Header({
         </div>
 
         {/* Right Actions & Utilities */}
-        <div className="flex items-center gap-2">
-          {/* Real Supabase Account Toggle/Status */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Account Toggle/Status */}
           <button
             onClick={isRealUser ? onSignOutReal : onShowAuthModal}
-            className={`px-3 py-2 rounded-xl text-xs font-black cursor-pointer shadow-sm transition-all flex items-center gap-1 shrink-0 ${
+            className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black cursor-pointer shadow-sm transition-all flex items-center gap-1 shrink-0 ${
               isRealUser 
-                ? "bg-green-100 text-green-800 hover:bg-green-200 border border-green-300"
-                : "bg-gradient-to-r from-orange-500 to-red-500 text-white hover:opacity-95 shadow-md shadow-orange-100 animate-pulse"
+                ? "bg-green-100 text-green-800 hover:bg-green-200 border border-green-200"
+                : "bg-gradient-to-r from-orange-500 to-red-500 text-white hover:opacity-95"
             }`}
           >
-            <span>{isRealUser ? "تسجيل خروج حقيقي 🔓" : "🔐 حساب حقيقي (Supabase)"}</span>
+            <span>{isRealUser ? "تسجيل الخروج" : "تسجيل الدخول"}</span>
           </button>
 
           {/* Create Meme Button */}
           <button
             onClick={() => onNavigate("creator")}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer shadow-sm transition-all ${
+            className={`px-2 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold flex items-center gap-1 cursor-pointer shadow-sm transition-all ${
               activeTab === "creator"
                 ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:opacity-95"
                 : "bg-blue-50 text-blue-600 hover:bg-blue-100"
             }`}
             id="create_meme_header_btn"
           >
-            <BookOpen className="w-4 h-4" />
-            <span className="font-bold">استوديو الميمز</span>
+            <BookOpen className="w-3.5 h-3.5" />
+            <span className="font-bold hidden sm:inline">استوديو الميمز</span>
+            <span className="font-bold sm:hidden">تصميم</span>
           </button>
 
           {/* Notifications Trigger */}
@@ -129,15 +130,15 @@ export default function Header({
                   onMarkNotificationsRead();
                 }
               }}
-              className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all cursor-pointer relative ${
+              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-all cursor-pointer relative ${
                 showNotificationsDropdown
                   ? "bg-blue-50 border-blue-200 text-blue-600"
                   : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <Bell className="w-5 h-5" />
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1.5 -left-1.5 bg-red-500 text-white font-extrabold text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-white animate-bounce">
+                <span className="absolute -top-1 -left-1 bg-red-500 text-white font-extrabold text-[9px] w-4 h-4 rounded-full flex items-center justify-center border-2 border-white animate-bounce">
                   {unreadCount}
                 </span>
               )}
@@ -258,7 +259,7 @@ export default function Header({
                 {/* Live Member Directory list */}
                 {availableProfiles && availableProfiles.length > 0 && (
                   <div className="px-4 py-2 border-b border-gray-100 bg-gray-50/50">
-                    <p className="text-[10px] text-gray-400 font-bold mb-1.5">صنّاع ميمز مسجلين حالياً 🌟:</p>
+                    <p className="text-[10px] text-gray-400 font-bold mb-1.5">الحسابات النشطة بالمنصة:</p>
                     <div className="flex flex-col gap-1 max-h-36 overflow-y-auto">
                       {availableProfiles.slice(0, 4).map((prof) => (
                         <div

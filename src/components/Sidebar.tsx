@@ -14,10 +14,10 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
 
   const menuItems = [
     { id: "feed", name: "الرئيسية الفكاهية", icon: Home, badge: null, desc: "أحدث الكوميكس والميمز" },
-    { id: "trending", name: "التريند اللاهب 🔥", icon: Flame, badge: "ساخن", desc: "أقوى الميمز في الـ 24 ساعة الماضية" },
-    { id: "creator", name: "صانع الميمز الفوري 🎨", icon: Cpu, badge: "جديد", desc: "اصنع ميم خاص بك بضغطة زر" },
-    { id: "leaderboard", name: "لوحة كبار الممبرز 🏆", icon: Trophy, badge: "لوحة شرف", desc: "أعظم صناع الكوميديا العربية" },
-    { id: "saves", name: "الميمز المحفوظة 💾", icon: Bookmark, badge: savedCount > 0 ? savedCount.toString() : null, desc: "الميمز اللي شيلتها للزمن" },
+    { id: "trending", name: "التريند الشائع", icon: Flame, badge: "ساخن", desc: "أقوى الميمز في الـ 24 ساعة الماضية" },
+    { id: "creator", name: "صانع الميمز الفوري", icon: Cpu, badge: "جديد", desc: "اصنع ميم خاص بك بضغطة زر" },
+    { id: "leaderboard", name: "لوحة الشرف", icon: Trophy, badge: "الشرف", desc: "أعظم صناع الكوميديا العربية" },
+    { id: "saves", name: "الميمز المحفوظة", icon: Bookmark, badge: savedCount > 0 ? savedCount.toString() : null, desc: "الميمز المحفوظة لوقت لاحق" },
   ];
 
   return (
@@ -135,9 +135,9 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
                     <AlertTriangle className="w-4 h-4 animate-bounce" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold leading-none">بلاغات الطوارئ 🚨</p>
+                    <p className="text-xs font-bold leading-none">مراجعة البلاغات</p>
                     <p className={`text-[9px] mt-1 ${activeTab === 'moderation' ? 'not-italic text-red-100' : 'text-red-400'}`}>
-                      الميمز المبلغ عنها من الممبرز
+                      الميمز المبلغ عنها من المستخدمين
                     </p>
                   </div>
                 </div>
@@ -149,10 +149,10 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
         {/* Humorous Egypt Status/Credits line */}
         <div className="px-4 text-center">
           <p className="text-[10px] text-gray-400 leading-normal">
-            صُنع بحب في أم الدنيا 🇪🇬
+            صُنع بحب في مصر
           </p>
           <p className="text-[9px] text-gray-300 mt-1">
-            جميع الحقوق محفوظة للمجلس الأعلى للضحك والهزار ٢٠٢٦ ©
+            جميع الحقوق محفوظة للمنصة ٢٠٢٦ ©
           </p>
         </div>
       </div>
