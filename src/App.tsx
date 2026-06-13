@@ -692,123 +692,7 @@ export default function App() {
 
           {activeTab === "feed" && (
             <div className="flex flex-col gap-4">
-              {/* Simple Facebook-Style New Post widget */}
-              <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm text-right flex flex-col gap-3.5">
-                <div className="flex gap-3">
-                  {currentUser.avatar_url ? (
-                    <img
-                      src={currentUser.avatar_url}
-                      alt={currentUser.username}
-                      className="w-10 h-10 rounded-xl object-cover shrink-0 border border-gray-150 cursor-pointer"
-                      referrerPolicy="no-referrer"
-                      onClick={() => {
-                        setSelectedProfileId(currentUser.id);
-                        setActiveTab("user-profile");
-                      }}
-                    />
-                  ) : (
-                    <div 
-                      className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-sm font-black shrink-0 cursor-pointer"
-                      onClick={() => {
-                        setSelectedProfileId(currentUser.id);
-                        setActiveTab("user-profile");
-                      }}
-                    >
-                      U
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500 font-bold">بماذا تفكر يا ميمر؟</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">انشر قفشة جديدة حية لتراها باقي العقول المفرفشة!</p>
-                  </div>
-                </div>
 
-                <form onSubmit={handleQuickPostSubmit} className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-3">
-                    <textarea
-                      placeholder="اكتب تعليقاً مضحكاً أو ميم نصي..."
-                      value={newPostCaption}
-                      onChange={(e) => setNewPostCaption(e.target.value)}
-                      className="bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl px-3 py-2.5 text-xs font-extrabold text-gray-950 min-h-[80px] resize-none"
-                    />
-                    
-                    {!newPostImage ? (
-                      <div className="flex items-center gap-2">
-                        <label className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-xl cursor-pointer transition-all">
-                          <PlusCircle className="w-4 h-4 text-blue-500" />
-                          <span className="text-xs font-bold text-gray-700">إضافة صورة</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileChange}
-                            className="hidden"
-                          />
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="هاشتاجات (مسافة للفصل)..."
-                          value={newPostTags}
-                          onChange={(e) => setNewPostTags(e.target.value)}
-                          className="flex-1 bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl px-3 py-2 text-xs font-mono text-gray-950"
-                        />
-                      </div>
-                    ) : (
-                      <div className="relative rounded-2xl overflow-hidden border border-gray-100 max-h-64 bg-gray-900 flex items-center justify-center p-2">
-                        <img
-                          src={newPostImage}
-                          alt="preview"
-                          className="max-h-60 object-contain rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setNewPostImage("")}
-                          className="absolute top-3 left-3 bg-red-600 hover:bg-red-700 text-white rounded-full px-3 py-1.5 shadow-lg cursor-pointer hover:scale-105 transition-all font-black text-[10px] flex items-center gap-1"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                          <span>تغيير الصورة</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-50">
-                    <span className="text-[10px] text-gray-500 font-bold">
-                       {newPostImage ? "الصورة جاهزة للنشر" : "يرجى اختيار صورة ميم أولاً"}
-                    </span>
-                    <button
-                      type="submit"
-                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-5 py-2.5 text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all shadow-md shadow-blue-100 hover:scale-[1.03] active:scale-95"
-                    >
-                      <PlusCircle className="w-4 h-4" />
-                      <span>انشر الكوميك</span>
-                    </button>
-                  </div>
-                </form>
-
-                {postError && (
-                  <p className="text-xs text-red-600 font-extrabold bg-red-50 border border-red-100 p-2 rounded-xl flex items-center gap-1.5">
-                    <ShieldAlert className="w-3.5 h-3.5 text-red-500" />
-                    <span>{postError}</span>
-                  </p>
-                )}
-
-                {postSuccess && (
-                  <p className="text-xs text-green-700 font-black bg-green-50 border border-green-100 p-2 rounded-xl animate-fade-in flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                    <span>تم النشر بنجاح!</span>
-                  </p>
-                )}
-                
-                {/* Visual helper to MemeCreator Studio */}
-                <div className="pt-2 border-t border-gray-50 flex justify-end">
-                  <button
-                    onClick={() => setActiveTab("creator")}
-                    className="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>أو اصنع ميم في استوديو الميمز الاحترافي المدمج</span>
-                  </button>
-                </div>
-              </div>
 
               {/* Feed Meme items render */}
               {loading ? (
@@ -855,6 +739,128 @@ export default function App() {
                   />
                 ))
               )}
+            </div>
+          )}
+
+          {activeTab === "create-post" && (
+            <div className="flex flex-col gap-4 animate-fade-in">
+              <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-xl text-right flex flex-col gap-6">
+                <div className="flex items-center justify-between border-b border-gray-50 pb-4">
+                  <h2 className="text-xl font-black text-gray-900">إنشاء منشور جديد</h2>
+                  <button 
+                    onClick={() => setActiveTab("feed")}
+                    className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-all"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="flex gap-4">
+                  {currentUser.avatar_url ? (
+                    <img
+                      src={currentUser.avatar_url}
+                      alt={currentUser.username}
+                      className="w-12 h-12 rounded-2xl object-cover shrink-0 border border-gray-150"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center text-lg font-black shrink-0">
+                      U
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0 pt-1">
+                    <p className="text-sm text-gray-900 font-black">{currentUser.username}</p>
+                    <p className="text-xs text-gray-400 font-bold mt-0.5">ما الذي يدور في ذهنك؟</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleQuickPostSubmit} className="flex flex-col gap-4">
+                  <textarea
+                    placeholder="اكتب تعليقاً مضحكاً أو ميم نصي..."
+                    value={newPostCaption}
+                    onChange={(e) => setNewPostCaption(e.target.value)}
+                    className="bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-2xl px-4 py-4 text-sm font-extrabold text-gray-950 min-h-[150px] resize-none"
+                    autoFocus
+                  />
+                  
+                  {!newPostImage ? (
+                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                      <label className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 px-6 py-3 rounded-2xl cursor-pointer transition-all border border-blue-100 font-black text-sm">
+                        <PlusCircle className="w-5 h-5" />
+                        <span>إضافة صورة للميم</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="هاشتاجات (مثال: #ضحك #ميمز)..."
+                        value={newPostTags}
+                        onChange={(e) => setNewPostTags(e.target.value)}
+                        className="w-full sm:flex-1 bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-2xl px-4 py-3 text-sm font-mono text-gray-950"
+                      />
+                    </div>
+                  ) : (
+                    <div className="relative rounded-3xl overflow-hidden border-4 border-gray-50 max-h-96 bg-gray-900 flex items-center justify-center p-2 shadow-inner">
+                      <img
+                        src={newPostImage}
+                        alt="preview"
+                        className="max-h-80 object-contain rounded-xl"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setNewPostImage("")}
+                        className="absolute top-4 left-4 bg-red-600 hover:bg-red-700 text-white rounded-full px-4 py-2 shadow-xl cursor-pointer hover:scale-105 transition-all font-black text-xs flex items-center gap-2"
+                      >
+                        <X className="w-4 h-4" />
+                        <span>إزالة الصورة</span>
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-3 pt-4 border-t border-gray-50">
+                    <button
+                      type="submit"
+                      disabled={!newPostCaption.trim() && !newPostImage}
+                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-2xl py-4 text-base font-black flex items-center justify-center gap-2 cursor-pointer transition-all shadow-lg shadow-blue-100 hover:scale-[1.01] active:scale-95"
+                    >
+                      <PlusCircle className="w-5 h-5" />
+                      <span>نشر الميم الآن</span>
+                    </button>
+                    <p className="text-center text-[10px] text-gray-400 font-bold">
+                      بضغطك على نشر، أنت توافق على قوانين مجتمع ميمزبوك للأذكياء فقط 🧠
+                    </p>
+                  </div>
+                </form>
+
+                {postError && (
+                  <p className="text-sm text-red-600 font-extrabold bg-red-50 border border-red-100 p-4 rounded-2xl flex items-center gap-2 animate-shake">
+                    <ShieldAlert className="w-5 h-5 text-red-500" />
+                    <span>{postError}</span>
+                  </p>
+                )}
+
+                {postSuccess && (
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl p-8 shadow-2xl text-center flex flex-col items-center gap-4 animate-scale-in max-w-sm w-full">
+                      <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
+                        <CheckCircle2 className="w-10 h-10" />
+                      </div>
+                      <h3 className="text-2xl font-black text-gray-900">تم النشر بنجاح!</h3>
+                      <p className="text-gray-500 font-bold">الميم بتاعك بقا متاح دلوقتي لكل الناس تشوفه وتضحك عليه.</p>
+                      <button 
+                        onClick={() => setActiveTab("feed")}
+                        className="mt-2 w-full bg-black text-white py-4 rounded-2xl font-black hover:scale-105 transition-all"
+                      >
+                        الرجوع للرئيسية
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

@@ -118,8 +118,12 @@ export default function Header({
 
           {/* Post Button (Facebook Style) */}
           <button
-            onClick={() => onNavigate("feed")}
-            className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all cursor-pointer"
+            onClick={() => onNavigate("create-post")}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+              activeTab === "create-post" 
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-200" 
+                : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+            }`}
             title="انشر ميم جديد"
           >
             <PlusCircle className="w-6 h-6" />
