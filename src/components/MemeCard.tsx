@@ -155,7 +155,7 @@ export default function MemeCard({
   };
 
   return (
-    <article className="bg-white border-b border-gray-100 text-right flex flex-col mb-0 transition-all hover:bg-gray-50/30">
+    <article className="bg-white border-b border-gray-100 text-right flex flex-col mb-0 transition-all">
       <div className="flex gap-3 p-4">
         {/* Left Column (Threads Style Line) */}
         <div className="flex flex-col items-center gap-2 shrink-0">

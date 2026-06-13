@@ -26,7 +26,7 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
         {/* Profile overview card Threads Style */}
         <div 
           onClick={() => onNavigate("profile")}
-          className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md cursor-pointer transition-all text-right group"
+          className="bg-white border border-gray-100 rounded-2xl p-5 cursor-pointer transition-all text-right group"
         >
           <div className="flex flex-col items-center gap-3">
             {currentUser.avatar_url ? (
@@ -66,7 +66,7 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
         </div>
 
         {/* Sidebar Menu Item Lists */}
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-2 flex flex-col gap-1 text-right">
+        <div className="bg-white border border-gray-100 rounded-2xl p-2 flex flex-col gap-1 text-right">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isSelected = activeTab === item.id;
@@ -114,13 +114,13 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
                 onClick={() => onNavigate("moderation")}
                 className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl transition-all cursor-pointer text-right ${
                   activeTab === "moderation"
-                    ? "bg-red-600 text-white shadow-sm"
+                    ? "bg-red-600 text-white"
                     : "text-red-700 hover:bg-red-50"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div className={`p-1.5 rounded-lg ${activeTab === 'moderation' ? 'bg-white/10 text-white' : 'bg-red-50 text-red-600'}`}>
-                    <AlertTriangle className="w-4 h-4 animate-bounce" />
+                    <AlertTriangle className="w-4 h-4" />
                   </div>
                   <div>
                     <p className="text-xs font-bold leading-none">مراجعة البلاغات</p>

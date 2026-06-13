@@ -81,7 +81,7 @@ export default function App() {
       setCurrentUser(dbCurrentUser);
       setPrevPoints(dbCurrentUser.total_points);
 
-      const dbMemes = await dataService.getMemes();
+      const dbMemes = await dataService.getMemes("approved", undefined, dbCurrentUser.id);
       setMemes(dbMemes);
 
       const dbProfiles = await dataService.getProfilesList();
@@ -89,6 +89,12 @@ export default function App() {
 
       const dbNotifs = await dataService.getNotifications(dbCurrentUser.id);
       setNotifications(dbNotifs);
+
+      // Refresh trending memes if on trending tab
+      if (activeTab === "trending") {
+        const dbTrending = await dataService.getTrendingMemes(dbCurrentUser.id);
+        setMemes(dbTrending);
+      }
 
       // Load following list from database
       const dbFollowingIds = await dataService.getFollowingList(dbCurrentUser.id);
@@ -166,6 +172,12 @@ export default function App() {
           return m;
         })
       );
+
+      // If we're on trending tab, we might need to refresh to ensure order is correct or status is synced
+      if (activeTab === "trending") {
+        const dbTrending = await dataService.getTrendingMemes(currentUser.id);
+        setMemes(dbTrending);
+      }
 
       // Update points in state (+5 on like for post creator)
       const targetMeme = memes.find(m => m.id === memeId);
@@ -1023,7 +1035,7 @@ export default function App() {
                     {activeTab === "profile" && (
             <div className="flex flex-col gap-4 animate-fade-in">
               {/* Profile Header Card */}
-              <div className="bg-white border border-gray-100 rounded-3xl shadow-sm p-6 text-right relative overflow-hidden">
+              <div className="bg-white border border-gray-100 rounded-3xl p-6 text-right relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-full h-24 bg-gradient-to-l from-blue-500 to-indigo-600 opacity-10 rounded-t-3xl"></div>
                 <div className="relative flex flex-col sm:flex-row gap-5 items-start">
                   {/* Avatar */}

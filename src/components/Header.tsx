@@ -135,9 +135,6 @@ export default function Header({
               onClick={() => {
                 setShowNotificationsDropdown(!showNotificationsDropdown);
                 setShowUserDropdown(false);
-                if (!showNotificationsDropdown) {
-                  onMarkNotificationsRead();
-                }
               }}
               className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer relative ${
                 showNotificationsDropdown
@@ -147,7 +144,7 @@ export default function Header({
             >
               <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -left-1 bg-red-500 text-white font-extrabold text-[9px] w-4 h-4 rounded-full flex items-center justify-center border-2 border-white animate-bounce">
+                <span className="absolute -top-0.5 -left-0.5 bg-red-500 text-white font-extrabold text-[9px] w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
                   {unreadCount}
                 </span>
               )}
@@ -155,7 +152,7 @@ export default function Header({
 
             {/* Notifications Popover */}
             {showNotificationsDropdown && (
-              <div className="absolute left-0 mt-2 w-80 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 text-right z-50">
+              <div className="absolute left-0 mt-2 w-80 bg-white border border-gray-100 rounded-2xl py-2 text-right z-50">
                 <div className="px-4 py-2 border-b border-gray-100 flex items-center justify-between">
                   <h3 className="font-bold text-gray-800 text-sm">الإشعارات الحية</h3>
                   {unreadCount > 0 && (
@@ -258,7 +255,7 @@ export default function Header({
 
             {/* Profile Dropdown & User switcher */}
             {showUserDropdown && (
-              <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 text-right z-50">
+              <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-100 rounded-2xl py-2 text-right z-50">
                 <div className="px-4 py-2 border-b border-gray-100">
                   <p className="text-xs text-gray-400">حسابك الحالي</p>
                   <p className="font-bold text-gray-900 text-sm">{currentUser.username}</p>

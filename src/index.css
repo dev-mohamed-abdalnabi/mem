@@ -20,27 +20,27 @@
 
 /* ===== DARK MODE (EXPLICIT .dark CLASS) ===== */
 :root.dark {
-  --background: #0f1419;
-  --foreground: #ffffff;
-  --card: #1a1f2e;
-  --card-foreground: #ffffff;
-  --border: #2d3748;
-  --primary: #60a5fa;
-  --muted: #0a0e17;
-  --muted-foreground: #e2e8f0;
+  --background: #000000;
+  --foreground: #e7e9ea;
+  --card: #000000;
+  --card-foreground: #e7e9ea;
+  --border: #2f3336;
+  --primary: #1d9bf0;
+  --muted: #16181c;
+  --muted-foreground: #71767b;
 }
 
 /* ===== DARK MODE (SYSTEM PREFERENCE - ONLY IF NO .light CLASS) ===== */
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --background: #0f1419;
-    --foreground: #ffffff;
-    --card: #1a1f2e;
-    --card-foreground: #ffffff;
-    --border: #2d3748;
-    --primary: #60a5fa;
-    --muted: #0a0e17;
-    --muted-foreground: #e2e8f0;
+    --background: #000000;
+    --foreground: #e7e9ea;
+    --card: #000000;
+    --card-foreground: #e7e9ea;
+    --border: #2f3336;
+    --primary: #1d9bf0;
+    --muted: #16181c;
+    --muted-foreground: #71767b;
   }
 }
 
@@ -54,38 +54,34 @@ body {
 
 /* ===== TEXT COLORS ===== */
 .text-gray-900,
-.text-slate-900 { 
+.text-slate-900,
+.text-gray-800,
+.text-slate-700,
+.text-gray-700,
+.text-black { 
   color: var(--foreground) !important; 
 }
 
-.text-gray-800,
-.text-slate-700 {
-  color: var(--foreground) !important;
-}
-
-.text-gray-700 {
-  color: var(--foreground) !important;
-}
-
-.text-gray-600 {
-  color: var(--muted-foreground) !important;
-}
-
-.text-gray-500 {
-  color: var(--muted-foreground) !important;
-}
-
+.text-gray-600,
+.text-gray-500,
 .text-gray-400,
-.text-slate-600 { 
-  color: var(--muted-foreground) !important; 
-}
-
+.text-slate-600,
 .text-gray-300 {
   color: var(--muted-foreground) !important;
 }
 
-.text-black {
-  color: var(--foreground) !important;
+/* Remove glow effects and unnecessary transitions */
+* {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl {
+  box-shadow: none !important;
+}
+
+.dark .shadow-md, .dark .shadow-lg, .dark .shadow-xl {
+  box-shadow: none !important;
 }
 
 /* ===== BACKGROUND COLORS ===== */
@@ -158,9 +154,10 @@ a {
 
 /* ===== HEADER ===== */
 header {
-  background-color: rgba(var(--card), 0.8) !important;
+  background-color: var(--card) !important;
   border-bottom-color: var(--border) !important;
   color: var(--foreground) !important;
+  backdrop-filter: none !important;
 }
 
 /* ===== BOTTOM NAVIGATION ===== */

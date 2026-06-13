@@ -273,7 +273,7 @@ export const dataService = {
   },
 
   // Memes Content
-  getMemes: async (status: string = "approved", userId?: string): Promise<Meme[]> => {
+  getMemes: async (status: string = "approved", userId?: string, currentUserId?: string): Promise<Meme[]> => {
     let query = supabase
       .from("memes")
       .select("*, profiles!user_id(*)")
@@ -287,11 +287,24 @@ export const dataService = {
     
     if (error) throw error;
     
+    let userLikes: string[] = [];
+    let userSaves: string[] = [];
+    
+    if (currentUserId && currentUserId !== "guest-user-temp") {
+      const dbUserId = ensureUUID(currentUserId);
+      const { data: likes } = await supabase.from("likes").select("meme_id").eq("user_id", dbUserId);
+      const { data: saves } = await supabase.from("saved_memes").select("meme_id").eq("user_id", dbUserId);
+      userLikes = (likes || []).map(l => l.meme_id);
+      userSaves = (saves || []).map(s => s.meme_id);
+    }
+    
     return (data as Meme[]).map(m => {
       const extracted = extractTagsFromCaption(m.caption);
       const originalTags = Array.isArray(m.tags) ? m.tags : [];
       return {
         ...m,
+        liked_by_me: userLikes.includes(m.id),
+        saved_by_me: userSaves.includes(m.id),
         tags: Array.from(new Set([...originalTags, ...extracted]))
       };
     });
@@ -307,7 +320,7 @@ export const dataService = {
     if (error) throw error;
   },
 
-  getTrendingMemes: async (): Promise<Meme[]> => {
+  getTrendingMemes: async (currentUserId?: string): Promise<Meme[]> => {
     const { data, error } = await supabase
       .from("memes")
       .select("*, profiles!user_id(*)")
@@ -316,11 +329,24 @@ export const dataService = {
     
     if (error) throw error;
 
+    let userLikes: string[] = [];
+    let userSaves: string[] = [];
+    
+    if (currentUserId && currentUserId !== "guest-user-temp") {
+      const dbUserId = ensureUUID(currentUserId);
+      const { data: likes } = await supabase.from("likes").select("meme_id").eq("user_id", dbUserId);
+      const { data: saves } = await supabase.from("saved_memes").select("meme_id").eq("user_id", dbUserId);
+      userLikes = (likes || []).map(l => l.meme_id);
+      userSaves = (saves || []).map(s => s.meme_id);
+    }
+
     return (data as Meme[]).map(m => {
       const extracted = extractTagsFromCaption(m.caption);
       const originalTags = Array.isArray(m.tags) ? m.tags : [];
       return {
         ...m,
+        liked_by_me: userLikes.includes(m.id),
+        saved_by_me: userSaves.includes(m.id),
         tags: Array.from(new Set([...originalTags, ...extracted]))
       };
     });
@@ -584,6 +610,17 @@ export const dataService = {
       .from("notifications")
       .update({ is_read: true })
       .eq("id", notifId);
+    return !error;
+  },
+
+  markNotificationsAsRead: async (userId: string): Promise<boolean> => {
+    if (userId === "guest-user-temp") return true;
+    const dbUserId = ensureUUID(userId);
+    const { error } = await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("recipient_id", dbUserId)
+      .eq("is_read", false);
     return !error;
   },
 

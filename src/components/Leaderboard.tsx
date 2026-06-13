@@ -29,9 +29,9 @@ export default function Leaderboard({
   };
 
   return (
-    <div className="bg-white border border-gray-100 rounded-3xl shadow-sm p-5 text-right flex flex-col gap-6">
+    <div className="bg-white border border-gray-100 rounded-3xl p-5 text-right flex flex-col gap-6">
       {/* Banner */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 rounded-2xl p-5 text-white relative overflow-hidden shadow-md">
+      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 rounded-2xl p-5 text-white relative overflow-hidden">
         <div className="absolute top-0 left-0 w-32 h-32 bg-white/5 rounded-full -translate-x-10 -translate-y-10 blur-xl" />
         <div className="absolute bottom-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full translate-x-16 translate-y-16 blur-2xl" />
         
@@ -83,7 +83,7 @@ export default function Leaderboard({
                 key={prof.id}
                 className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
                   isMe
-                    ? "bg-blue-50/40 border-blue-200 shadow-xs"
+                    ? "bg-blue-50/40 border-blue-200"
                     : "bg-white border-gray-100 hover:border-gray-200"
                 }`}
               >
