@@ -1006,116 +1006,147 @@ export default function App() {
             </div>
           )}
 
-          {activeTab === "profile" && (
-            <div className="bg-white border border-gray-100 rounded-3xl shadow-sm p-8 text-right flex flex-col gap-6 animate-fade-in max-w-2xl mx-auto">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <h2 className="font-black text-2xl text-gray-900 mb-1">
-                    <input 
-                      type="text" 
-                      value={currentUser.username} 
+                    {activeTab === "profile" && (
+            <div className="flex flex-col gap-4 animate-fade-in">
+              {/* Profile Header Card */}
+              <div className="bg-white border border-gray-100 rounded-3xl shadow-sm p-6 text-right relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-full h-24 bg-gradient-to-l from-blue-500 to-indigo-600 opacity-10 rounded-t-3xl"></div>
+                <div className="relative flex flex-col sm:flex-row gap-5 items-start">
+                  {/* Avatar */}
+                  <div className="relative group">
+                    <div className="w-24 h-24 rounded-3xl overflow-hidden bg-gray-100 border-4 border-white shadow-lg cursor-pointer relative shrink-0">
+                      {currentUser.avatar_url ? (
+                        <img
+                          src={currentUser.avatar_url}
+                          alt={currentUser.username}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-gray-400">
+                          {currentUser.username[0]}
+                        </div>
+                      )}
+                      <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                        <PlusCircle className="w-8 h-8 text-white" />
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                const url = await dataService.uploadAvatar(file);
+                                setCurrentUser(prev => ({ ...prev, avatar_url: url }));
+                                await dataService.updateProfile({ avatar_url: url });
+                              } catch (err) {
+                                alert("فشل رفع الصورة: " + (err as any).message);
+                              }
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Profile Info */}
+                  <div className="flex-1 min-w-0">
+                    <h2 className="font-black text-2xl text-gray-900 mb-1">
+                      <input 
+                        type="text" 
+                        value={currentUser.username} 
+                        onChange={async (e) => {
+                          const newName = e.target.value;
+                          setCurrentUser(prev => ({ ...prev, username: newName }));
+                          try {
+                            await dataService.updateProfile({ username: newName });
+                          } catch (err) { console.error(err); }
+                        }}
+                        className="bg-transparent border-none focus:ring-2 focus:ring-blue-400 p-0 w-full font-black rounded"
+                        placeholder="اسم المستخدم"
+                      />
+                    </h2>
+                    <p className="text-sm text-gray-500 mb-3">@{currentUser.username.toLowerCase().replace(/\s+/g, '_')}</p>
+                    <p className="text-sm text-blue-600 font-bold mb-3">{currentUser.meme_level}</p>
+                    <textarea
+                      value={currentUser.bio || ""}
                       onChange={async (e) => {
-                        const newName = e.target.value;
-                        setCurrentUser(prev => ({ ...prev, username: newName }));
+                        const newBio = e.target.value;
+                        setCurrentUser(prev => ({ ...prev, bio: newBio }));
                         try {
-                          await dataService.updateProfile({ username: newName });
+                          await dataService.updateProfile({ bio: newBio });
                         } catch (err) { console.error(err); }
                       }}
-                      className="bg-transparent border-none focus:ring-0 p-0 w-full font-black"
-                      placeholder="اسم المستخدم"
+                      className="w-full bg-transparent border-none focus:ring-2 focus:ring-blue-400 p-0 text-sm text-gray-800 resize-none rounded"
+                      placeholder="اكتب نبذة عنك..."
+                      rows={2}
                     />
-                  </h2>
-                  <p className="text-sm text-gray-500 mb-4">{currentUser.username.toLowerCase().replace(/\s+/g, '_')}</p>
-                  <textarea
-                    value={currentUser.bio || ""}
-                    onChange={async (e) => {
-                      const newBio = e.target.value;
-                      setCurrentUser(prev => ({ ...prev, bio: newBio }));
-                      try {
-                        await dataService.updateProfile({ bio: newBio });
-                      } catch (err) { console.error(err); }
-                    }}
-                    className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm text-gray-800 resize-none"
-                    placeholder="اكتب نبذة عنك..."
-                    rows={2}
-                  />
-                </div>
-                
-                <div className="relative group">
-                  <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 border border-gray-100 cursor-pointer relative">
-                    {currentUser.avatar_url ? (
-                      <img
-                        src={currentUser.avatar_url}
-                        alt={currentUser.username}
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-400">
-                        {currentUser.username[0]}
+
+                    {/* Stats */}
+                    <div className="flex items-center justify-start gap-6 mt-4">
+                      <div className="text-center">
+                        <p className="text-lg font-black text-gray-900">{memes.filter(m => m.user_id === currentUser.id).length}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase">ميمز</p>
                       </div>
-                    )}
-                    <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                      <PlusCircle className="w-6 h-6 text-white" />
-                      <input 
-                        type="file" 
-                        className="hidden" 
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            try {
-                              const url = await dataService.uploadAvatar(file);
-                              setCurrentUser(prev => ({ ...prev, avatar_url: url }));
-                              await dataService.updateProfile({ avatar_url: url });
-                            } catch (err) {
-                              alert("فشل رفع الصورة: " + (err as any).message);
-                            }
-                          }
-                        }}
-                      />
-                    </label>
+                      <div className="text-center border-x border-gray-100 px-6">
+                        <p className="text-lg font-black text-gray-900">{currentUser.followers_count}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase">متابعين</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-black text-gray-900">{currentUser.total_points}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase">XP</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 text-sm text-gray-400 mb-6">
-                <span>{currentUser.followers_count} متابع</span>
-                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                <a href={currentUser.website || "#"} className="hover:underline">{currentUser.website || "لا يوجد موقع"}</a>
-              </div>
-
-              <div className="flex gap-2 w-full">
-                <button 
-                  onClick={() => alert("سيتم حفظ التغييرات تلقائياً عند التعديل!")}
-                  className="flex-1 py-2 border border-gray-200 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors"
-                >
-                  تعديل الملف الشخصي
-                </button>
-                <button 
-                  onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                    alert("تم نسخ رابط الملف الشخصي!");
-                  }}
-                  className="flex-1 py-2 border border-gray-200 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors"
-                >
-                  مشاركة الملف الشخصي
-                </button>
-              </div>
-
-              <div className="mt-8 border-t border-gray-100 pt-6">
-                <div className="flex justify-around border-b border-gray-100 pb-4">
-                  <button className="font-bold text-sm pb-4 border-b-2 border-black px-8">Threads</button>
-                  <button className="font-bold text-sm text-gray-400 pb-4 px-8">Replies</button>
-                  <button className="font-bold text-sm text-gray-400 pb-4 px-8">Reposts</button>
-                </div>
+              {/* Posts Section */}
+              <div className="flex flex-col gap-4">
+                <h3 className="font-black text-gray-900 px-2 flex items-center gap-2">
+                  <Flame className="w-5 h-5 text-orange-500" />
+                  <span>منشوراتي</span>
+                </h3>
                 
-                <div className="py-12 text-center text-gray-400">
-                  <p className="text-sm">لم تقم بنشر أي ثريدز بعد.</p>
-                </div>
+                {memes.filter(m => m.user_id === currentUser.id).length === 0 ? (
+                  <div className="bg-white border border-gray-100 rounded-2xl p-12 text-center text-gray-400">
+                    <Sparkles className="w-10 h-10 mx-auto text-gray-300 mb-3" />
+                    <p className="font-extrabold text-sm text-gray-700">لم تقم بنشر أي ميم حتى الآن!</p>
+                    <p className="text-xs text-gray-400 mt-1">ابدأ بنشر ميمز مضحكة لتظهر هنا وتجمع نقاط XP.</p>
+                    <button
+                      onClick={() => setActiveTab("feed")}
+                      className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-xl text-xs"
+                    >
+                      ارجع للفيد وانشر ميم
+                    </button>
+                  </div>
+                ) : (
+                  memes.filter(m => m.user_id === currentUser.id).map((meme) => (
+                    <MemeCard
+                      key={meme.id}
+                      meme={meme}
+                      currentUser={currentUser}
+                      onLikeToggle={handleLikeToggle}
+                      onSaveToggle={handleSaveToggle}
+                      onFollowToggle={handleFollowToggle}
+                      onTagClick={(tag) => setSelectedTag(tag)}
+                      onDeleteComment={() => {}}
+                      onReportSubmit={handleReportSubmit}
+                      onShareCompleted={handleShareCompleted}
+                      onDeleteMeme={handleDeleteMeme}
+                      onUserProfileClick={(uid) => {
+                        setSelectedProfileId(uid);
+                        setActiveTab("user-profile");
+                      }}
+                      isFollowingCreator={followingIds.includes(meme.user_id)}
+                    />
+                  ))
+                )}
               </div>
             </div>
           )}
+
 
           {activeTab === "moderation" && (
             <div className="bg-white border border-gray-100 rounded-3xl shadow-sm p-6 text-right flex flex-col gap-5 animate-fade-in">

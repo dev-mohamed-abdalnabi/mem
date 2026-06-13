@@ -75,7 +75,7 @@ export default function Header({
             </div>
             <div className="hidden sm:block">
               <h1 className="font-extrabold text-xl text-black tracking-tight leading-none">
-                MEM
+                mem
               </h1>
             </div>
           </div>

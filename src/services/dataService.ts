@@ -218,11 +218,57 @@ export const dataService = {
     if (followerId === "guest-user-temp") {
       throw new Error("يا غالي، للتفاعل ومتابعة صانعي الكوميديا يرجى إنشاء حساب حقيقي أولاً! 😉");
     }
+    
+    // Check if already following
+    const { data: existing, error: checkError } = await supabase
+      .from("follows")
+      .select("*")
+      .eq("follower_id", followerId)
+      .eq("following_id", followingId)
+      .maybeSingle();
+    
+    if (checkError) throw checkError;
+    if (existing) return true; // Already following
+    
     const { error } = await supabase
       .from("follows")
       .insert({ follower_id: followerId, following_id: followingId });
     
     if (error) throw error;
+    
+    // Update followers_count and following_count in profiles table
+    const { error: updateFollowingError } = await supabase.rpc('increment_following', { user_id: followerId });
+    const { error: updateFollowersError } = await supabase.rpc('increment_followers', { user_id: followingId });
+    
+    // If RPC functions don't exist, update manually
+    if (updateFollowingError || updateFollowersError) {
+      const { data: followerProfile } = await supabase
+        .from("profiles")
+        .select("following_count")
+        .eq("id", followerId)
+        .single();
+      
+      const { data: followingProfile } = await supabase
+        .from("profiles")
+        .select("followers_count")
+        .eq("id", followingId)
+        .single();
+      
+      if (followerProfile) {
+        await supabase
+          .from("profiles")
+          .update({ following_count: (followerProfile.following_count || 0) + 1 })
+          .eq("id", followerId);
+      }
+      
+      if (followingProfile) {
+        await supabase
+          .from("profiles")
+          .update({ followers_count: (followingProfile.followers_count || 0) + 1 })
+          .eq("id", followingId);
+      }
+    }
+    
     return true;
   },
 
