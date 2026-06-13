@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Bell, Trophy, BookOpen, User, Flame, LogOut, CheckCircle2, Sun, Moon, PlusCircle, Settings, LogIn } from "lucide-react";
+import { Search, Bell, Trophy, User, Flame, LogOut, PlusCircle, Settings, LogIn } from "lucide-react";
 import { Profile, Notification } from "../types";
 
 interface HeaderProps {
@@ -33,26 +33,6 @@ export default function Header({
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return document.documentElement.classList.contains('dark') || 
-             (!document.documentElement.classList.contains('light') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-    return false;
-  });
-
-  const toggleTheme = () => {
-    const newMode = !isDarkMode;
-    setIsDarkMode(newMode);
-    if (newMode) {
-      document.documentElement.classList.add('dark');
-      document.documentElement.classList.remove('light');
-    } else {
-      document.documentElement.classList.add('light');
-      document.documentElement.classList.remove('dark');
-    }
-  };
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
@@ -92,7 +72,7 @@ export default function Header({
             </div>
           </div>
 
-          {/* Points Pill (نفس الارتفاع والخلفية) */}
+          {/* Points Pill */}
           <div 
             onClick={() => onNavigate("leaderboard")}
             className="h-10 px-4 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center gap-1.5 text-sm font-bold cursor-pointer select-none transition-colors text-gray-800"
@@ -103,7 +83,7 @@ export default function Header({
           </div>
         </div>
 
-        {/* Central Search Bar (نفس الارتفاع والخلفية) */}
+        {/* Central Search Bar */}
         <div className="flex-1 max-w-md relative hidden md:block">
           <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
             <Search className="w-4 h-4" />
@@ -120,12 +100,7 @@ export default function Header({
         {/* Right Actions & Utilities */}
         <div className="flex items-center gap-2">
           
-          {/* Theme Toggle */}
-          <button onClick={toggleTheme} className={unifiedIconClass} title={isDarkMode ? "الوضع الفاتح" : "الوضع الليلي"}>
-            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
-
-          {/* Post Button (شكل موحد وإصلاح الأكتيف) */}
+          {/* Post Button */}
           <button
             onClick={() => onNavigate("create-post")}
             className={`h-10 px-4 rounded-full flex items-center gap-2 font-bold text-sm transition-colors cursor-pointer ${
@@ -316,4 +291,4 @@ export default function Header({
       </div>
     </header>
   );
-        }
+                            }
