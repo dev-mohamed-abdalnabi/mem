@@ -9,12 +9,21 @@ export const MOCK_NOTIFICATIONS: Notification[] = [];
 
 // Helper to calculate rank levels based on accumulative XP points
 export function calculateMemeLevel(points: number): string {
-  if (points <= 50) return "مبتدئ سكرولر 🥱";
-  if (points <= 150) return "آكل فلافل متفاعل 🧆";
-  if (points <= 350) return "ملك التشيير واللايكات 👍";
-  if (points <= 700) return "أسطورة الكوميكس 🤩";
-  if (points <= 1500) return "بابا الميمز والممبرز 👑";
-  return "إمبراطور الكوميديا الفاخرة ✨👑";
+  if (points <= 50) return "مبتدئ";
+  if (points <= 150) return "صانع متفاعل";
+  if (points <= 350) return "ناشر متميز";
+  if (points <= 700) return "أسطورة الكوميديا";
+  if (points <= 1500) return "خبير ميمز";
+  return "إمبراطور الكوميديا والميمز";
+}
+
+// Helper to convert any simple or local ID string to a valid UUID format for PostgreSQL schema constraints
+export function ensureUUID(id: string): string {
+  if (!id) return "00000000-0000-4000-b500-000500000000";
+  if (id.length === 36 && id.includes("-")) return id;
+  const digits = id.replace(/[^0-9a-fA-F]/g, "");
+  const padded = digits ? digits.padStart(12, "0").slice(-12) : "999999999999";
+  return `00000000-0000-4000-b500-${padded}`;
 }
 
 // Helper to extract hashtags starting with # from caption
@@ -444,7 +453,7 @@ export const dataService = {
       if (!error && data) {
         dbMemes = data as Meme[];
       }
-    } catch (e) {
+    } catch (e: any) {
       console.warn("getTrendingMemes Supabase warning (suppressed):", e);
     }
 
@@ -464,25 +473,25 @@ export const dataService = {
   createMeme: async (meme: Partial<Meme>): Promise<Meme> => {
     const userId = meme.user_id || "";
     if (userId === "guest-user-temp" || !userId) {
-      throw new Error("عذراً مجهول هوية! يرجى إنشاء حساب حقيقي وبثواني ونشر قفشاتك الحقيقية الآن 🚀");
+      throw new Error("يرجى تسجيل الدخول أو إنشاء حساب أولاً لنشر الكوميكس.");
     }
 
     const now = Date.now();
     const limits = rateLimitStore[userId] || { lastMemeTime: 0, lastCommentTime: 0 };
-    if (now - limits.lastMemeTime < 10000) { // wait 10 seconds cooldon
-      throw new Error("استهدى بالله يا زميلي، مش هترفع ميمز بالسرعة دي! استنى 10 ثانية.");
+    if (now - limits.lastMemeTime < 10000) { // wait 10 seconds cooldown
+      throw new Error("نعتذر، يرجى الانتظار 10 ثوانٍ بين كل عملية نشر.");
     }
     limits.lastMemeTime = now;
     rateLimitStore[userId] = limits;
 
     const currentUser = getStored<Profile>("current_user", {
       id: userId,
-      username: "مستكشف_الميمز",
+      username: "مستكشف_الملفات",
       avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${userId}`,
       bio: "",
       website: "",
       role: "user",
-      meme_level: "مبتدئ سكرولر 🥱",
+      meme_level: "مبتدئ",
       total_points: 0,
       followers_count: 0,
       following_count: 0,
@@ -490,41 +499,29 @@ export const dataService = {
       updated_at: new Date().toISOString()
     });
 
-    // If local user format, save locally
-    if (userId.startsWith("local-")) {
-      const localMeme: Meme = {
-        id: `local-meme-${Date.now()}`,
-        user_id: userId,
-        image_url: meme.image_url || "",
-        caption: meme.caption || "",
-        status: "approved",
-        likes_count: 0,
-        comments_count: 0,
-        saves_count: 0,
-        shares_count: 0,
-        views_count: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        tags: meme.tags || [],
-        profiles: currentUser
-      };
-
-      saveLocalMeme(localMeme);
-
-      // Award XP to local user
-      const nextPoints = (currentUser.total_points || 0) + 10;
-      const updatedUser = {
-        ...currentUser,
-        total_points: nextPoints,
-        meme_level: calculateMemeLevel(nextPoints)
-      };
-      setStored("current_user", updatedUser);
-
-      return localMeme;
-    }
+    const dbUserId = ensureUUID(userId);
 
     try {
-      // 1. Insert Meme details in database
+      // 1. Pre-upsert profile table row to bypass foreign key references
+      try {
+        await supabase.from("profiles").upsert({
+          id: dbUserId,
+          username: currentUser.username,
+          avatar_url: currentUser.avatar_url,
+          bio: currentUser.bio || "عضو مفعل",
+          website: currentUser.website || "",
+          role: currentUser.role || "user",
+          meme_level: currentUser.meme_level || "مبتدئ",
+          total_points: currentUser.total_points || 0,
+          followers_count: currentUser.followers_count || 0,
+          following_count: currentUser.following_count || 0,
+          updated_at: new Date().toISOString()
+        });
+      } catch (profErr) {
+        console.warn("Non-blocking profile sync warning:", profErr);
+      }
+
+      // 2. Insert Meme details in database
       let insertedMeme: any = null;
       let tagsToInsert = meme.tags || [];
 
@@ -535,7 +532,7 @@ export const dataService = {
       const { data, error } = await supabase
         .from("memes")
         .insert({ 
-          user_id: userId,
+          user_id: dbUserId,
           image_url: meme.image_url,
           caption: meme.caption || "",
           status: "approved"
@@ -547,10 +544,10 @@ export const dataService = {
       insertedMeme = data;
 
       if (!insertedMeme) {
-        throw new Error("فشلت عملية حفظ الميم.");
+        throw new Error("فشلت عملية حفظ الكوميك.");
       }
 
-      // 2. Map tags relationally for custom schemas
+      // 3. Map tags relationally for custom schemas
       if (tagsToInsert.length > 0) {
         for (const tgName of tagsToInsert) {
           try {
@@ -578,29 +575,31 @@ export const dataService = {
                 });
             }
           } catch (tErr) {
-            console.warn("Skipping relational tags mapping:", tErr);
+            console.warn("Skipping tags mapping:", tErr);
           }
         }
       }
 
-      // Add points dynamically to the real profiles table (own profile, allowed under RLS)
+      // 4. Update points dynamically on profiles
       try {
-        const { data: prof } = await supabase.from("profiles").select("total_points").eq("id", userId).single();
+        const { data: prof } = await supabase.from("profiles").select("total_points").eq("id", dbUserId).single();
         if (prof) {
-          const nextPoints = (prof.total_points || 0) + 5;
+          const nextPoints = (prof.total_points || 0) + 10;
           await supabase.from("profiles").update({ 
             total_points: nextPoints, 
             meme_level: calculateMemeLevel(nextPoints) 
-          }).eq("id", userId);
+          }).eq("id", dbUserId);
         }
       } catch (ptsErr) {
-        console.warn("Points award warning (suppressed):", ptsErr);
+        console.warn("Points update warning:", ptsErr);
       }
 
       insertedMeme.tags = tagsToInsert;
       return insertedMeme as Meme;
+
     } catch (e: any) {
-      console.error("createMeme DB error, falling back locally:", e);
+      console.warn("createMeme DB error, falling back locally:", e);
+      // Local fallback in case of connection limits or database availability issues
       const localMeme: Meme = {
         id: `local-meme-${Date.now()}`,
         user_id: userId,
@@ -635,10 +634,83 @@ export const dataService = {
   // Likes & Saves Actions
   toggleLike: async (memeId: string, currentUserId: string): Promise<{ likesCount: number; loved?: boolean; liked: boolean }> => {
     if (currentUserId === "guest-user-temp") {
-      throw new Error("يا غالي، لازم تسجل حساب حقيقي عشان تعمل لايك حقيقي! 😉");
+      throw new Error("يجب تسجيل الدخول أو إنشاء حساب أولاً للإعجاب بالمنشورات.");
     }
 
-    if (currentUserId.startsWith("local-") || memeId.startsWith("local-")) {
+    const dbUserId = ensureUUID(currentUserId);
+    const dbMemeId = ensureUUID(memeId);
+
+    try {
+      // Ensure profile exists in Supabase
+      const currentUser = getStored<Profile>("current_user", {
+        id: currentUserId,
+        username: "مستخدم_نشط",
+        avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${currentUserId}`,
+        bio: "",
+        website: "",
+        role: "user",
+        meme_level: "مبتدئ",
+        total_points: 0,
+        followers_count: 0,
+        following_count: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+
+      try {
+        await supabase.from("profiles").upsert({
+          id: dbUserId,
+          username: currentUser.username,
+          avatar_url: currentUser.avatar_url,
+          bio: currentUser.bio || "عضو مفعل",
+          website: currentUser.website || "",
+          role: currentUser.role || "user",
+          meme_level: currentUser.meme_level || "مبتدئ",
+          total_points: currentUser.total_points || 0,
+          followers_count: currentUser.followers_count || 0,
+          following_count: currentUser.following_count || 0,
+          updated_at: new Date().toISOString()
+        });
+      } catch (profErr) {
+        console.warn("Non-blocking profile sync for like:", profErr);
+      }
+
+      const { data: existing, error: checkError } = await supabase
+        .from("likes")
+        .select("*")
+        .eq("meme_id", dbMemeId)
+        .eq("user_id", dbUserId)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      let liked = false;
+      if (existing) {
+        const { error: delError } = await supabase.from("likes").delete().eq("id", existing.id);
+        if (delError) throw delError;
+        liked = false;
+      } else {
+        const { error: insError } = await supabase.from("likes").insert({ meme_id: dbMemeId, user_id: dbUserId });
+        if (insError) throw insError;
+        liked = true;
+
+        // Award commentator minor points for active liking
+        try {
+          const { data: prof } = await supabase.from("profiles").select("total_points").eq("id", dbUserId).single();
+          if (prof) {
+            const nextPoints = (prof.total_points || 0) + 1;
+            await supabase.from("profiles").update({ 
+              total_points: nextPoints, 
+              meme_level: calculateMemeLevel(nextPoints) 
+            }).eq("id", dbUserId);
+          }
+        } catch (ptsErr) {}
+      }
+
+      const { data: updatedMeme } = await supabase.from("memes").select("likes_count").eq("id", dbMemeId).single();
+      return { likesCount: updatedMeme?.likes_count ?? 0, liked };
+    } catch (e: any) {
+      console.warn("toggleLike failed on database, doing local toggle:", e);
       const likes = getLocalLikes();
       const alreadyLiked = !!likes[memeId];
       saveLocalLike(memeId, !alreadyLiked);
@@ -655,74 +727,66 @@ export const dataService = {
       }
       return { likesCount, liked: !alreadyLiked };
     }
-
-    try {
-      const { data: existing, error: checkError } = await supabase
-        .from("likes")
-        .select("*")
-        .eq("meme_id", memeId)
-        .eq("user_id", currentUserId)
-        .maybeSingle();
-
-      if (checkError) throw checkError;
-
-      let liked = false;
-      if (existing) {
-        const { error: delError } = await supabase.from("likes").delete().eq("id", existing.id);
-        if (delError) throw delError;
-        liked = false;
-      } else {
-        const { error: insError } = await supabase.from("likes").insert({ meme_id: memeId, user_id: currentUserId });
-        if (insError) throw insError;
-        liked = true;
-      }
-
-      const { data: updatedMeme } = await supabase.from("memes").select("likes_count").eq("id", memeId).single();
-      return { likesCount: updatedMeme?.likes_count ?? 0, liked };
-    } catch (e: any) {
-      console.warn("toggleLike backend warning, switching to local state:", e);
-      const likes = getLocalLikes();
-      const alreadyLiked = !!likes[memeId];
-      saveLocalLike(memeId, !alreadyLiked);
-      return { likesCount: alreadyLiked ? 0 : 1, liked: !alreadyLiked };
-    }
   },
 
   toggleSave: async (memeId: string, currentUserId: string): Promise<boolean> => {
     if (currentUserId === "guest-user-temp") {
-      throw new Error("يا غالي، لازم تسجل حساب حقيقي عشان تحفظ الكوميكس في محفوظاتك! 😉");
+      throw new Error("يجب تسجيل الدخول أو إنشاء حساب أولاً لحفظ الكوميكس.");
     }
 
-    if (currentUserId.startsWith("local-") || memeId.startsWith("local-")) {
-      const saves = getLocalSaves();
-      const alreadySaved = !!saves[memeId];
-      saveLocalSave(memeId, !alreadySaved);
-
-      const localMemes = getLocalMemes();
-      const memeIndex = localMemes.findIndex(m => m.id === memeId);
-      if (memeIndex !== -1) {
-        localMemes[memeIndex].saves_count = Math.max(0, (localMemes[memeIndex].saves_count || 0) + (alreadySaved ? -1 : 1));
-        localStorage.setItem("memesbook_local_memes", JSON.stringify(localMemes));
-      }
-      return !alreadySaved;
-    }
+    const dbUserId = ensureUUID(currentUserId);
+    const dbMemeId = ensureUUID(memeId);
 
     try {
+      // Ensure profile exists in Supabase
+      const currentUser = getStored<Profile>("current_user", {
+        id: currentUserId,
+        username: "مستخدم_نشط",
+        avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${currentUserId}`,
+        bio: "",
+        website: "",
+        role: "user",
+        meme_level: "مبتدئ",
+        total_points: 0,
+        followers_count: 0,
+        following_count: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+
+      try {
+        await supabase.from("profiles").upsert({
+          id: dbUserId,
+          username: currentUser.username,
+          avatar_url: currentUser.avatar_url,
+          bio: currentUser.bio || "عضو مفعل",
+          website: currentUser.website || "",
+          role: currentUser.role || "user",
+          meme_level: currentUser.meme_level || "مبتدئ",
+          total_points: currentUser.total_points || 0,
+          followers_count: currentUser.followers_count || 0,
+          following_count: currentUser.following_count || 0,
+          updated_at: new Date().toISOString()
+        });
+      } catch (profErr) {
+        console.warn("Non-blocking profile sync for save:", profErr);
+      }
+
       const { data: existing, error: checkError } = await supabase
         .from("saved_memes")
         .select("*")
-        .eq("meme_id", memeId)
-        .eq("user_id", currentUserId)
+        .eq("meme_id", dbMemeId)
+        .eq("user_id", dbUserId)
         .maybeSingle();
       
       if (checkError) throw checkError;
 
       if (existing) {
-        const { error } = await supabase.from("saved_memes").delete().eq("meme_id", memeId).eq("user_id", currentUserId);
+        const { error } = await supabase.from("saved_memes").delete().eq("meme_id", dbMemeId).eq("user_id", dbUserId);
         if (error) throw error;
         return false;
       } else {
-        const { error } = await supabase.from("saved_memes").insert({ meme_id: memeId, user_id: currentUserId });
+        const { error } = await supabase.from("saved_memes").insert({ meme_id: dbMemeId, user_id: dbUserId });
         if (error) throw error;
         return true;
       }
@@ -755,25 +819,25 @@ export const dataService = {
 
   addComment: async (memeId: string, userId: string, content: string): Promise<Comment> => {
     if (userId === "guest-user-temp") {
-      throw new Error("يا غالي، يجب تسجيل الدخول أو إنشاء حساب حقيقي أولاً لتكتب تعليق! 💬");
+      throw new Error("يجب تسجيل الدخول أو إنشاء حساب أولاً لإضافة تعليق.");
     }
 
     const now = Date.now();
     const limits = rateLimitStore[userId] || { lastMemeTime: 0, lastCommentTime: 0 };
     if (now - limits.lastCommentTime < 4000) { // wait 4 seconds cooldown
-      throw new Error("براحة على الكيبورد يا غالي! استنى 4 ثواني بين كل تعليق.");
+      throw new Error("يرجى الانتظار 4 ثوانٍ بين كل تعليق.");
     }
     limits.lastCommentTime = now;
     rateLimitStore[userId] = limits;
 
     const currentUser = getStored<Profile>("current_user", {
       id: userId,
-      username: "مستخدم_محلي",
+      username: "مستخدم_نشط",
       avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${userId}`,
       bio: "",
       website: "",
       role: "user",
-      meme_level: "مبتدئ سكرولر 🥱",
+      meme_level: "مبتدئ",
       total_points: 0,
       followers_count: 0,
       following_count: 0,
@@ -781,36 +845,51 @@ export const dataService = {
       updated_at: new Date().toISOString()
     });
 
-    if (userId.startsWith("local-") || memeId.startsWith("local-")) {
-      const newComment: Comment = {
-        id: `local-comm-${Date.now()}`,
-        meme_id: memeId,
-        user_id: userId,
-        content,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        profiles: currentUser
-      };
-
-      saveLocalComment(newComment);
-
-      const localMemes = getLocalMemes();
-      const memeIndex = localMemes.findIndex(m => m.id === memeId);
-      if (memeIndex !== -1) {
-        localMemes[memeIndex].comments_count = (localMemes[memeIndex].comments_count || 0) + 1;
-        localStorage.setItem("memesbook_local_memes", JSON.stringify(localMemes));
-      }
-      return newComment;
-    }
+    const dbUserId = ensureUUID(userId);
+    const dbMemeId = ensureUUID(memeId);
 
     try {
+      // 1. Ensure profile exists first with dbUserId to avoid foreign key errors
+      try {
+        await supabase.from("profiles").upsert({
+          id: dbUserId,
+          username: currentUser.username,
+          avatar_url: currentUser.avatar_url,
+          bio: currentUser.bio || "عضو مفعل",
+          website: currentUser.website || "",
+          role: currentUser.role || "user",
+          meme_level: currentUser.meme_level || "مبتدئ",
+          total_points: currentUser.total_points || 0,
+          followers_count: currentUser.followers_count || 0,
+          following_count: currentUser.following_count || 0,
+          updated_at: new Date().toISOString()
+        });
+      } catch (profErr) {
+        console.warn("Non-blocking profile sync for comment:", profErr);
+      }
+
       const { data, error } = await supabase
         .from("comments")
-        .insert({ meme_id: memeId, user_id: userId, content })
+        .insert({ meme_id: dbMemeId, user_id: dbUserId, content })
         .select("*, profiles!user_id(*)")
         .single();
       
       if (error) throw error;
+
+      // 2. Award XP/points on database for commentator
+      try {
+        const { data: prof } = await supabase.from("profiles").select("total_points").eq("id", dbUserId).single();
+        if (prof) {
+          const nextPoints = (prof.total_points || 0) + 2;
+          await supabase.from("profiles").update({ 
+            total_points: nextPoints, 
+            meme_level: calculateMemeLevel(nextPoints) 
+          }).eq("id", dbUserId);
+        }
+      } catch (ptsErr) {
+        console.warn("Points update warning for comment:", ptsErr);
+      }
+
       return data as Comment;
     } catch (e: any) {
       console.warn("addComment failed on database backend, executing locally:", e);
