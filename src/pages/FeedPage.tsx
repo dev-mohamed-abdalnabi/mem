@@ -1,5 +1,5 @@
 import React from "react";
-import { Clock, Flame, Zap, TrendingUp } from "lucide-react";
+import { Clock } from "lucide-react";
 import { Meme, Profile } from "../types";
 import MemeCard from "../components/MemeCard";
 
@@ -46,52 +46,42 @@ export default function FeedPage({
   setActiveTab,
   setLightboxImage,
 }: FeedPageProps) {
-
   return (
-    <div className="max-w-3xl mx-auto w-full pb-24 md:pb-8 flex flex-col gap-6">
+    // تم إضافة max-w-2xl و mx-auto لتظبيط وضع الكمبيوتر عشان البوستات متكونش عريضة بزيادة
+    <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto pb-24 md:pb-8 px-4 md:px-0">
       
-      {/* 1. شريط الأقسام (بدل البطاقات الجانبية) */}
-      <div className="flex items-center gap-2 px-2 md:px-0">
-        <button onClick={() => setSelectedTag(null)} className="flex items-center gap-2 bg-white dark:bg-[#111827] px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm text-sm font-black text-gray-700 dark:text-gray-200 hover:border-blue-500 transition-colors">
-          <Flame className="w-4 h-4 text-orange-500" /> الكل
-        </button>
-        <button className="flex items-center gap-2 bg-white dark:bg-[#111827] px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm text-sm font-black text-gray-700 dark:text-gray-200 hover:border-blue-500 transition-colors">
-          <Zap className="w-4 h-4 text-yellow-500" /> تريند
-        </button>
-        <button className="flex items-center gap-2 bg-white dark:bg-[#111827] px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm text-sm font-black text-gray-700 dark:text-gray-200 hover:border-blue-500 transition-colors">
-          <TrendingUp className="w-4 h-4 text-emerald-500" /> الأحدث
-        </button>
-      </div>
-
       {!isRealUser && (
-        <div className="bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm mx-2 md:mx-0 flex items-center justify-between gap-4">
+        <div className="lg:hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-4">
           <div className="text-right">
-            <h4 className="font-black text-sm text-gray-900 dark:text-white">أهلاً بك في مجرة الضحك 👋</h4>
-            <p className="text-xs text-gray-500 dark:text-gray-400">سجل لدعم وصناعة الميمز الموتة من الضحك.</p>
+            <h4 className="font-bold text-sm text-gray-900 dark:text-white">أهلاً بك كزائر 👋</h4>
+            <p className="text-xs text-gray-500">سجل لدعم وحفظ الميمز الموتة من الضحك.</p>
           </div>
           <button
             onClick={() => { setShowAuthModal(true); setAuthTab("signin"); }}
-            className="bg-[#1877F2] hover:bg-[#166FE5] transition-all text-white font-black py-2.5 px-6 rounded-xl text-sm shadow-lg shadow-blue-500/20 active:scale-95"
+            className="bg-blue-600 hover:bg-blue-700 transition-colors text-white font-bold py-2 px-4 rounded-xl text-xs whitespace-nowrap"
           >
-            دخول المجرة
+            تسجيل الدخول
           </button>
         </div>
       )}
 
       {loading ? (
-        <div className="text-center py-12 text-gray-400 font-black">جاري جلب آخر الإيفيهات...</div>
+        <div className="text-center py-12 text-gray-400 font-medium">جاري جلب آخر الكوميكسات من السيرفر...</div>
       ) : filteredMemes.length === 0 ? (
-        <div className="bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800 rounded-2xl p-12 text-center flex flex-col items-center gap-3 mx-2 md:mx-0 shadow-sm">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-12 text-center flex flex-col items-center gap-3">
           <Clock className="w-10 h-10 text-gray-300 dark:text-gray-600" />
-          <p className="font-bold text-gray-500 dark:text-gray-400">ملقناش أي بوستات تطابق تدويرك</p>
-          <button onClick={() => { setSearchQuery(""); setSelectedTag(null); }} className="mt-2 text-blue-600 dark:text-blue-400 text-sm font-black hover:underline">
+          <p className="font-bold text-gray-500 dark:text-gray-400">ملقناش أي بوستات كدا أو كدا تطابق تدويرك</p>
+          <button onClick={() => { setSearchQuery(""); setSelectedTag(null); }} className="mt-2 text-blue-600 dark:text-blue-400 text-sm font-bold hover:underline">
             إعادة تصفير الفلاتر
           </button>
         </div>
       ) : (
         filteredMemes.map((meme) => (
-          /* 2. تصميم البوستات بحواف ناعمة زي البروفايل بالضبط */
-          <div key={meme.id} className="w-full bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 rounded-2xl shadow-sm overflow-hidden p-1">
+          // تم إضافة كلاسات الحواف الدائرية والظل البسيط هنا 
+          <div 
+            key={meme.id} 
+            className="post-wrapper w-full bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-800"
+          >
             <MemeCard
               meme={meme}
               currentUser={currentUser}
