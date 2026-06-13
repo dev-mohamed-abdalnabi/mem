@@ -371,14 +371,19 @@ export const dataService = {
     const extractedCaps = extractTagsFromCaption(meme.caption || "");
     tagsToInsert = Array.from(new Set([...tagsToInsert, ...extractedCaps]));
 
-      const { data, error } = await supabase
-      .from("memes")
-      .insert({ 
+      const insertData: any = {
         user_id: dbUserId,
-        image_url: meme.image_url || null,
         caption: meme.caption || "",
         status: "approved"
-      })
+      };
+
+      if (meme.image_url) {
+        insertData.image_url = meme.image_url;
+      }
+
+      const { data, error } = await supabase
+      .from("memes")
+      .insert(insertData)
       .select("*, profiles!user_id(*)")
       .single();
     
@@ -625,13 +630,56 @@ export const dataService = {
   },
 
   uploadMemeFile: async (file: File): Promise<string> => {
+    // Basic image compression using Canvas if possible
+    let fileToUpload: File | Blob = file;
+    
+    try {
+      if (file.type.startsWith('image/')) {
+        const compressedBlob = await new Promise<Blob>((resolve, reject) => {
+          const img = new Image();
+          img.src = URL.createObjectURL(file);
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return resolve(file);
+            
+            // Limit max dimension to 1200px
+            let width = img.width;
+            let height = img.height;
+            const maxDim = 1200;
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height *= maxDim / width;
+                width = maxDim;
+              } else {
+                width *= maxDim / height;
+                height = maxDim;
+              }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob((blob) => {
+              if (blob) resolve(blob);
+              else resolve(file);
+            }, 'image/jpeg', 0.8); // 80% quality JPEG
+          };
+          img.onerror = () => resolve(file);
+        });
+        fileToUpload = compressedBlob;
+      }
+    } catch (e) {
+      console.warn("Compression failed, uploading original", e);
+    }
+
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
     const filePath = `meme_uploads/${fileName}`;
 
     const { error } = await supabase.storage
       .from("memes")
-      .upload(filePath, file, {
+      .upload(filePath, fileToUpload, {
         cacheControl: '3600',
         upsert: false
       });

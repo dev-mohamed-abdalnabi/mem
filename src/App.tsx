@@ -90,7 +90,23 @@ export default function App() {
       setPrevPoints(dbCurrentUser.total_points);
 
       const dbMemes = await dataService.getMemes("approved", undefined, dbCurrentUser.id);
-      setMemes(dbMemes);
+      
+      // Handle shared meme from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const sharedMemeId = urlParams.get('meme');
+      
+      if (sharedMemeId) {
+        const sharedMeme = dbMemes.find(m => m.id === sharedMemeId);
+        if (sharedMeme) {
+          // Put shared meme at the top
+          const otherMemes = dbMemes.filter(m => m.id !== sharedMemeId);
+          setMemes([sharedMeme, ...otherMemes]);
+        } else {
+          setMemes(dbMemes);
+        }
+      } else {
+        setMemes(dbMemes);
+      }
 
       const dbProfiles = await dataService.getProfilesList();
       setProfiles(dbProfiles);
@@ -329,7 +345,7 @@ export default function App() {
     setPostSuccess(false);
 
     try {
-      let finalImageUrl = newPostImage.trim();
+      let finalImageUrl = newPostImage.trim() || "";
       if (quickPostFile) {
         finalImageUrl = await dataService.uploadMemeFile(quickPostFile);
       }

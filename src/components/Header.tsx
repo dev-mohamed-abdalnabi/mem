@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Bell, Trophy, BookOpen, User, Flame, LogOut, CheckCircle2, Sun, Moon } from "lucide-react";
+import { Search, Bell, Trophy, BookOpen, User, Flame, LogOut, CheckCircle2, Sun, Moon, PlusCircle, Settings } from "lucide-react";
 import { Profile, Notification } from "../types";
 
 interface HeaderProps {
@@ -116,16 +116,13 @@ export default function Header({
             {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
 
-          {/* Account Toggle/Status */}
+          {/* Post Button (Facebook Style) */}
           <button
-            onClick={isRealUser ? onSignOutReal : onShowAuthModal}
-            className={`px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center gap-1 shrink-0 ${
-              isRealUser 
-                ? "bg-white text-black border border-gray-200 hover:bg-gray-50"
-                : "bg-black text-white hover:bg-gray-800"
-            }`}
+            onClick={() => onNavigate("feed")}
+            className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all cursor-pointer"
+            title="انشر ميم جديد"
           >
-            <span>{isRealUser ? "خروج" : "دخول"}</span>
+            <PlusCircle className="w-6 h-6" />
           </button>
 
 
@@ -304,8 +301,8 @@ export default function Header({
                   }}
                   className="w-full text-right px-4 py-2 hover:bg-gray-50 text-xs text-gray-700 font-bold flex items-center justify-between cursor-pointer"
                 >
-                  <span>الملف الشخصي والمكافآت</span>
-                  <User className="w-4 h-4 text-gray-400" />
+                  <span>الإعدادات والملف الشخصي</span>
+                  <Settings className="w-4 h-4 text-gray-400" />
                 </button>
 
                 <button
@@ -318,6 +315,21 @@ export default function Header({
                   <span>المتصدرين والـ Meme Lords</span>
                   <Trophy className="w-4 h-4 text-gray-400" />
                 </button>
+
+                <div className="border-t border-gray-100 mt-1 pt-1">
+                  <button
+                    onClick={() => {
+                      if (window.confirm("هل أنت متأكد من رغبتك في تسجيل الخروج؟")) {
+                        onSignOutReal();
+                        setShowUserDropdown(false);
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 text-right text-xs text-red-600 font-bold flex items-center gap-2 hover:bg-red-50 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>تسجيل الخروج</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

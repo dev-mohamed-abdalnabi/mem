@@ -235,11 +235,11 @@ export default function MemeCard({
           )}
 
           {meme.image_url && (
-            <div className="rounded-xl border border-gray-100 overflow-hidden mb-3 max-h-[500px] inline-block">
+            <div className="rounded-xl border border-gray-100 overflow-hidden mb-3 max-h-[500px] w-full bg-gray-50 flex justify-center">
               <img
                 src={meme.image_url}
                 alt=""
-                className="w-full h-full object-contain"
+                className="max-w-full max-h-[500px] object-contain"
                 referrerPolicy="no-referrer"
               />
             </div>

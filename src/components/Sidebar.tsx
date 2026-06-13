@@ -46,8 +46,8 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
                 <span>{currentUser.username}</span>
                 {isStaff && <ShieldCheck className="w-4 h-4 text-black shrink-0" />}
               </h4>
-              <p className="text-xs text-gray-500 mt-1">
-                @{currentUser.username.toLowerCase().replace(/\s+/g, '_')}
+              <p className="text-xs text-blue-600 font-bold mt-1">
+                عرض الإعدادات
               </p>
             </div>
           </div>
