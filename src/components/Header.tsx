@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Bell, Trophy, BookOpen, User, Flame, LogOut, CheckCircle2, Sun, Moon, PlusCircle, Settings } from "lucide-react";
+import { Search, Bell, Trophy, BookOpen, User, Flame, LogOut, CheckCircle2, Sun, Moon, PlusCircle, Settings, LogIn } from "lucide-react";
 import { Profile, Notification } from "../types";
 
 interface HeaderProps {
@@ -32,6 +32,8 @@ export default function Header({
   const [searchQuery, setSearchQuery] = useState("");
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // حالة لتأكيد تسجيل الخروج بدون نوافذ المتصفح
+
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return document.documentElement.classList.contains('dark') || 
@@ -60,6 +62,12 @@ export default function Header({
     onSearch(val);
   };
 
+  // إغلاق القوائم وتصفير حالة التأكيد
+  const closeUserDropdown = () => {
+    setShowUserDropdown(false);
+    setShowLogoutConfirm(false);
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 transition-all shadow-sm">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
@@ -83,7 +91,7 @@ export default function Header({
           {/* Points Status */}
           <div 
             onClick={() => onNavigate("leaderboard")}
-            className="bg-gray-50 text-black hover:bg-gray-100 px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold cursor-pointer select-none transition-all mr-2"
+            className="bg-gray-50 text-black hover:bg-gray-100 px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold cursor-pointer select-none transition-all mr-2 shadow-sm"
             title="لوحة الشرف"
           >
             <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
@@ -101,32 +109,41 @@ export default function Header({
             placeholder="ابحث عن ميمز, هاشتاج, أو نكتة..."
             value={searchQuery}
             onChange={handleSearchChange}
-            className="w-full bg-gray-50 border border-gray-300 focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-xl py-2 pr-10 pl-4 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400"
+            className="w-full bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-500 rounded-full py-2 pr-10 pl-4 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400"
           />
         </div>
 
         {/* Right Actions & Utilities */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Theme Toggle */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Theme Toggle (تم تحسين الشكل) */}
           <button
             onClick={toggleTheme}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-black hover:bg-gray-50 transition-all cursor-pointer"
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-sm border ${
+              isDarkMode 
+                ? "bg-gray-800 border-gray-700 hover:bg-gray-700" 
+                : "bg-amber-50 border-amber-100 hover:bg-amber-100"
+            }`}
             title={isDarkMode ? "الوضع الفاتح" : "الوضع الليلي"}
           >
-            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {isDarkMode ? (
+              <Sun className="w-5 h-5 text-amber-400" />
+            ) : (
+              <Moon className="w-5 h-5 text-indigo-600" />
+            )}
           </button>
 
-          {/* Post Button (Sleek & Integrated Style) */}
+          {/* Post Button (تم تحويله لزر واضح وأنيق) */}
           <button
             onClick={() => onNavigate("create-post")}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 h-10 px-3 sm:px-4 rounded-full font-bold text-sm transition-all cursor-pointer ${
               activeTab === "create-post" 
-                ? "bg-blue-50 text-blue-600" 
-                : "text-gray-400 hover:text-blue-600 hover:bg-gray-50"
+                ? "bg-blue-800 text-white shadow-inner scale-95" 
+                : "bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-0.5 shadow-md hover:shadow-lg"
             }`}
             title="انشر ميم جديد"
           >
-            <PlusCircle className="w-5 h-5 sm:w-[22px] sm:h-[22px]" />
+            <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">انشر ميم</span>
           </button>
 
           {/* Notifications Trigger */}
@@ -134,31 +151,31 @@ export default function Header({
             <button
               onClick={() => {
                 setShowNotificationsDropdown(!showNotificationsDropdown);
-                setShowUserDropdown(false);
+                closeUserDropdown();
               }}
               className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer relative ${
                 showNotificationsDropdown
-                  ? "bg-gray-100 text-black"
-                  : "text-gray-400 hover:text-black hover:bg-gray-50"
+                  ? "bg-gray-100 text-black shadow-inner"
+                  : "bg-gray-50 text-gray-500 hover:text-black hover:bg-gray-100 border border-gray-200"
               }`}
             >
               <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -left-0.5 bg-red-500 text-white font-extrabold text-[9px] w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
-                  {unreadCount}
+                <span className="absolute -top-1 -left-1 bg-red-500 text-white font-extrabold text-[10px] w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                  {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
             </button>
 
             {/* Notifications Popover */}
             {showNotificationsDropdown && (
-              <div className="absolute left-0 mt-2 w-80 bg-white border border-gray-200 rounded-2xl py-2 text-right z-50 shadow-lg">
-                <div className="px-4 py-2 border-b border-gray-100 flex items-center justify-between">
+              <div className="absolute left-0 mt-2 w-80 bg-white border border-gray-200 rounded-2xl py-2 text-right z-50 shadow-xl">
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 rounded-t-2xl">
                   <h3 className="font-bold text-gray-800 text-sm">الإشعارات الحية</h3>
                   {unreadCount > 0 && (
                     <button
                       onClick={onMarkNotificationsRead}
-                      className="text-xs text-blue-600 font-semibold hover:underline"
+                      className="text-xs text-blue-600 font-bold hover:text-blue-800 hover:underline"
                     >
                       تحديد الكل كمقروء
                     </button>
@@ -166,8 +183,8 @@ export default function Header({
                 </div>
                 <div className="max-h-72 overflow-y-auto">
                   {notifications.length === 0 ? (
-                    <div className="px-4 py-8 text-center text-gray-400 text-xs">
-                      لا توجد إشعارات حتى الآن
+                    <div className="px-4 py-8 text-center text-gray-400 text-xs font-medium">
+                      لا توجد إشعارات حتى الآن 🔕
                     </div>
                   ) : (
                     notifications.map((notif) => (
@@ -178,7 +195,7 @@ export default function Header({
                           setShowNotificationsDropdown(false);
                         }}
                         className={`px-4 py-3 border-b border-gray-50 hover:bg-blue-50/50 flex items-start gap-3 cursor-pointer transition-colors ${
-                          !notif.is_read ? "bg-blue-50/20" : ""
+                          !notif.is_read ? "bg-blue-50/30" : ""
                         }`}
                       >
                         {notif.actor?.avatar_url ? (
@@ -190,30 +207,33 @@ export default function Header({
                           />
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-black">
-                            M
+                            {notif.actor?.username?.[0]?.toUpperCase() || "M"}
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-gray-800">
+                          <p className="text-xs text-gray-800 leading-relaxed">
                             <span className="font-bold text-gray-900 ml-1">
                               {notif.actor?.username || "سيستم ميمزبوك"}
                             </span>
-                            {notif.type === "like" && "أعجب بالميم الخاص بك"}
-                            {notif.type === "comment" && "كتب كمنتًا عليك:"}
-                            {notif.type === "follow" && "بدأ بمتابعة حسابك ونشاطك"}
-                            {notif.type === "achievement" && notif.content}
+                            {notif.type === "like" && "أعجب بالميم الخاص بك ❤️"}
+                            {notif.type === "comment" && "كتب كمنتًا عليك 💬:"}
+                            {notif.type === "follow" && "بدأ بمتابعة حسابك 👤"}
+                            {notif.type === "achievement" && `🏆 ${notif.content}`}
                           </p>
                           {notif.content && notif.type === "comment" && (
-                            <p className="text-xs text-gray-500 font-mono mt-1 bg-gray-50 border border-gray-100 rounded p-1.5 truncate">
+                            <p className="text-xs text-gray-600 font-medium mt-1 bg-white border border-gray-100 rounded p-2 truncate shadow-sm">
                               "{notif.content}"
                             </p>
                           )}
-                          <span className="text-[10px] text-gray-400 block mt-1">
+                          <span className="text-[10px] text-gray-400 block mt-1.5 font-mono">
                             {new Date(notif.created_at).toLocaleTimeString("ar-EG", {
                               hour: 'numeric', minute: '2-digit'
                             })}
                           </span>
                         </div>
+                        {!notif.is_read && (
+                          <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+                        )}
                       </div>
                     ))
                   )}
@@ -228,10 +248,11 @@ export default function Header({
               onClick={() => {
                 setShowUserDropdown(!showUserDropdown);
                 setShowNotificationsDropdown(false);
+                setShowLogoutConfirm(false);
               }}
-              className="flex items-center gap-2 px-1.5 py-1.5 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all cursor-pointer"
+              className="flex items-center gap-2 px-1.5 py-1.5 rounded-full hover:bg-gray-50 border border-gray-200 hover:border-gray-300 transition-all cursor-pointer shadow-sm"
             >
-              {currentUser.avatar_url ? (
+              {isRealUser && currentUser.avatar_url ? (
                 <img
                   src={currentUser.avatar_url}
                   alt={currentUser.username}
@@ -239,99 +260,127 @@ export default function Header({
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center text-xs font-black">
-                  {currentUser.username[0]}
+                <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-xs font-black">
+                  {isRealUser ? currentUser.username[0].toUpperCase() : <User className="w-4 h-4" />}
                 </div>
               )}
-              <div className="hidden lg:block text-right">
+              <div className="hidden lg:block text-right pr-1 pl-2">
                 <p className="text-xs font-bold text-gray-800 leading-tight">
-                  {currentUser.username}
+                  {isRealUser ? currentUser.username : "زائر"}
                 </p>
-                <p className="text-[9px] text-orange-500 font-bold">
-                  {currentUser.meme_level}
-                </p>
+                {isRealUser && (
+                  <p className="text-[9px] text-orange-500 font-bold">
+                    {currentUser.meme_level}
+                  </p>
+                )}
               </div>
             </button>
 
-            {/* Profile Dropdown & User switcher */}
+            {/* Profile Dropdown */}
             {showUserDropdown && (
-              <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-2xl py-2 text-right z-50 shadow-lg">
-                <div className="px-4 py-2 border-b border-gray-100">
-                  <p className="text-xs text-gray-400">حسابك الحالي</p>
-                  <p className="font-bold text-gray-900 text-sm">{currentUser.username}</p>
-                  <p className="text-xs text-blue-600 font-mono mt-1">Level: {currentUser.meme_level}</p>
-                </div>
-
-                {/* Live Member Directory list */}
-                {availableProfiles && availableProfiles.length > 0 && (
-                  <div className="px-4 py-2 border-b border-gray-100 bg-gray-50/50">
-                    <p className="text-[10px] text-gray-400 font-bold mb-1.5">الحسابات النشطة بالمنصة:</p>
-                    <div className="flex flex-col gap-1 max-h-36 overflow-y-auto">
-                      {availableProfiles.slice(0, 4).map((prof) => (
-                        <div
-                          key={prof.id}
-                          className={`flex items-center gap-2 p-1.5 rounded-lg text-right text-xs ${
-                            prof.id === currentUser.id ? "bg-blue-50/80 text-blue-800 font-semibold" : "text-gray-600"
-                          }`}
-                        >
-                          {prof.avatar_url && (
-                            <img
-                              src={prof.avatar_url}
-                              alt=""
-                              className="w-5 h-5 rounded-md object-cover border border-gray-200"
-                              referrerPolicy="no-referrer"
-                            />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold truncate leading-none">{prof.username}</p>
-                            <p className="text-[8px] text-gray-400 leading-normal font-mono truncate">{prof.total_points} XP • {prof.meme_level.split(" ")[0]}</p>
-                          </div>
-                          {prof.id === currentUser.id && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-ping" />
-                          )}
-                        </div>
-                      ))}
+              <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-2xl py-2 text-right z-50 shadow-xl">
+                {isRealUser ? (
+                  <>
+                    <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl">
+                      <p className="text-xs text-gray-500 font-medium">حسابك الحالي</p>
+                      <p className="font-extrabold text-gray-900 text-sm mt-0.5">{currentUser.username}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">
+                          Level: {currentUser.meme_level}
+                        </span>
+                        <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                          <Flame className="w-3 h-3" /> {currentUser.total_points}
+                        </span>
+                      </div>
                     </div>
-                  </div>
+
+                    {/* Navigations */}
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          onNavigate("profile");
+                          closeUserDropdown();
+                        }}
+                        className="w-full text-right px-4 py-2.5 hover:bg-gray-50 text-xs text-gray-700 font-bold flex items-center justify-between cursor-pointer transition-colors"
+                      >
+                        <span>الإعدادات والملف الشخصي</span>
+                        <Settings className="w-4 h-4 text-gray-400" />
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          onNavigate("leaderboard");
+                          closeUserDropdown();
+                        }}
+                        className="w-full text-right px-4 py-2.5 hover:bg-gray-50 text-xs text-gray-700 font-bold flex items-center justify-between cursor-pointer transition-colors"
+                      >
+                        <span>المتصدرين والـ Meme Lords</span>
+                        <Trophy className="w-4 h-4 text-gray-400" />
+                      </button>
+                    </div>
+
+                    {/* Custom Inline Logout Confirmation */}
+                    <div className="border-t border-gray-100 mt-1">
+                      {showLogoutConfirm ? (
+                        <div className="px-4 py-3 bg-red-50 rounded-b-2xl">
+                          <p className="text-xs text-red-800 font-bold mb-2 text-center">هل أنت متأكد من الخروج؟</p>
+                          <div className="flex items-center justify-center gap-2">
+                            <button 
+                              onClick={() => {
+                                onSignOutReal();
+                                closeUserDropdown();
+                              }}
+                              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-colors flex-1"
+                            >
+                              نعم، خروج
+                            </button>
+                            <button 
+                              onClick={() => setShowLogoutConfirm(false)}
+                              className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg transition-colors flex-1"
+                            >
+                              إلغاء
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowLogoutConfirm(true);
+                          }}
+                          className="w-full px-4 py-3 text-right text-xs text-red-600 font-bold flex items-center gap-2 hover:bg-red-50 transition-colors cursor-pointer rounded-b-2xl"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span>تسجيل الخروج</span>
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  /* User is NOT logged in */
+                  <>
+                    <div className="px-4 py-4 border-b border-gray-100 text-center bg-gray-50/50 rounded-t-2xl">
+                      <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <User className="w-6 h-6 text-gray-400" />
+                      </div>
+                      <p className="font-bold text-gray-900 text-sm">أهلاً بك يا زائر!</p>
+                      <p className="text-xs text-gray-500 mt-1">سجل دخولك عشان تتفاعل وتنشر ميمز براحتك.</p>
+                    </div>
+
+                    <div className="p-3">
+                      <button
+                        onClick={() => {
+                          onShowAuthModal();
+                          closeUserDropdown();
+                        }}
+                        className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
+                      >
+                        <LogIn className="w-4 h-4" />
+                        <span>تسجيل الدخول / إنشاء حساب</span>
+                      </button>
+                    </div>
+                  </>
                 )}
-
-                {/* Navigations directly */}
-                <button
-                  onClick={() => {
-                    onNavigate("profile");
-                    setShowUserDropdown(false);
-                  }}
-                  className="w-full text-right px-4 py-2 hover:bg-gray-50 text-xs text-gray-700 font-bold flex items-center justify-between cursor-pointer"
-                >
-                  <span>الإعدادات والملف الشخصي</span>
-                  <Settings className="w-4 h-4 text-gray-400" />
-                </button>
-
-                <button
-                  onClick={() => {
-                    onNavigate("leaderboard");
-                    setShowUserDropdown(false);
-                  }}
-                  className="w-full text-right px-4 py-2 hover:bg-gray-50 text-xs text-gray-700 font-bold flex items-center justify-between cursor-pointer"
-                >
-                  <span>المتصدرين والـ Meme Lords</span>
-                  <Trophy className="w-4 h-4 text-gray-400" />
-                </button>
-
-                <div className="border-t border-gray-100 mt-1 pt-1">
-                  <button
-                    onClick={() => {
-                      if (window.confirm("هل أنت متأكد من رغبتك في تسجيل الخروج؟")) {
-                        onSignOutReal();
-                        setShowUserDropdown(false);
-                      }
-                    }}
-                    className="w-full px-4 py-2.5 text-right text-xs text-red-600 font-bold flex items-center gap-2 hover:bg-red-50 transition-colors cursor-pointer"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>تسجيل الخروج</span>
-                  </button>
-                </div>
               </div>
             )}
           </div>
@@ -339,4 +388,4 @@ export default function Header({
       </div>
     </header>
   );
-                      }
+}
