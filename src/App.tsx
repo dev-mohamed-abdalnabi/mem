@@ -3,7 +3,7 @@ import {
   Home, Flame, Trophy, Bookmark, Cpu, 
   AlertTriangle, ShieldAlert, Sparkles, X, 
   Clock, PlusCircle, CheckCircle2, Award, 
-  HelpCircle, MessageCircle, AlertCircle, Trash2, User, Image as ImageIcon, Check
+  HelpCircle, MessageCircle, AlertCircle, Trash2, User, Image as ImageIcon, Check, Camera
 } from "lucide-react";
 
 import { Profile, Meme, Notification, Report, UserRole } from "./types";
@@ -12,7 +12,7 @@ import { dataService, calculateMemeLevel } from "./services/dataService";
 import Header from "./components/Header.tsx";
 import Sidebar from "./components/Sidebar.tsx";
 import MemeCard from "./components/MemeCard.tsx";
-// تم تعطيل الاستدعاء الخارجي لبرمجتها داخلياً بتصميم جديد يحل مشاكل الألوان
+// تم بناء لوحة الشرف داخلياً لضمان التصميم
 // import Leaderboard from "./components/Leaderboard.tsx";
 
 const initialGuestProfile: Profile = {
@@ -39,14 +39,12 @@ export default function App() {
   const [reports, setReports] = useState<Report[]>([]);
   const [dbError, setDbError] = useState<string | null>(null);
   
-  // Interaction and filtering state
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
 
-  // New Post Widget inputs
   const [newPostImage, setNewPostImage] = useState("");
   const [newPostCaption, setNewPostCaption] = useState("");
   const [newPostTags, setNewPostTags] = useState("");
@@ -54,7 +52,6 @@ export default function App() {
   const [postSuccess, setPostSuccess] = useState(false);
   const [quickPostFile, setQuickPostFile] = useState<File | null>(null);
 
-  // Supabase Authentications Modal state values
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
   const [authEmail, setAuthEmail] = useState("");
@@ -64,21 +61,36 @@ export default function App() {
   const [authSuccess, setAuthSuccess] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Level Up overlay / state
   const [prevPoints, setPrevPoints] = useState(0);
   const [showLevelUpAlert, setShowLevelUpAlert] = useState(false);
   const [newLevelName, setNewLevelName] = useState("");
 
+  // حالة عرض الصورة بملء الشاشة (Lightbox)
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
+
   useEffect(() => {
     loadAllData();
-    
-    // Check for shared meme in URL
     const urlParams = new URLSearchParams(window.location.search);
     const sharedMemeId = urlParams.get('meme');
     if (sharedMemeId) {
-      // In a real app we'd fetch just this meme or scroll to it
       console.log("Shared meme ID:", sharedMemeId);
     }
+  }, []);
+
+  // مستمع عالمي لفتح أي صورة يتم الضغط عليها (ما عدا الأزرار والأيقونات الصغيرة)
+  useEffect(() => {
+    const handleGlobalImageClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'IMG') {
+        const imgElement = target as HTMLImageElement;
+        // استثناء الأيقونات الصغيرة جداً أو الصور الموجودة داخل أزرار حقيقية
+        if (imgElement.clientWidth > 35 && !target.closest('button')) {
+          setViewingImage(imgElement.src);
+        }
+      }
+    };
+    document.addEventListener('click', handleGlobalImageClick);
+    return () => document.removeEventListener('click', handleGlobalImageClick);
   }, []);
 
   const loadAllData = async () => {
@@ -91,14 +103,12 @@ export default function App() {
 
       const dbMemes = await dataService.getMemes("approved", undefined, dbCurrentUser.id);
       
-      // Handle shared meme from URL
       const urlParams = new URLSearchParams(window.location.search);
       const sharedMemeId = urlParams.get('meme');
       
       if (sharedMemeId) {
         const sharedMeme = dbMemes.find(m => m.id === sharedMemeId);
         if (sharedMeme) {
-          // Put shared meme at the top
           const otherMemes = dbMemes.filter(m => m.id !== sharedMemeId);
           setMemes([sharedMeme, ...otherMemes]);
         } else {
@@ -114,28 +124,24 @@ export default function App() {
       const dbNotifs = await dataService.getNotifications(dbCurrentUser.id);
       setNotifications(dbNotifs);
 
-      // Refresh trending memes if on trending tab
       if (activeTab === "trending") {
         const dbTrending = await dataService.getTrendingMemes(dbCurrentUser.id);
         setMemes(dbTrending);
       }
 
-      // Load following list from database
       const dbFollowingIds = await dataService.getFollowingList(dbCurrentUser.id);
       setFollowingIds(dbFollowingIds);
 
-      // Read reports
       const savedReports = localStorage.getItem("memesbook_reports_list");
       setReports(savedReports ? JSON.parse(savedReports) : []);
     } catch (e: any) {
-      console.warn("Database connection initialization warning:", e);
-      setDbError(e.message || "فشلت الاتصالات المباشرة بجداول Supabase. يرجى تهيئة الجداول.");
+      console.warn("Database error:", e);
+      setDbError(e.message || "فشل الاتصال بقاعدة البيانات.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Check if current user leveled up when actions occur
   const checkLevelUp = (oldPts: number, newPts: number) => {
     const getLevel = (pts: number) => {
       if (pts <= 50) return "مبتدئ سكرولر 🥱";
@@ -155,7 +161,6 @@ export default function App() {
     }
   };
 
-  // Sync points inside real UI state
   const updateUserPointsInState = (addedPoints: number) => {
     const oldPts = currentUser.total_points;
     const newPts = oldPts + addedPoints;
@@ -174,66 +179,37 @@ export default function App() {
   };
 
   const handleLikeToggle = async (memeId: string) => {
-    if (!memeId) {
-      loadAllData();
-      return;
-    }
-
+    if (!memeId) { loadAllData(); return; }
     try {
       const { liked, likesCount } = await dataService.toggleLike(memeId, currentUser.id);
-      
-      setMemes((prev) => 
-        prev.map((m) => {
-          if (m.id === memeId) {
-            return {
-              ...m,
-              likes_count: likesCount,
-              liked_by_me: liked
-            };
-          }
+      setMemes((prev) => prev.map((m) => {
+          if (m.id === memeId) return { ...m, likes_count: likesCount, liked_by_me: liked };
           return m;
-        })
-      );
-
+      }));
       if (activeTab === "trending") {
         const dbTrending = await dataService.getTrendingMemes(currentUser.id);
         setMemes(dbTrending);
       }
-
       const targetMeme = memes.find(m => m.id === memeId);
       if (targetMeme && targetMeme.user_id === currentUser.id) {
         updateUserPointsInState(liked ? 5 : -5);
       }
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
   };
 
   const handleSaveToggle = async (memeId: string) => {
     try {
       const saved = await dataService.toggleSave(memeId, currentUser.id);
-      setMemes((prev) => 
-        prev.map((m) => {
-          if (m.id === memeId) {
-            return {
-              ...m,
-              saves_count: saved ? m.saves_count + 1 : Math.max(0, m.saves_count - 1),
-              saved_by_me: saved
-            };
-          }
+      setMemes((prev) => prev.map((m) => {
+          if (m.id === memeId) return { ...m, saves_count: saved ? m.saves_count + 1 : Math.max(0, m.saves_count - 1), saved_by_me: saved };
           return m;
-        })
-      );
-    } catch (e) {
-      console.error(e);
-    }
+      }));
+    } catch (e) { console.error(e); }
   };
 
   const handleFollowToggle = async (followerId: string, followingId: string) => {
     try {
-      if (followingIds.includes(followingId)) {
-        return; 
-      }
+      if (followingIds.includes(followingId)) return; 
       
       const success = await dataService.followUser(followerId, followingId);
       if (success) {
@@ -257,69 +233,30 @@ export default function App() {
         if (currentUser.id === followingId) {
           updateUserPointsInState(10);
         }
-
-        const followActor = profiles.find(p => p.id === followerId) || currentUser;
-        const newNotif: Notification = {
-          id: `notif-f-${Date.now()}`,
-          recipient_id: followingId,
-          actor_id: followerId,
-          type: "follow",
-          meme_id: null,
-          content: null,
-          is_read: false,
-          created_at: new Date().toISOString(),
-          actor: followActor
-        };
-        setNotifications((prev) => [newNotif, ...prev]);
       }
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
   };
 
   const handlePublishMeme = async (caption: string, imageUrl: string, tags: string[]) => {
     try {
       const newMeme = await dataService.createMeme({
-        user_id: currentUser.id,
-        image_url: imageUrl,
-        caption,
-        tags
+        user_id: currentUser.id, image_url: imageUrl, caption, tags
       });
-
       setMemes((prev) => [newMeme, ...prev]);
       updateUserPointsInState(5);
-    } catch (err: any) {
-      throw err;
-    }
-  };
-
-  const handleUpdateProfile = async (updates: Partial<Profile>) => {
-    try {
-      const updated = await dataService.updateProfile(updates);
-      setCurrentUser(updated);
-      setProfiles(prev => prev.map(p => p.id === updated.id ? updated : p));
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err: any) { throw err; }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 8 * 1024 * 1024) {
-        setPostError("يا رايق حجم ملف الميم ده كبير بزيادة! الحد الأقصى هو 8 ميجابايت.");
-        return;
+        setPostError("الحد الأقصى هو 8 ميجابايت."); return;
       }
       setQuickPostFile(file);
       const reader = new FileReader();
       reader.onload = (event) => {
-        if (event.target?.result) {
-          setNewPostImage(event.target.result as string);
-          setPostError("");
-        }
-      };
-      reader.onerror = () => {
-        setPostError("فشل قراءة الصورة المرفوعة.");
+        if (event.target?.result) { setNewPostImage(event.target.result as string); setPostError(""); }
       };
       reader.readAsDataURL(file);
     }
@@ -328,112 +265,58 @@ export default function App() {
   const handleQuickPostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPostImage.trim() && !newPostCaption.trim()) {
-      setPostError("يا رايق، لازم تكتب نص أو ترفع صورة عشان تنشر الميم!");
-      return;
+      setPostError("يجب كتابة نص أو رفع صورة!"); return;
     }
-
-    setPostError("");
-    setPostSuccess(false);
-
+    setPostError(""); setPostSuccess(false);
     try {
       let finalImageUrl = newPostImage.trim() || "";
-      if (quickPostFile) {
-        finalImageUrl = await dataService.uploadMemeFile(quickPostFile);
-      }
-
-      const splitTags = newPostTags
-        .split(" ")
-        .filter(t => t.startsWith("#"))
-        .map(t => t.replace("#", ""));
-
+      if (quickPostFile) { finalImageUrl = await dataService.uploadMemeFile(quickPostFile); }
+      const splitTags = newPostTags.split(" ").filter(t => t.startsWith("#")).map(t => t.replace("#", ""));
       await handlePublishMeme(newPostCaption.trim(), finalImageUrl, splitTags);
       
-      setPostSuccess(true);
-      setNewPostImage("");
-      setNewPostCaption("");
-      setNewPostTags("");
-      setQuickPostFile(null);
-      
+      setPostSuccess(true); setNewPostImage(""); setNewPostCaption(""); setNewPostTags(""); setQuickPostFile(null);
       setTimeout(() => setPostSuccess(false), 4400);
-    } catch (err: any) {
-      setPostError(err.message || "حدث خطأ أثناء النشر.");
-    }
+    } catch (err: any) { setPostError(err.message || "حدث خطأ أثناء النشر."); }
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAuthLoading(true);
-    setAuthError("");
-    setAuthSuccess("");
+    setAuthLoading(true); setAuthError(""); setAuthSuccess("");
     try {
       const profile = await dataService.signIn(authEmail, authPassword);
-      setCurrentUser(profile);
-      setPrevPoints(profile.total_points);
-      setAuthSuccess("تم تسجيل الدخول بنجاح! نورت منصتك يا غالي 🎉");
-      setAuthEmail("");
-      setAuthPassword("");
-      setTimeout(() => {
-        setShowAuthModal(false);
-        loadAllData();
-      }, 1500);
-    } catch (err: any) {
-      setAuthError(err.message || "فشل تسجيل الدخول. تأكد من البريد والرمز السري.");
-    } finally {
-      setAuthLoading(false);
-    }
+      setCurrentUser(profile); setPrevPoints(profile.total_points);
+      setAuthEmail(""); setAuthPassword("");
+      setShowAuthModal(false); loadAllData();
+    } catch (err: any) { setAuthError(err.message || "البيانات غير صحيحة."); } 
+    finally { setAuthLoading(false); }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!authUsername.trim()) {
-      setAuthError("يا غالي من فضلك اكتب اسم مستخدم مميز لك!");
-      return;
-    }
-    setAuthLoading(true);
-    setAuthError("");
-    setAuthSuccess("");
+    if (!authUsername.trim()) { setAuthError("الرجاء كتابة اسم المستخدم."); return; }
+    setAuthLoading(true); setAuthError(""); setAuthSuccess("");
     try {
       const profile = await dataService.signUp(authEmail, authPassword, authUsername.trim());
-      setCurrentUser(profile);
-      setPrevPoints(profile.total_points);
-      setAuthSuccess("تم إنشاء الحساب بنجاح! أهلاً بك في العائلة 😄🎉");
-      setAuthEmail("");
-      setAuthPassword("");
-      setAuthUsername("");
-      setTimeout(() => {
-        setShowAuthModal(false);
-        loadAllData();
-      }, 1500);
-    } catch (err: any) {
-      setAuthError(err.message || "تعذّر إنشاء الحساب. تأكد من البيانات أو طول الرقم السري (6 رموز على الأقل).");
-    } finally {
-      setAuthLoading(false);
-    }
+      setCurrentUser(profile); setPrevPoints(profile.total_points);
+      setAuthEmail(""); setAuthPassword(""); setAuthUsername("");
+      setShowAuthModal(false); loadAllData();
+    } catch (err: any) { setAuthError(err.message || "تعذّر إنشاء الحساب."); } 
+    finally { setAuthLoading(false); }
   };
 
   const handleSignOutReal = async () => {
     try {
       await dataService.signOut();
       setCurrentUser(initialGuestProfile);
-      setPrevPoints(0);
-      loadAllData();
-    } catch (e) {
-      console.error(e);
-    }
+      setPrevPoints(0); loadAllData();
+    } catch (e) { console.error(e); }
   };
 
   const handleReportSubmit = (memeId: string, reason: string) => {
     const newReport: Report = {
-      id: `report-${Date.now()}`,
-      meme_id: memeId,
-      reporter_id: currentUser.id,
-      reason,
-      status: "open",
-      resolved_by: null,
-      resolution_note: null,
-      created_at: new Date().toISOString()
+      id: `report-${Date.now()}`, meme_id: memeId, reporter_id: currentUser.id,
+      reason, status: "open", resolved_by: null, resolution_note: null, created_at: new Date().toISOString()
     };
-
     const updatedReports = [...reports, newReport];
     setReports(updatedReports);
     localStorage.setItem("memesbook_reports_list", JSON.stringify(updatedReports));
@@ -441,9 +324,7 @@ export default function App() {
 
   const handleShareCompleted = async (memeId: string) => {
     await dataService.recordShare(memeId);
-    setMemes((prev) => 
-      prev.map(m => m.id === memeId ? { ...m, shares_count: m.shares_count + 1 } : m)
-    );
+    setMemes((prev) => prev.map(m => m.id === memeId ? { ...m, shares_count: m.shares_count + 1 } : m));
   };
 
   const handleMarkNotificationsRead = async () => {
@@ -456,9 +337,7 @@ export default function App() {
       try {
         await dataService.deleteMeme(memeId, currentUser.id);
         setMemes((prev) => prev.filter(m => m.id !== memeId));
-      } catch (err: any) {
-        alert(err.message || "فشل حذف الميم.");
-      }
+      } catch (err: any) { alert(err.message || "فشل حذف الميم."); }
     }
   };
 
@@ -469,24 +348,32 @@ export default function App() {
     dataService.getNotifications(newProf.id).then(notifs => setNotifications(notifs));
   };
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        // نستخدم نفس دالة الرفع المتاحة ونخزن الرابط كغلاف
+        const url = await dataService.uploadAvatar(file);
+        const updatedUser = { ...currentUser, cover_url: url } as Profile;
+        setCurrentUser(updatedUser);
+        await dataService.updateProfile({ cover_url: url } as any);
+      } catch (err: any) {
+        alert("فشل رفع صورة الغلاف: " + err.message);
+      }
+    }
+  };
+
   const filteredMemes = memes.filter((meme) => {
     if (meme.status === "deleted" || meme.status === "rejected") return false;
-
     if (selectedTag) {
       const lowerTag = selectedTag.toLowerCase();
-      const match = meme.tags?.some(t => t.toLowerCase() === lowerTag) || 
-                    meme.caption?.toLowerCase().includes(`#${lowerTag}`);
+      const match = meme.tags?.some(t => t.toLowerCase() === lowerTag) || meme.caption?.toLowerCase().includes(`#${lowerTag}`);
       if (!match) return false;
     }
-
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const userMatch = meme.profiles?.username.toLowerCase().includes(q);
-      const capMatch = meme.caption?.toLowerCase().includes(q);
-      const tagMatch = meme.tags?.some(t => t.toLowerCase().includes(q));
-      return userMatch || capMatch || tagMatch;
+      return meme.profiles?.username.toLowerCase().includes(q) || meme.caption?.toLowerCase().includes(q) || meme.tags?.some(t => t.toLowerCase().includes(q));
     }
-
     return true;
   });
 
@@ -494,191 +381,129 @@ export default function App() {
   const isRealUser = currentUser ? currentUser.id !== "guest-user-temp" : false;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 flex flex-col font-sans select-none pb-20 md:pb-6" dir="rtl">
-      {/* Level Up Notification Banners */}
+    <div className="min-h-screen bg-[#F0F2F5] dark:bg-slate-950 transition-colors duration-300 flex flex-col font-sans select-none pb-20 md:pb-6" dir="rtl">
+      
+      {/* Lightbox - Fullscreen Image Viewer */}
+      {viewingImage && (
+        <div 
+          className="fixed inset-0 z-[99999] bg-black/95 flex items-center justify-center p-4" 
+          onClick={() => setViewingImage(null)}
+        >
+          <button 
+            className="absolute top-4 left-4 text-white hover:bg-white/20 p-2 rounded-full z-[100000] transition-colors cursor-pointer"
+            onClick={() => setViewingImage(null)}
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <img 
+            src={viewingImage} 
+            className="max-w-full max-h-[90vh] object-contain shadow-2xl rounded-sm" 
+            onClick={(e) => e.stopPropagation()} 
+            referrerPolicy="no-referrer"
+            alt="Fullscreen View"
+          />
+        </div>
+      )}
+
       {showLevelUpAlert && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 text-center border border-gray-100 dark:border-slate-800 shadow-2xl relative">
-            <button 
-              onClick={() => setShowLevelUpAlert(false)}
-              className="absolute top-4 left-4 text-gray-400 hover:text-gray-900 dark:hover:text-white cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            
             <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/50 rounded-full flex items-center justify-center mx-auto text-yellow-500 animate-bounce shadow">
               <Award className="w-10 h-10" />
             </div>
-
-            <h3 className="font-extrabold text-xl text-gray-900 dark:text-white mt-4 leading-tight">
-              ألف مبروك يا الغالي! ترقيت في مستويات الميمز 🚀🔥
-            </h3>
-            
-            <p className="text-xs text-blue-600 dark:text-blue-400 font-extrabold mt-1.5 uppercase tracking-wide">
-              المستوى الجديد المحقق
-            </p>
-
+            <h3 className="font-extrabold text-xl text-gray-900 dark:text-white mt-4">ترقيت في مستويات الميمز 🚀🔥</h3>
             <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 py-3 px-5 rounded-2xl inline-block mt-3 text-blue-700 dark:text-blue-300 font-extrabold text-lg">
               {newLevelName}
             </div>
-
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold leading-relaxed mt-4">
-              إمكانيات ميمزبوك بتفتح معاك! استمر بنشر أحلى الإفيهات عشان توصل لمستوى الأباطرة الأعلى وتقفّل اللعبة! 😎👑
-            </p>
-
-            <button
-              onClick={() => setShowLevelUpAlert(false)}
-              className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-2xl text-sm shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95"
-            >
-              جاهز لتجربة الرتبة الجديدة! 👍
+            <button onClick={() => setShowLevelUpAlert(false)} className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-2xl text-sm shadow-md cursor-pointer">
+              جاهز! 👍
             </button>
           </div>
         </div>
       )}
 
-      {/* Header bar component */}
       <Header
-        currentUser={currentUser}
-        notifications={notifications}
-        onNavigate={(tab) => {
-          setActiveTab(tab);
-          setSelectedTag(null);
-        }}
-        onSearch={(query) => setSearchQuery(query)}
-        activeTab={activeTab}
-        onUserSwitch={handleUserSwitch}
-        availableProfiles={profiles}
+        currentUser={currentUser} notifications={notifications}
+        onNavigate={(tab) => { setActiveTab(tab); setSelectedTag(null); }}
+        onSearch={(query) => setSearchQuery(query)} activeTab={activeTab}
+        onUserSwitch={handleUserSwitch} availableProfiles={profiles}
         onMarkNotificationsRead={handleMarkNotificationsRead}
-        onShowAuthModal={() => {
-          setShowAuthModal(true);
-          setAuthTab("signin");
-          setAuthError("");
-          setAuthSuccess("");
-        }}
-        onSignOutReal={handleSignOutReal}
-        isRealUser={isRealUser}
+        onShowAuthModal={() => { setShowAuthModal(true); setAuthTab("signin"); }}
+        onSignOutReal={handleSignOutReal} isRealUser={isRealUser}
       />
 
-      {/* Main stage layout block */}
       <main className="max-w-7xl mx-auto px-4 py-6 w-full flex-1 flex gap-6">
         
-        {/* Right side helper columns */}
-        <div className="w-64 shrink-0 hidden lg:flex flex-col gap-6 order-3">
+        {/* Right Sidebar */}
+        <div className="w-64 shrink-0 hidden lg:flex flex-col gap-4 order-3">
           
-          {!isRealUser && (
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-4 shadow-sm text-center text-white">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto text-white mb-3 backdrop-blur-sm">
-                <User className="w-6 h-6" />
-              </div>
-              <h4 className="font-extrabold text-sm mb-1.5">مش مسجل دخول يا غالي؟ 👀</h4>
-              <p className="text-[11px] text-blue-100 mb-4 leading-relaxed font-medium">
-                سجل حساب دلوقتي عشان تشارك أحلى الميمز وتجمع نقاط وتنافس على الصدارة!
-              </p>
-              <button
-                onClick={() => {
-                  setShowAuthModal(true);
-                  setAuthTab("signin");
-                  setAuthError("");
-                  setAuthSuccess("");
-                }}
-                className="w-full bg-white text-blue-600 hover:bg-gray-50 font-black py-2.5 rounded-xl text-xs shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95"
-              >
-                تسجيل الدخول / إنشاء حساب
-              </button>
-            </div>
-          )}
-
-          <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-4 shadow-sm text-right">
-            <h4 className="font-extrabold text-xs text-gray-900 dark:text-white flex items-center justify-end gap-1.5 mb-3">
-              <span>وزراء الكوميديا والضحك 👑</span>
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-4 shadow-sm text-right">
+            <h4 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2 mb-4 border-b border-gray-100 dark:border-slate-800 pb-2">
               <Trophy className="w-4 h-4 text-yellow-500" />
+              أفضل المبدعين
             </h4>
             
-            <div className="flex flex-col gap-2.5">
-              {profiles.slice(0, 3).map((prof, index) => (
-                <div key={prof.id} className="flex items-center gap-2.5 border-b border-gray-50 dark:border-slate-800 pb-2 last:border-0 last:pb-0">
-                  <div className="text-xs font-black text-gray-400 font-mono">#{index + 1}</div>
-                  {prof.avatar_url ? (
-                    <img src={prof.avatar_url} alt="" className="w-8 h-8 rounded-lg object-cover" referrerPolicy="no-referrer" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-lg bg-gray-200 dark:bg-slate-700" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate leading-tight">{prof.username}</p>
-                    <p className="text-[9px] text-orange-500 font-bold leading-none mt-0.5">{prof.total_points} XP</p>
+            <div className="flex flex-col gap-3">
+              {profiles.slice(0, 5).map((prof) => (
+                <div key={prof.id} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <img src={prof.avatar_url || ""} className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-100 dark:border-slate-700" referrerPolicy="no-referrer" />
+                    <div className="flex flex-col min-w-0">
+                      <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{prof.username}</p>
+                      <p className="text-[10px] text-gray-500 truncate">{prof.meme_level}</p>
+                    </div>
                   </div>
+                  {prof.id !== currentUser.id && isRealUser && (
+                    <button
+                      onClick={() => handleFollowToggle(currentUser.id, prof.id)}
+                      className={`shrink-0 whitespace-nowrap text-[10px] font-bold px-2 py-1 rounded-md transition-colors ${
+                        followingIds.includes(prof.id) 
+                          ? "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300" 
+                          : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100"
+                      }`}
+                    >
+                      {followingIds.includes(prof.id) ? "متابع" : "متابعة"}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
-            
-            <button
-              onClick={() => setActiveTab("leaderboard")}
-              className="w-full text-center text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline mt-4 cursor-pointer block"
-            >
-              عرض الترتيب الكامل للرتب
-            </button>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-4 shadow-sm text-right flex flex-col gap-3">
-            <h4 className="font-extrabold text-xs text-gray-950 dark:text-white flex items-center justify-end gap-1.5 border-b border-gray-50 dark:border-slate-800 pb-2">
-              <span>تعليمات معالي وزير الميمز 📜</span>
-              <HelpCircle className="w-4 h-4 text-blue-500" />
-            </h4>
-            <ul className="text-[11px] text-gray-500 dark:text-gray-400 flex flex-col gap-2 font-bold leading-relaxed pr-2 list-disc list-inside">
-              <li>الميمز الكرينج بتدخل فريق الإشراف في غيبوبة فنية!</li>
-              <li>يرجى كتابة الكلمات بالخط العريض في استوديو الميمز.</li>
-              <li>التحفيل مسموح طالما أنه في نطاق الضحك والهزار الراقي.</li>
-              <li>فيوزات ميمزبوك محمية ضد الإفراط بمعدل رفع الكوميكس.</li>
-            </ul>
+          <div className="text-xs text-gray-500 flex flex-wrap gap-2 px-2 mt-2 font-medium">
+            <span>الخصوصية</span> · <span>الشروط</span> · <span>الإعلانات</span> · <span>ميمزبوك © 2024</span>
           </div>
         </div>
 
-        {/* Central main viewport panel */}
+        {/* Central Content */}
         <div className="flex-1 max-w-full md:max-w-2xl order-2">
           
-          {/* Feed */}
           {activeTab === "feed" && (
             <div className="flex flex-col gap-4">
               {!isRealUser && (
-                <div className="lg:hidden bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-4 shadow-sm text-center text-white mb-1">
-                  <h4 className="font-extrabold text-sm mb-1.5">مش مسجل دخول يا غالي؟ 👀</h4>
-                  <p className="text-[11px] text-blue-100 mb-3 leading-relaxed font-medium">سجل حساب دلوقتي عشان تشارك الميمز وتنافس!</p>
-                  <button
-                    onClick={() => {
-                      setShowAuthModal(true);
-                      setAuthTab("signin");
-                    }}
-                    className="bg-white text-blue-600 hover:bg-gray-50 font-black py-2.5 px-4 rounded-xl text-xs w-full shadow-md cursor-pointer transition-all active:scale-95"
-                  >
+                <div className="lg:hidden bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm text-center border border-gray-200 dark:border-slate-800 mb-2">
+                  <h4 className="font-bold text-sm mb-2 text-gray-900 dark:text-white">سجل دخولك لتتفاعل وتشارك!</h4>
+                  <button onClick={() => { setShowAuthModal(true); setAuthTab("signin"); }} className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg text-sm w-full shadow-sm">
                     تسجيل الدخول / إنشاء حساب
                   </button>
                 </div>
               )}
 
               {loading ? (
-                <div className="text-center py-12 text-gray-400">جاري تحميل ميم الفيد الحقيقي...</div>
+                <div className="text-center py-12 text-gray-500">جاري التحميل...</div>
               ) : filteredMemes.length === 0 ? (
-                <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-12 text-center text-gray-400 flex flex-col items-center gap-3">
-                  <Clock className="w-10 h-10 text-gray-300 dark:text-slate-600 animate-spin" />
-                  <p className="font-extrabold text-sm text-gray-700 dark:text-gray-300">مفيش ميمز تطابق استعلامك خالص!</p>
-                  <button onClick={() => { setSearchQuery(""); setSelectedTag(null); }} className="mt-2 bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-xl text-xs font-bold">
-                    إعادة تعيين الفيد بالكامل
-                  </button>
+                <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-12 text-center text-gray-500">
+                  <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="font-bold text-sm">لا توجد منشورات تطابق بحثك.</p>
                 </div>
               ) : (
                 filteredMemes.map((meme) => (
                   <MemeCard
-                    key={meme.id}
-                    meme={meme}
-                    currentUser={currentUser}
-                    onLikeToggle={handleLikeToggle}
-                    onSaveToggle={handleSaveToggle}
-                    onFollowToggle={handleFollowToggle}
-                    onTagClick={(tag) => setSelectedTag(tag)}
-                    onDeleteComment={() => {}}
-                    onReportSubmit={handleReportSubmit}
-                    onShareCompleted={handleShareCompleted}
-                    onDeleteMeme={handleDeleteMeme}
+                    key={meme.id} meme={meme} currentUser={currentUser}
+                    onLikeToggle={handleLikeToggle} onSaveToggle={handleSaveToggle}
+                    onFollowToggle={handleFollowToggle} onTagClick={setSelectedTag}
+                    onDeleteComment={() => {}} onReportSubmit={handleReportSubmit}
+                    onShareCompleted={handleShareCompleted} onDeleteMeme={handleDeleteMeme}
                     onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }}
                     isFollowingCreator={followingIds.includes(meme.user_id)}
                   />
@@ -687,7 +512,7 @@ export default function App() {
             </div>
           )}
 
-          {/* Facebook-style Profile Redesign */}
+          {/* Facebook-style Profile */}
           {(activeTab === "profile" || (activeTab === "user-profile" && selectedProfileId)) && (() => {
             const isMyProfile = activeTab === "profile" || selectedProfileId === currentUser.id;
             const profile = isMyProfile ? currentUser : profiles.find(p => p.id === selectedProfileId);
@@ -697,37 +522,28 @@ export default function App() {
 
             return (
               <div className="flex flex-col gap-4 animate-fade-in">
-                {/* Guest Warning */}
-                {!isRealUser && isMyProfile && (
-                   <div className="bg-blue-50 border border-blue-200 rounded-3xl p-6 text-center text-blue-900 shadow-sm">
-                   <User className="w-12 h-12 text-blue-400 mx-auto mb-3" />
-                   <h2 className="text-xl font-black mb-2">انضم لعائلة ميمزبوك!</h2>
-                   <p className="text-xs text-blue-700 mb-5 font-medium max-w-sm mx-auto leading-relaxed">
-                     أنت تتصفح كزائر. سجل حسابك الحقيقي الآن لتتمكن من تعديل ملفك الشخصي، تغيير صورتك، ورفع الميمز الخاصة بك.
-                   </p>
-                   <button
-                     onClick={() => { setShowAuthModal(true); setAuthTab("signin"); }}
-                     className="bg-blue-600 hover:bg-blue-700 text-white font-black text-sm py-3 px-8 rounded-xl cursor-pointer transition-all shadow-md hover:scale-105 active:scale-95"
-                   >
-                     تسجيل الدخول / إنشاء حساب
-                   </button>
-                 </div>
-                )}
-
-                {/* FB-Style Profile Header */}
-                <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm relative">
+                {/* Profile Card FB Style */}
+                <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
                   
-                  {/* Cover Photo Area */}
-                  <div className="h-40 md:h-56 bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 relative w-full">
-                     {isMyProfile && (
-                       <button className="absolute top-4 left-4 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full transition-colors backdrop-blur-sm">
-                         <ImageIcon className="w-5 h-5" />
-                       </button>
+                  {/* Cover Photo */}
+                  <div className="h-48 sm:h-64 bg-gray-200 dark:bg-slate-800 relative w-full group">
+                     {(profile as any).cover_url ? (
+                       <img src={(profile as any).cover_url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                     ) : (
+                       <div className="w-full h-full bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-slate-800 dark:to-slate-700"></div>
                      )}
                      
-                     {/* Overlapping Avatar */}
-                     <div className="absolute -bottom-12 right-6">
-                        <div className="relative group w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-white dark:border-slate-900 bg-gray-100 shadow-lg">
+                     {isMyProfile && (
+                       <label className="absolute bottom-4 right-4 bg-white/90 hover:bg-white text-gray-900 px-3 py-1.5 rounded-md font-bold text-xs shadow-sm cursor-pointer flex items-center gap-1.5 transition-colors">
+                         <Camera className="w-4 h-4" />
+                         تعديل صورة الغلاف
+                         <input type="file" className="hidden" accept="image/*" onChange={handleCoverUpload} />
+                       </label>
+                     )}
+                     
+                     {/* Avatar overlapping */}
+                     <div className="absolute -bottom-16 right-6">
+                        <div className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-white dark:border-slate-900 bg-gray-100 shadow-sm cursor-pointer">
                           {profile.avatar_url ? (
                             <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover bg-white" referrerPolicy="no-referrer" />
                           ) : (
@@ -738,11 +554,9 @@ export default function App() {
                           
                           {isMyProfile && (
                             <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                              <PlusCircle className="w-8 h-8 text-white" />
+                              <Camera className="w-8 h-8 text-white" />
                               <input 
-                                type="file" 
-                                className="hidden" 
-                                accept="image/*"
+                                type="file" className="hidden" accept="image/*"
                                 onChange={async (e) => {
                                   const file = e.target.files?.[0];
                                   if (file) {
@@ -750,7 +564,7 @@ export default function App() {
                                       const url = await dataService.uploadAvatar(file);
                                       setCurrentUser(prev => ({ ...prev, avatar_url: url }));
                                       await dataService.updateProfile({ avatar_url: url });
-                                    } catch (err) { alert("فشل رفع الصورة: " + (err as any).message); }
+                                    } catch (err) { alert("فشل الرفع"); }
                                   }
                                 }}
                               />
@@ -760,117 +574,107 @@ export default function App() {
                      </div>
                   </div>
 
-                  {/* Profile Info Area */}
-                  <div className="pt-14 px-6 pb-6 text-right">
-                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                  {/* Profile Details */}
+                  <div className="pt-20 px-6 pb-6 text-right">
+                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           {isMyProfile ? (
                             <input 
-                              type="text" 
-                              value={profile.username} 
+                              type="text" value={profile.username} 
                               onChange={async (e) => {
                                 const newName = e.target.value;
                                 setCurrentUser(prev => ({ ...prev, username: newName }));
-                                try { await dataService.updateProfile({ username: newName }); } catch (err) { console.error(err); }
+                                try { await dataService.updateProfile({ username: newName }); } catch (err) {}
                               }}
-                              className="bg-transparent border-b border-transparent hover:border-gray-200 focus:border-blue-500 focus:outline-none focus:ring-0 p-0 w-full text-2xl font-black text-gray-900 dark:text-white transition-colors"
+                              className="bg-transparent border-none focus:outline-none focus:ring-0 p-0 w-full text-2xl font-black text-gray-900 dark:text-white"
                               placeholder="اسم المستخدم"
                             />
                           ) : (
-                            <h2 className="text-2xl font-black text-gray-900 dark:text-white">{profile.username}</h2>
+                            <h2 className="text-2xl font-black text-gray-900 dark:text-white truncate">{profile.username}</h2>
                           )}
                           
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">@{profile.username.toLowerCase().replace(/\s+/g, '_')}</p>
-                          <p className="text-sm text-blue-600 dark:text-blue-400 font-bold mt-2 inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full">
-                            <Award className="w-4 h-4" /> {profile.meme_level}
-                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">@{profile.username.toLowerCase().replace(/\s+/g, '_')} · <span className="font-bold text-blue-600 dark:text-blue-400">{profile.meme_level}</span></p>
 
-                          <div className="mt-4">
+                          <div className="mt-3">
                             {isMyProfile ? (
                               <textarea
                                 value={profile.bio || ""}
                                 onChange={async (e) => {
                                   const newBio = e.target.value;
                                   setCurrentUser(prev => ({ ...prev, bio: newBio }));
-                                  try { await dataService.updateProfile({ bio: newBio }); } catch (err) { console.error(err); }
+                                  try { await dataService.updateProfile({ bio: newBio }); } catch (err) {}
                                 }}
-                                className="w-full bg-gray-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-blue-400 p-3 text-sm text-gray-800 dark:text-gray-200 resize-none rounded-xl"
-                                placeholder="اكتب نبذة عنك (Bio)..."
+                                className="w-full bg-gray-50 dark:bg-slate-800 border-none focus:ring-0 p-3 text-sm text-gray-800 dark:text-gray-200 resize-none rounded-lg"
+                                placeholder="إضافة سيرة ذاتية..."
                                 rows={2}
                               />
                             ) : (
-                              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed max-w-xl">{profile.bio || "لا يوجد وصف حالياً."}</p>
+                              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{profile.bio || "لا يوجد وصف حالياً."}</p>
                             )}
                           </div>
                         </div>
 
-                        {/* FB style Action Buttons */}
-                        <div className="flex items-center gap-2 mt-2 md:mt-0">
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2 mt-2 md:mt-0 self-start">
                           {isMyProfile ? (
-                             <button onClick={() => setActiveTab("create-post")} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shrink-0">
-                               <PlusCircle className="w-4 h-4" /> إنشاء ميم
+                             <button onClick={() => setActiveTab("create-post")} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shrink-0">
+                               <PlusCircle className="w-4 h-4" /> إضافة ميم
                              </button>
                           ) : (
-                            <button 
-                              onClick={() => handleFollowToggle(currentUser.id, profile.id)}
-                              className={`px-8 py-2.5 rounded-xl text-sm font-black transition-all flex items-center gap-2 whitespace-nowrap shrink-0 ${
-                                followingIds.includes(profile.id) 
-                                  ? "bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-white" 
-                                  : "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
-                              }`}
-                            >
-                              {followingIds.includes(profile.id) ? <><Check className="w-4 h-4"/> متابع</> : "متابعة"}
-                            </button>
+                            <>
+                              <button className="bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-white px-4 py-2 rounded-lg font-bold text-sm shrink-0 flex items-center gap-2">
+                                <MessageCircle className="w-4 h-4" /> مراسلة
+                              </button>
+                              <button 
+                                onClick={() => handleFollowToggle(currentUser.id, profile.id)}
+                                className={`px-5 py-2 rounded-lg text-sm font-bold shrink-0 whitespace-nowrap flex items-center gap-1.5 transition-colors ${
+                                  followingIds.includes(profile.id) 
+                                    ? "bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-white" 
+                                    : "bg-blue-600 text-white hover:bg-blue-700"
+                                }`}
+                              >
+                                {followingIds.includes(profile.id) ? <><Check className="w-4 h-4"/> متابع</> : "متابعة"}
+                              </button>
+                            </>
                           )}
                         </div>
                      </div>
 
-                     {/* FB style Divider & Stats */}
-                     <div className="border-t border-gray-100 dark:border-slate-800 mt-6 pt-4 flex items-center justify-around md:justify-start gap-8">
-                        <div className="text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 px-4 py-2 rounded-xl transition-colors">
-                          <p className="text-lg font-black text-gray-900 dark:text-white">{userMemes.length}</p>
-                          <p className="text-[11px] text-gray-500 font-bold uppercase">المنشورات</p>
+                     <div className="border-t border-gray-100 dark:border-slate-800 mt-6 pt-4 flex items-center gap-6 text-center">
+                        <div>
+                          <span className="block font-bold text-lg text-gray-900 dark:text-white">{userMemes.length}</span>
+                          <span className="text-xs text-gray-500">منشورات</span>
                         </div>
-                        <div className="text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 px-4 py-2 rounded-xl transition-colors">
-                          <p className="text-lg font-black text-gray-900 dark:text-white">{profile.followers_count}</p>
-                          <p className="text-[11px] text-gray-500 font-bold uppercase">المتابعين</p>
+                        <div>
+                          <span className="block font-bold text-lg text-gray-900 dark:text-white">{profile.followers_count}</span>
+                          <span className="text-xs text-gray-500">متابعين</span>
                         </div>
-                        <div className="text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 px-4 py-2 rounded-xl transition-colors">
-                          <p className="text-lg font-black text-gray-900 dark:text-white">{profile.total_points}</p>
-                          <p className="text-[11px] text-gray-500 font-bold uppercase">النقاط XP</p>
+                        <div>
+                          <span className="block font-bold text-lg text-gray-900 dark:text-white">{profile.total_points}</span>
+                          <span className="text-xs text-gray-500">النقاط</span>
                         </div>
                      </div>
                   </div>
                 </div>
 
-                {/* Posts Section */}
-                <div className="mt-2 flex flex-col gap-4">
-                  <h3 className="font-black text-gray-900 dark:text-white px-2 flex items-center gap-2">
-                    <Flame className="w-5 h-5 text-orange-500" />
-                    <span>المنشورات ({userMemes.length})</span>
-                  </h3>
+                <div className="flex flex-col gap-4 mt-2">
+                  <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-slate-800">
+                    <h3 className="font-bold text-gray-900 dark:text-white text-lg">المنشورات</h3>
+                  </div>
                   
                   {userMemes.length === 0 ? (
-                    <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-12 text-center text-gray-400">
-                      <Sparkles className="w-10 h-10 mx-auto text-gray-300 dark:text-slate-600 mb-3" />
-                      <p className="font-extrabold text-sm text-gray-700 dark:text-gray-300">لا توجد ميمز هنا بعد!</p>
+                    <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-12 text-center text-gray-400">
+                      <p className="font-bold text-sm">لا توجد منشورات.</p>
                     </div>
                   ) : (
                     userMemes.map((meme) => (
                       <MemeCard
-                        key={meme.id}
-                        meme={meme}
-                        currentUser={currentUser}
-                        onLikeToggle={handleLikeToggle}
-                        onSaveToggle={handleSaveToggle}
-                        onFollowToggle={handleFollowToggle}
-                        onTagClick={(tag) => setSelectedTag(tag)}
-                        onDeleteComment={() => {}}
-                        onReportSubmit={handleReportSubmit}
-                        onShareCompleted={handleShareCompleted}
-                        onDeleteMeme={handleDeleteMeme}
-                        onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }}
-                        isFollowingCreator={followingIds.includes(meme.user_id)}
+                        key={meme.id} meme={meme} currentUser={currentUser}
+                        onLikeToggle={handleLikeToggle} onSaveToggle={handleSaveToggle}
+                        onFollowToggle={handleFollowToggle} onTagClick={setSelectedTag}
+                        onDeleteComment={() => {}} onReportSubmit={handleReportSubmit}
+                        onShareCompleted={handleShareCompleted} onDeleteMeme={handleDeleteMeme}
+                        onUserProfileClick={() => {}} isFollowingCreator={followingIds.includes(meme.user_id)}
                       />
                     ))
                   )}
@@ -879,91 +683,56 @@ export default function App() {
             );
           })()}
 
-          {/* Redesigned Leaderboard (Inline Fix for Screenshot Issue) */}
+          {/* لوحة الشرف المعاد تصميمها بشكل احترافي ونظيف (Clean List UI) */}
           {activeTab === "leaderboard" && (
-            <div className="flex flex-col gap-6 animate-fade-in w-full max-w-2xl mx-auto" dir="rtl">
-              {/* Header Widget Fix: Deep Blue Background, Stark White Text */}
-              <div className="bg-gradient-to-br from-indigo-900 via-blue-800 to-blue-900 rounded-3xl p-6 shadow-xl relative overflow-hidden">
-                {/* Decorative background shapes */}
-                <div className="absolute -top-12 -right-12 w-32 h-32 bg-white opacity-5 rounded-full blur-2xl"></div>
-                <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/20 to-transparent"></div>
-                
-                <div className="relative z-10 text-right">
-                  <span className="inline-block bg-white/20 text-white backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-black mb-3">
-                    نخبة صُناع البهجة والضحك
-                  </span>
-                  <h2 className="text-2xl md:text-3xl font-black text-white mb-2 leading-tight">
-                    لوحة شرف الأباطرة والرواد
+            <div className="flex flex-col gap-4 animate-fade-in">
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                <div className="p-5 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gray-50/50 dark:bg-slate-800/30">
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-blue-600" />
+                    لوحة الشرف والأوائل
                   </h2>
-                  <p className="text-blue-100 text-sm font-semibold leading-relaxed max-w-sm">
-                    اللايكات والكومنتات على ميمزك بتتحول لنقاط خبرة وترقّي مستواك فوراً من مجرد مستخدم مبتدئ لقمم مستويات الإبداع!
-                  </p>
                 </div>
-              </div>
-
-              {/* Points Guide Fix */}
-              <div>
-                <h3 className="font-extrabold text-sm text-gray-900 dark:text-white flex items-center gap-2 mb-3">
-                  <Trophy className="w-4 h-4 text-blue-500" />
-                  دليل مستويات الأرباح والنقاط
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-4 text-center shadow-sm">
-                    <p className="text-blue-600 dark:text-blue-400 font-black text-lg mb-1">+5 نقاط</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 font-bold">لكل لايك على ميمزك</p>
-                  </div>
-                  <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-4 text-center shadow-sm">
-                    <p className="text-blue-600 dark:text-blue-400 font-black text-lg mb-1">+2 نقطة</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 font-bold">لكل تعليق على ميمزك</p>
-                  </div>
-                  <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-4 text-center shadow-sm">
-                    <p className="text-blue-600 dark:text-blue-400 font-black text-lg mb-1">+10 نقاط</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 font-bold">لكل متابع جديد</p>
-                  </div>
-                  <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-4 text-center shadow-sm">
-                    <p className="text-blue-600 dark:text-blue-400 font-black text-lg mb-1">+1500 XP</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 font-bold">مستوى الإمبراطور</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* History List Fix (Button Overflow Fix) */}
-              <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
-                <h3 className="font-extrabold text-sm text-gray-900 dark:text-white flex items-center gap-2 border-b border-gray-50 dark:border-slate-800 pb-3 mb-3">
-                  <Award className="w-5 h-5 text-yellow-500" />
-                  سجل التتويج التاريخي
-                </h3>
-                <div className="flex flex-col gap-3">
+                
+                <div className="divide-y divide-gray-100 dark:divide-slate-800/80">
                   {[...profiles].sort((a,b) => b.total_points - a.total_points).map((prof, idx) => (
-                    <div key={prof.id} className="flex items-center justify-between bg-gray-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-gray-100 dark:border-slate-700/50">
+                    <div key={prof.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-800/40 transition-colors">
                       
-                      <div className="flex items-center gap-3 w-full overflow-hidden">
-                        <div className="w-8 flex-shrink-0 text-center font-black text-gray-400">#{idx + 1}</div>
+                      <div className="flex items-center gap-3 w-full min-w-0">
+                        {/* الرقم */}
+                        <div className="w-6 shrink-0 text-center font-bold text-gray-400 dark:text-gray-500 text-sm">
+                          {idx + 1}
+                        </div>
+                        
+                        {/* الصورة */}
                         <img 
                           src={prof.avatar_url || ""} 
-                          alt="" 
-                          className="w-10 h-10 rounded-xl object-cover shrink-0 bg-white"
+                          className="w-12 h-12 rounded-full object-cover shrink-0 border border-gray-100 dark:border-slate-700 bg-white"
                           referrerPolicy="no-referrer"
                         />
-                        <div className="flex flex-col min-w-0 pr-1">
-                          <p className="text-sm font-black text-gray-900 dark:text-white truncate">{prof.username}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{prof.meme_level}</span>
-                            <span className="bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 text-[10px] font-bold px-1.5 rounded-sm shrink-0">
-                              {prof.total_points} 🔥
+                        
+                        {/* الاسم والبيانات مع flex-1 و min-w-0 لضمان عدم الدفع */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate" title={prof.username}>
+                            {prof.username}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{prof.meme_level}</span>
+                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded-sm shrink-0">
+                              {prof.total_points} XP
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Button Overflow Fix: whitespace-nowrap, min-w, shrink-0 */}
+                      {/* زر المتابعة مع shrink-0 و whitespace-nowrap لضمان ثباته */}
                       {prof.id !== currentUser.id && isRealUser && (
                         <button
                           onClick={() => handleFollowToggle(currentUser.id, prof.id)}
-                          className={`ml-2 px-4 py-1.5 rounded-xl text-xs font-black transition-all shrink-0 whitespace-nowrap min-w-[75px] ${
+                          className={`ml-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-colors shrink-0 whitespace-nowrap min-w-[85px] text-center ${
                             followingIds.includes(prof.id) 
-                              ? "bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-white" 
-                              : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+                              ? "bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-white" 
+                              : "bg-blue-600 text-white hover:bg-blue-700"
                           }`}
                         >
                           {followingIds.includes(prof.id) ? "متابع" : "متابعة"}
@@ -976,14 +745,12 @@ export default function App() {
             </div>
           )}
 
-          {/* ... بقية الـ Tabs الأخرى مثل Trending و Create Post تبقى كما هي مع إضافة توافق Dark Mode */}
           {activeTab === "trending" && (
             <div className="flex flex-col gap-4 animate-fade-in">
-              <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-5 text-right flex flex-col gap-2 mb-2">
-                <span className="text-[10px] bg-red-100 dark:bg-red-900/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 font-black px-2.5 py-1 rounded-full uppercase w-max">
-                  التريند الأقوى حالياً 🔥
-                </span>
-                <h2 className="font-extrabold text-xl text-gray-900 dark:text-white mt-1">الميمز صاحبة الأعلى تفاعل</h2>
+               <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-4 shadow-sm text-right flex items-center justify-between">
+                <h2 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
+                  <Flame className="w-5 h-5 text-red-500" /> التريند
+                </h2>
               </div>
               {[...memes]
                 .sort((a,b) => {
@@ -1008,142 +775,104 @@ export default function App() {
         </div>
 
         <Sidebar
-          currentUser={currentUser}
-          activeTab={activeTab}
+          currentUser={currentUser} activeTab={activeTab}
           onNavigate={(tab) => { setActiveTab(tab); setSelectedTag(null); }}
           savedCount={savedMemesCount}
         />
       </main>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-gray-100 dark:border-slate-800 flex items-center justify-around py-4 md:hidden">
-        <button onClick={() => { setActiveTab("feed"); setSelectedTag(null); }} className={`${activeTab === 'feed' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 flex items-center justify-around py-3 md:hidden">
+        <button onClick={() => { setActiveTab("feed"); setSelectedTag(null); }} className={`p-2 rounded-lg ${activeTab === 'feed' ? 'bg-blue-50 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800'}`}>
           <Home className="w-6 h-6" />
         </button>
-        <button onClick={() => { setActiveTab("trending"); setSelectedTag(null); }} className={`${activeTab === 'trending' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+        <button onClick={() => { setActiveTab("trending"); setSelectedTag(null); }} className={`p-2 rounded-lg ${activeTab === 'trending' ? 'bg-blue-50 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800'}`}>
           <Flame className="w-6 h-6" />
         </button>
-        <button onClick={() => { setActiveTab("saves"); setSelectedTag(null); }} className={`${activeTab === 'saves' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
-          <Bookmark className="w-6 h-6" />
+        <button onClick={() => { setActiveTab("leaderboard"); setSelectedTag(null); }} className={`p-2 rounded-lg ${activeTab === 'leaderboard' ? 'bg-blue-50 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800'}`}>
+          <Trophy className="w-6 h-6" />
         </button>
-        <button onClick={() => { setActiveTab("profile"); setSelectedTag(null); }} className={`${activeTab === 'profile' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+        <button onClick={() => { setActiveTab("profile"); setSelectedTag(null); }} className={`p-2 rounded-lg ${activeTab === 'profile' ? 'bg-blue-50 text-blue-600 dark:bg-slate-800 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800'}`}>
           <User className="w-6 h-6" />
         </button>
       </nav>
 
-      {/* Redesigned Supabase Authentication Modal (Dark & Light Mode Friendly) */}
+      {/* نافذة تسجيل الدخول - تصميم فيسبوك الاحترافي */}
       {showAuthModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 shadow-2xl" dir="rtl">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-7 text-right border border-gray-100 dark:border-slate-800 shadow-2xl relative animate-scale-in">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
+          <div className="bg-white dark:bg-slate-900 rounded-xl max-w-[400px] w-full p-6 text-right shadow-2xl relative animate-fade-in border border-gray-100 dark:border-slate-800">
             <button 
               onClick={() => setShowAuthModal(false)}
-              className="absolute top-5 left-5 text-gray-400 hover:text-gray-900 dark:hover:text-white cursor-pointer bg-gray-50 dark:bg-slate-800 p-2 rounded-full transition-colors"
+              className="absolute top-4 left-4 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
 
-            <div className="text-center mb-7 mt-2">
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto text-white mb-4 shadow-lg shadow-blue-500/30">
-                <User className="w-7 h-7" />
-              </div>
-              <h3 className="font-black text-2xl text-gray-900 dark:text-white tracking-tight">
-                أهلاً بيك في ميمزبوك 👋
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                سجل دخولك لتتمكن من رفع الميمز، التفاعل، وتجميع نقاط الخبرة لترقية حسابك!
+            <div className="text-center mb-6 mt-2">
+              <h2 className="text-blue-600 dark:text-blue-500 text-3xl font-black font-sans tracking-tight mb-1">
+                memesbook
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
+                تواصل مع الأصدقاء وشارك الضحك.
               </p>
             </div>
 
-            {/* Modern Tabs */}
-            <div className="flex bg-gray-100 dark:bg-slate-800 p-1.5 rounded-2xl mb-6">
-              <button
-                onClick={() => { setAuthTab("signin"); setAuthError(""); setAuthSuccess(""); }}
-                className={`flex-1 text-center py-2.5 text-sm font-bold rounded-xl cursor-pointer transition-all ${
-                  authTab === "signin" ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }`}
-              >
-                تسجيل الدخول
-              </button>
-              <button
-                onClick={() => { setAuthTab("signup"); setAuthError(""); setAuthSuccess(""); }}
-                className={`flex-1 text-center py-2.5 text-sm font-bold rounded-xl cursor-pointer transition-all ${
-                  authTab === "signup" ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }`}
-              >
-                إنشاء حساب
-              </button>
-            </div>
-
-            <form onSubmit={authTab === "signin" ? handleSignIn : handleSignUp} className="flex flex-col gap-4">
-              <div>
-                <label className="block text-xs font-extrabold text-gray-600 dark:text-gray-300 mb-1.5 ml-1">البريد الإلكتروني</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="name@example.com"
-                  value={authEmail}
-                  onChange={(e) => setAuthEmail(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 rounded-2xl px-4 py-3.5 text-sm text-gray-900 dark:text-white transition-all"
-                />
-              </div>
+            <form onSubmit={authTab === "signin" ? handleSignIn : handleSignUp} className="flex flex-col gap-3">
+              
+              <input
+                type="email" required placeholder="البريد الإلكتروني" value={authEmail}
+                onChange={(e) => setAuthEmail(e.target.value)}
+                className="w-full bg-white dark:bg-slate-950 border border-gray-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-md px-4 py-3 text-base text-gray-900 dark:text-white"
+              />
 
               {authTab === "signup" && (
-                <div>
-                  <label className="block text-xs font-extrabold text-gray-600 dark:text-gray-300 mb-1.5 ml-1">اسم المستخدم</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="مثال: وزير_الميمز"
-                    value={authUsername}
-                    onChange={(e) => setAuthUsername(e.target.value.replace(/\s+/g, '_'))}
-                    className="w-full bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 rounded-2xl px-4 py-3.5 text-sm font-bold text-gray-900 dark:text-white transition-all"
-                  />
-                </div>
+                <input
+                  type="text" required placeholder="اسم المستخدم" value={authUsername}
+                  onChange={(e) => setAuthUsername(e.target.value.replace(/\s+/g, '_'))}
+                  className="w-full bg-white dark:bg-slate-950 border border-gray-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-md px-4 py-3 text-base text-gray-900 dark:text-white"
+                />
               )}
 
-              <div>
-                <label className="block text-xs font-extrabold text-gray-600 dark:text-gray-300 mb-1.5 ml-1">الرقم السري</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 rounded-2xl px-4 py-3.5 text-sm font-mono text-gray-900 dark:text-white transition-all"
-                />
-              </div>
+              <input
+                type="password" required placeholder="كلمة السر" value={authPassword}
+                onChange={(e) => setAuthPassword(e.target.value)}
+                className="w-full bg-white dark:bg-slate-950 border border-gray-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-md px-4 py-3 text-base text-gray-900 dark:text-white font-mono text-right"
+                dir="ltr"
+              />
 
               {authError && (
-                <div className="text-xs text-red-600 dark:text-red-400 font-extrabold bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800/50 p-3.5 rounded-2xl flex items-start gap-2 mt-1 leading-relaxed">
-                  <ShieldAlert className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                  <span>{authError}</span>
+                <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 rounded-md mt-1 text-center">
+                  {authError}
                 </div>
               )}
 
               {authSuccess && (
-                <div className="text-xs text-green-700 dark:text-green-400 font-black bg-green-50 dark:bg-green-900/30 border border-green-100 dark:border-green-800/50 p-3.5 rounded-2xl flex items-center gap-2 mt-1">
-                  <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-                  <span>{authSuccess}</span>
+                <div className="text-sm text-green-700 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-3 rounded-md mt-1 text-center font-bold">
+                  {authSuccess}
                 </div>
               )}
 
               <button
-                type="submit"
-                disabled={authLoading}
-                className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-70 disabled:cursor-not-allowed text-white font-black py-4 rounded-2xl text-sm shadow-xl shadow-blue-500/20 cursor-pointer transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                type="submit" disabled={authLoading}
+                className="w-full mt-2 bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold py-3 rounded-md text-lg transition-colors flex items-center justify-center disabled:opacity-70"
               >
-                {authLoading ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <span>
-                    {authTab === "signin" ? "تسجيل الدخول" : "إنشاء حسابي الآن"}
-                  </span>
-                )}
+                {authLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : (authTab === "signin" ? "تسجيل الدخول" : "إنشاء حساب")}
               </button>
             </form>
+
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-800 text-center">
+              {authTab === "signin" ? (
+                <button onClick={() => { setAuthTab("signup"); setAuthError(""); }} className="bg-[#42b72a] hover:bg-[#36a420] text-white font-bold py-2.5 px-6 rounded-md text-base transition-colors inline-block mt-2">
+                  إنشاء حساب جديد
+                </button>
+              ) : (
+                <button onClick={() => { setAuthTab("signin"); setAuthError(""); }} className="text-blue-600 dark:text-blue-400 font-bold hover:underline">
+                  لديك حساب بالفعل؟ تسجيل الدخول
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
     </div>
   );
-        }
+}
