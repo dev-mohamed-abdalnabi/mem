@@ -547,6 +547,7 @@ export default function App() {
   });
 
   const savedMemesCount = memes.filter(m => m.saved_by_me).length;
+  const isRealUser = currentUser ? currentUser.id !== "guest-user-temp" : false;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans select-none pb-20 md:pb-6" dir="rtl">
@@ -611,13 +612,40 @@ export default function App() {
           setAuthSuccess("");
         }}
         onSignOutReal={handleSignOutReal}
-        isRealUser={currentUser ? currentUser.id !== "guest-user-temp" : false}
+        isRealUser={isRealUser}
       />
 
       {/* Main stage layout block */}
       <main className="max-w-7xl mx-auto px-4 py-6 w-full flex-1 flex gap-6">
         {/* Right side helper columns (Meme Ministers rules & shortcuts) on desktop */}
         <div className="w-64 shrink-0 hidden lg:flex flex-col gap-6 order-3">
+          
+          {/* Guest User CTA Banner (Desktop) */}
+          {!isRealUser && (
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-4 shadow-sm text-center text-white">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto text-white mb-3 backdrop-blur-sm">
+                <User className="w-6 h-6" />
+              </div>
+              <h4 className="font-extrabold text-sm mb-1.5">
+                مش مسجل دخول يا غالي؟ 👀
+              </h4>
+              <p className="text-[11px] text-blue-100 mb-4 leading-relaxed font-medium">
+                سجل حساب دلوقتي عشان تشارك أحلى الميمز وتجمع نقاط وتنافس على الصدارة!
+              </p>
+              <button
+                onClick={() => {
+                  setShowAuthModal(true);
+                  setAuthTab("signin");
+                  setAuthError("");
+                  setAuthSuccess("");
+                }}
+                className="w-full bg-white text-blue-600 hover:bg-gray-50 font-black py-2.5 rounded-xl text-xs shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95"
+              >
+                تسجيل الدخول / إنشاء حساب
+              </button>
+            </div>
+          )}
+
           {/* Top 3 Active MemeLords Widget */}
           <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm text-right">
             <h4 className="font-extrabold text-xs text-gray-900 flex items-center justify-end gap-1.5 mb-3">
@@ -693,6 +721,24 @@ export default function App() {
           {activeTab === "feed" && (
             <div className="flex flex-col gap-4">
 
+              {/* Mobile Only Guest Login Banner */}
+              {!isRealUser && (
+                <div className="lg:hidden bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-4 shadow-sm text-center text-white mb-1">
+                  <h4 className="font-extrabold text-sm mb-1.5">مش مسجل دخول يا غالي؟ 👀</h4>
+                  <p className="text-[11px] text-blue-100 mb-3 leading-relaxed font-medium">سجل حساب دلوقتي عشان تشارك الميمز وتنافس!</p>
+                  <button
+                    onClick={() => {
+                      setShowAuthModal(true);
+                      setAuthTab("signin");
+                      setAuthError("");
+                      setAuthSuccess("");
+                    }}
+                    className="bg-white text-blue-600 hover:bg-gray-50 font-black py-2.5 px-4 rounded-xl text-xs w-full shadow-md cursor-pointer transition-all active:scale-95"
+                  >
+                    تسجيل الدخول / إنشاء حساب
+                  </button>
+                </div>
+              )}
 
               {/* Feed Meme items render */}
               {loading ? (
@@ -911,8 +957,6 @@ export default function App() {
             </div>
           )}
 
-
-
           {activeTab === "leaderboard" && (
             <Leaderboard
               profiles={profiles}
@@ -1063,8 +1107,30 @@ export default function App() {
             </div>
           )}
 
-                    {activeTab === "profile" && (
+          {activeTab === "profile" && (
             <div className="flex flex-col gap-4 animate-fade-in">
+              {/* Profile Login Banner for Guests */}
+              {!isRealUser && (
+                <div className="bg-blue-50 border border-blue-200 rounded-3xl p-6 text-center text-blue-900 shadow-sm">
+                  <User className="w-12 h-12 text-blue-400 mx-auto mb-3" />
+                  <h2 className="text-xl font-black mb-2">انضم لعائلة ميمزبوك!</h2>
+                  <p className="text-xs text-blue-700 mb-5 font-medium max-w-sm mx-auto leading-relaxed">
+                    أنت تتصفح كزائر. سجل حسابك الحقيقي الآن لتتمكن من تعديل ملفك الشخصي، تغيير صورتك، ورفع الميمز الخاصة بك.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowAuthModal(true);
+                      setAuthTab("signin");
+                      setAuthError("");
+                      setAuthSuccess("");
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-black text-sm py-3 px-8 rounded-xl cursor-pointer transition-all shadow-md hover:scale-105 active:scale-95"
+                  >
+                    تسجيل الدخول / إنشاء حساب
+                  </button>
+                </div>
+              )}
+
               {/* Profile Header Card */}
               <div className="bg-white border border-gray-200 rounded-3xl p-6 text-right relative overflow-hidden shadow-sm">
                 <div className="absolute top-0 right-0 w-full h-24 bg-gradient-to-l from-blue-500 to-indigo-600 opacity-10 rounded-t-3xl"></div>
@@ -1486,4 +1552,4 @@ export default function App() {
       )}
     </div>
   );
-}
+                                    }
