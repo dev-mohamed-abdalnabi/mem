@@ -1,128 +1,163 @@
-import React from "react";
-import { Camera, X, Clock } from "lucide-react";
-import { Profile } from "../types";
+import React, { useState } from "react";
+import { Heart, MessageCircle, Bookmark, Share2, MoreVertical, Trash2, ShieldAlert } from "lucide-react";
+import { Meme, Profile } from "../types";
 
-interface CreatePostPageProps {
+interface MemeCardProps {
+  meme: Meme;
   currentUser: Profile;
-  loading: boolean;
-  newPostCaption: string;
-  setNewPostCaption: (val: string) => void;
-  newPostImage: string;
-  setNewPostImage: (val: string) => void;
-  newPostTags: string;
-  setNewPostTags: (val: string) => void;
-  postError: string;
-  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleQuickPostSubmit: (e: React.FormEvent) => Promise<void>;
-  setActiveTab: (tab: string) => void;
+  isFollowingCreator: boolean;
+  onLikeToggle: (id: string) => Promise<void>;
+  onSaveToggle: (id: string) => Promise<void>;
+  onFollowToggle: (followerId: string, followingId: string) => Promise<void>;
+  onTagClick: (tag: string | null) => void;
+  onDeleteMeme: (id: string) => Promise<void>;
+  onUserProfileClick: (id: string) => void;
+  onImageClick: (url: string) => void;
+  onReportSubmit: (id: string, reason: string) => void;
+  onShareCompleted: (id: string) => Promise<void>;
 }
 
-export default function CreatePostPage({
+export default function MemeCard({
+  meme,
   currentUser,
-  loading,
-  newPostCaption,
-  setNewPostCaption,
-  newPostImage,
-  setNewPostImage,
-  newPostTags,
-  setNewPostTags,
-  postError,
-  handleFileChange,
-  handleQuickPostSubmit,
-  setActiveTab,
-}: CreatePostPageProps) {
+  isFollowingCreator,
+  onLikeToggle,
+  onSaveToggle,
+  onFollowToggle,
+  onTagClick,
+  onDeleteMeme,
+  onUserProfileClick,
+  onImageClick,
+  onReportSubmit,
+}: MemeCardProps) {
+  const [showMenu, setShowMenu] = useState(false);
+
   return (
-    <div className="w-full max-w-xl mx-auto px-4 md:px-0 animate-fade-in">
-      {/* تم نقل الـ form لتشمل الكارت كله عشان زرار النشر اللي فوق يشتغل تلقائي عند الضغط */}
-      <form onSubmit={handleQuickPostSubmit} className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm text-right flex flex-col gap-4">
+    <div className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm text-right flex flex-col overflow-hidden mb-5">
+      
+      {/* 1️⃣ هيدر البوست: اسم المستخدم، الصورة، وزرار المتابعة النضيف */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800/60">
         
-        {/* هيدر الصفحة العلوي: الإلغاء على اليمين، العنوان في النص، والنشر على اليسار بدون أي لخبطة */}
-        <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
-          <button 
-            type="button" 
-            onClick={() => setActiveTab("feed")} 
-            className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors text-sm font-bold"
-          >
-            إلغاء
+        {/* القائمة الجانبية (حذف أو إبلاغ) */}
+        <div className="relative">
+          <button onClick={() => setShowMenu(!showMenu)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-full">
+            <MoreVertical className="w-5 h-5" />
           </button>
           
-          <h2 className="text-base font-bold text-gray-900 dark:text-white">إنشاء منشور ميمز جديد</h2>
+          {showMenu && (
+            <div className="absolute left-0 mt-1 w-40 bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-xl shadow-xl z-30 py-1 text-right">
+              {currentUser.id === meme.user_id ? (
+                <button 
+                  onClick={() => { onDeleteMeme(meme.id); setShowMenu(false); }}
+                  className="w-full px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center gap-2 justify-end"
+                >
+                  <span>حذف المنشور</span>
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              ) : (
+                <button 
+                  onClick={() => { onReportSubmit(meme.id, "محتوى غير لائق"); setShowMenu(false); }}
+                  className="w-full px-4 py-2 text-xs font-bold text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 flex items-center gap-2 justify-end"
+                >
+                  <span>إبلاغ</span>
+                  <ShieldAlert className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* بيانات العضو اللي منزل البوست */}
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => onUserProfileClick(meme.user_id)}>
+          <div className="text-right">
+            <div className="flex items-center gap-2 justify-end">
+              {currentUser.id !== meme.user_id && !isFollowingCreator && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onFollowToggle(currentUser.id, meme.user_id); }}
+                  className="text-[11px] text-blue-600 dark:text-blue-400 font-bold hover:underline"
+                >
+                  • متابعة
+                </button>
+              )}
+              <span className="font-black text-sm text-gray-900 dark:text-white hover:underline">
+                {meme.profiles?.username || "عضو ميمز"}
+              </span>
+            </div>
+            <span className="text-[10px] text-gray-400 block font-medium mt-0.5">منذ فترة</span>
+          </div>
           
-          {/* زرار النشر في مكانه الطبيعي والصحيح علوياً */}
+          <img 
+            src={meme.profiles?.avatar_url || "https://api.dicebear.com/7.x/bottts/svg?seed=fallback"} 
+            className="w-10 h-10 rounded-full object-cover border border-gray-100 dark:border-gray-800"
+            alt=""
+          />
+        </div>
+      </div>
+
+      {/* 2️⃣ نص الكابشن (الإيفيه) واخد راحته تماماً وواسع */}
+      {meme.caption && (
+        <div className="px-4 pt-3 pb-2 text-sm text-gray-800 dark:text-gray-100 leading-relaxed text-right font-medium">
+          {meme.caption}
+        </div>
+      )}
+
+      {/* 3️⃣ الهاشتاجات تظهر بشكل منسق تحت النص مباشرة */}
+      {meme.tags && meme.tags.length > 0 && (
+        <div className="px-4 pb-3 flex flex-wrap gap-1.5 justify-start" dir="rtl">
+          {meme.tags.map((tag, idx) => (
+            <span 
+              key={idx} 
+              onClick={() => onTagClick(tag)}
+              className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* 4️⃣ صورة الميم الكبيرة الأصلية بدون أي ضغط خارجي أو بياض ملوش لزمة */}
+      {meme.image_url && (
+        <div className="w-full bg-gray-50 dark:bg-black/20 border-y border-gray-50 dark:border-gray-800/40 overflow-hidden flex items-center justify-center cursor-zoom-in">
+          <img 
+            src={meme.image_url} 
+            alt="Meme" 
+            onClick={() => onImageClick(meme.image_url)}
+            className="w-full h-auto max-h-[500px] object-contain"
+            loading="lazy"
+          />
+        </div>
+      )}
+
+      {/* 5️⃣ أزرار التفاعل (اللايك، الكومنت، الحفظ) بالاستايل الكلاسيكي الرايق */}
+      <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-900/40 border-t border-gray-50 dark:border-gray-800/40 text-gray-500 dark:text-gray-400">
+        
+        {/* زرار الحفظ على اليمين */}
+        <button 
+          onClick={() => onSaveToggle(meme.id)}
+          className={`flex items-center gap-1.5 hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${meme.saved_by_me ? 'text-blue-600 dark:text-blue-400' : ''}`}
+        >
+          <Bookmark className={`w-5 h-5 ${meme.saved_by_me ? 'fill-current' : ''}`} />
+        </button>
+
+        {/* الكومنتات واللايكات على اليسار */}
+        <div className="flex items-center gap-5">
+          <button className="flex items-center gap-1.5 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+            <span className="text-xs font-bold">{meme.comments_count || 0}</span>
+            <MessageCircle className="w-5 h-5" />
+          </button>
+
           <button 
-            type="submit" 
-            disabled={(!newPostCaption.trim() && !newPostImage) || loading} 
-            className="bg-blue-600 text-white px-4 py-1.5 rounded-xl text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors flex items-center gap-1.5 min-w-[70px] justify-center"
+            onClick={() => onLikeToggle(meme.id)}
+            className={`flex items-center gap-1.5 transition-colors ${meme.liked_by_me ? 'text-red-500 dark:text-red-400' : 'hover:text-red-500'}`}
           >
-            {loading ? <Clock className="w-3 h-3 animate-spin" /> : <><span>نشر</span> 🔥</>}
+            <span className="text-xs font-bold">{meme.likes_count || 0}</span>
+            <Heart className={`w-5 h-5 ${meme.liked_by_me ? 'fill-current' : ''}`} />
           </button>
         </div>
 
-        {/* محتوى المنشور والبيانات */}
-        <div className="flex gap-4 pt-2">  
-          {/* بيانات كرت كاتب الميم */}
-          <div className="flex-1 flex flex-col min-w-0">  
-            <div className="flex items-center gap-2 mb-2 justify-end">
-              <span className="font-bold text-sm text-gray-900 dark:text-white">{currentUser.username}</span>  
-              <img 
-                src={currentUser.avatar_url || "https://api.dicebear.com/7.x/bottts/svg?seed=guest"} 
-                className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-800" 
-                alt="avatar" 
-                referrerPolicy="no-referrer" 
-              />  
-            </div>
+      </div>
 
-            {/* صندوق الكتابة الذكي */}
-            <textarea  
-              placeholder="بماذا تفكر يا غالي؟ أطلق الإيفيه..."  
-              value={newPostCaption} 
-              onChange={(e) => setNewPostCaption(e.target.value)}  
-              className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm text-gray-800 dark:text-gray-100 window-focus:outline-none resize-none min-h-[100px] placeholder-gray-400 outline-none text-right"  
-              autoFocus  
-            />  
-
-            {/* معاينة الصورة قبل رفعها وسهولة حذفها */}
-            {newPostImage && (  
-              <div className="relative mt-3 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 w-max max-w-full mx-auto">  
-                <img src={newPostImage} className="max-h-60 w-auto object-contain" alt="Preview" />  
-                <button 
-                  type="button" 
-                  onClick={() => setNewPostImage("")} 
-                  className="absolute top-2 right-2 bg-black/70 text-white rounded-full p-1.5 hover:bg-black/90 transition-colors"
-                >  
-                  <X className="w-4 h-4" />  
-                </button>  
-              </div>  
-            )}  
-
-            {/* أدوات إرفاق الميديا والهاشتاجات المتناسقة */}
-            <div className="flex items-center gap-3 mt-4 border-t border-gray-50 dark:border-gray-900 pt-4">  
-              <input   
-                type="text" 
-                placeholder="أضف هاشتاج #ميمز..." 
-                value={newPostTags} 
-                onChange={(e) => setNewPostTags(e.target.value)}   
-                className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-blue-500 text-gray-900 dark:text-white outline-none text-right"   
-              />  
-              
-              <label 
-                className="p-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-500 rounded-xl cursor-pointer transition-colors shrink-0" 
-                title="إرفاق صورة الميم"
-              >  
-                <Camera className="w-4 h-4" />  
-                <input type="file" accept="image/*" onChange={handleFileChange} className="hidden"/>  
-              </label>  
-            </div>  
-          </div>  
-        </div>  
-
-        {/* عرض الأخطاء إن وجدت بشكل منسق */}
-        {postError && (
-          <p className="text-red-500 text-xs mt-1 text-center font-bold bg-red-50 dark:bg-red-950/30 p-2.5 rounded-xl border border-red-100 dark:border-red-900/50">
-            {postError}
-          </p>
-        )}
-      </form>  
     </div>
   );
 }
