@@ -356,30 +356,55 @@ export default function App() {
             />
           )}
           
-          {/* صفحة الملف الشخصي */}
-          {activeTab === "profile" && (
-            <ProfilePage 
-              profile={currentUser} 
-              currentUser={currentUser} 
-              isOwnProfile={true} 
-              isRealUser={isRealUser} 
-              userMemes={memes.filter(m => m.user_id === currentUser.id)} 
-              followingIds={followingIds} 
-              setCurrentUser={setCurrentUser} 
-              setProfiles={setProfiles} 
-              setShowAuthModal={setShowAuthModal} 
-              handleFollowToggle={handleFollowToggle}
-              handleLikeToggle={handleLikeToggle}
-              handleSaveToggle={handleSaveToggle}
-              setSelectedTag={setSelectedTag} 
-              handleReportSubmit={handleReportSubmit}
-              handleShareCompleted={handleShareCompleted}
-              handleDeleteMeme={handleDeleteMeme}
-              setSelectedProfileId={setSelectedProfileId} 
-              setActiveTab={setActiveTab} 
-              setLightboxImage={setLightboxImage} 
-            />
-          )}
+	          {/* صفحة الملف الشخصي */}
+	          {activeTab === "profile" && (
+	            <ProfilePage 
+	              profile={currentUser} 
+	              currentUser={currentUser} 
+	              isOwnProfile={true} 
+	              isRealUser={isRealUser} 
+	              userMemes={memes.filter(m => m.user_id === currentUser.id)} 
+	              followingIds={followingIds} 
+	              setCurrentUser={setCurrentUser} 
+	              setProfiles={setProfiles} 
+	              setShowAuthModal={setShowAuthModal} 
+	              handleFollowToggle={handleFollowToggle}
+	              handleLikeToggle={handleLikeToggle}
+	              handleSaveToggle={handleSaveToggle}
+	              setSelectedTag={setSelectedTag} 
+	              handleReportSubmit={handleReportSubmit}
+	              handleShareCompleted={handleShareCompleted}
+	              handleDeleteMeme={handleDeleteMeme}
+	              setSelectedProfileId={setSelectedProfileId} 
+	              setActiveTab={setActiveTab} 
+	              setLightboxImage={setLightboxImage} 
+	            />
+	          )}
+
+	          {/* صفحة عرض بروفايل مستخدم آخر */}
+	          {activeTab === "user-profile" && selectedProfileId && (
+	            <ProfilePage 
+	              profile={profiles.find(p => p.id === selectedProfileId) || initialGuestProfile} 
+	              currentUser={currentUser} 
+	              isOwnProfile={selectedProfileId === currentUser.id} 
+	              isRealUser={isRealUser} 
+	              userMemes={memes.filter(m => m.user_id === selectedProfileId)} 
+	              followingIds={followingIds} 
+	              setCurrentUser={setCurrentUser} 
+	              setProfiles={setProfiles} 
+	              setShowAuthModal={setShowAuthModal} 
+	              handleFollowToggle={handleFollowToggle}
+	              handleLikeToggle={handleLikeToggle}
+	              handleSaveToggle={handleSaveToggle}
+	              setSelectedTag={setSelectedTag} 
+	              handleReportSubmit={handleReportSubmit}
+	              handleShareCompleted={handleShareCompleted}
+	              handleDeleteMeme={handleDeleteMeme}
+	              setSelectedProfileId={setSelectedProfileId} 
+	              setActiveTab={setActiveTab} 
+	              setLightboxImage={setLightboxImage} 
+	            />
+	          )}
         </div>
       </main>
 

@@ -203,12 +203,12 @@ article {
 
 /* ===== MODALS & OVERLAYS ===== */
 .fixed.inset-0 {
-  background-color: rgba(0, 0, 0, 0.6) !important;
+  background-color: rgba(0, 0, 0, 0.6);
 }
 
 .fixed.inset-0 > div {
-  background-color: var(--card) !important;
-  color: var(--foreground) !important;
+  background-color: var(--card);
+  color: var(--foreground);
 }
 
 /* ===== COLOR SCHEME ===== */

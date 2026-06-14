@@ -128,26 +128,36 @@ export default function ProfilePage({
             
             {/* Edit Button for Own Profile - Facebook Style */}
             {isOwnProfile && (
-              <label className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 bg-white hover:bg-gray-100 text-gray-900 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-all shadow-lg hover:shadow-xl active:scale-95 border border-gray-200" onClick={(e) => e.stopPropagation()}>
-                <Camera className="w-4 h-4" />
-                <span className="hidden sm:inline">تحديث الغلاف</span>
-                <span className="sm:hidden">تعديل</span>
-                <input
-                  type="file" className="hidden" accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      try {
-                        const url = await socialService.uploadCover(currentUser.id, file);
-                        const updated = { ...currentUser, cover_url: url };
-                        setCurrentUser(updated);
-                        setProfiles(prev => prev.map(p => p.id === updated.id ? updated : p));
-                        alert("تم تحديث الغلاف بنجاح! 🎉");
-                      } catch (err) { alert("فشل رفع الغلاف: " + (err instanceof Error ? err.message : 'خطأ غير معروف')); }
-                    }
-                  }}
-                />
-              </label>
+              <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 z-20">
+                <label 
+                  className="bg-white hover:bg-gray-100 text-gray-900 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-all shadow-lg hover:shadow-xl active:scale-95 border border-gray-200" 
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Camera className="w-4 h-4" />
+                  <span className="hidden sm:inline">تحديث الغلاف</span>
+                  <span className="sm:hidden">تعديل</span>
+                  <input
+                    type="file" 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        try {
+                          const url = await socialService.uploadCover(currentUser.id, file);
+                          const updated = { ...currentUser, cover_url: url };
+                          setCurrentUser(updated);
+                          setProfiles(prev => prev.map(p => p.id === updated.id ? updated : p));
+                          alert("تم تحديث الغلاف بنجاح! 🎉");
+                        } catch (err) { 
+                          console.error("Cover upload error:", err);
+                          alert("فشل رفع الغلاف: " + (err instanceof Error ? err.message : 'خطأ غير معروف')); 
+                        }
+                      }
+                    }}
+                  />
+                </label>
+              </div>
             )}
             
             {/* Hint for Own Profile */}
