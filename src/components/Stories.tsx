@@ -166,8 +166,7 @@ export default function Stories({ currentUser }: StoriesProps) {
   };
 
   return (
-    <>
-      <div className="flex gap-3 overflow-x-auto p-4 bg-white border-b border-gray-200 no-scrollbar">
+    <>      <div className="flex gap-3 overflow-x-auto p-4 bg-white border-b border-gray-200 no-scrollbar">
         {/* Add Story */}
         <div className="flex flex-col items-center gap-1 shrink-0">
           <button
@@ -176,15 +175,44 @@ export default function Stories({ currentUser }: StoriesProps) {
           >
             <img 
               src={currentUser?.avatar_url || ""} 
-              className="w-14 h-14 rounded-full border-2 border-gray-200 object-cover group-hover:border-blue-500 transition-colors" 
+              {/* غيرنا rounded-full لـ rounded-2xl */}
+              className="w-14 h-14 rounded-2xl border-2 border-gray-200 object-cover group-hover:border-blue-500 transition-colors" 
               alt="قصتك"
             />
-            <div className="absolute bottom-0 right-0 bg-blue-500 text-white rounded-full p-0.5 border-2 border-white group-hover:bg-blue-600 transition-colors">
+            {/* تم تعديل مكان علامة الزائد لتناسب الشكل الجديد (-bottom-1 -right-1) */}
+            <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white rounded-full p-0.5 border-2 border-white group-hover:bg-blue-600 transition-colors">
               <Plus className="w-3 h-3" />
             </div>
           </button>
           <span className="text-[10px] text-gray-500">قصتك</span>
         </div>
+
+        {/* User Stories */}
+        {Object.entries(userStories).map(([uid, uStories]) => (
+          <div 
+            key={uid} 
+            className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group"
+            onClick={() => {
+              setSelectedStory(uStories[0]);
+              setSelectedStoryIndex(0);
+            }}
+          >
+            {/* الإطار الأزرق اللي حوالين القصة: غيرنا rounded-full لـ rounded-2xl */}
+            <div className="p-0.5 rounded-2xl border-2 border-blue-500 group-hover:border-blue-600 transition-colors">
+              <img 
+                src={uStories[0]?.profiles?.avatar_url || ""} 
+                {/* صورة القصة نفسها: غيرنا rounded-full لـ rounded-2xl */}
+                className="w-14 h-14 rounded-2xl border-2 border-white object-cover group-hover:scale-105 transition-transform" 
+                alt={uStories[0]?.profiles?.username || "مستخدم"}
+              />
+            </div>
+            <span className="text-[10px] text-gray-900 truncate w-14 text-center group-hover:text-blue-600 transition-colors">
+              {uStories[0]?.profiles?.username || "مستخدم"}
+            </span>
+          </div>
+        ))}
+      </div>
+
 
         {/* User Stories */}
         {Object.entries(userStories).map(([uid, uStories]) => (
