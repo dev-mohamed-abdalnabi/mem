@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Home, Flame, Bookmark, User, X, PlusCircle } from "lucide-react";
 
 import { Profile, Meme, Notification } from "./types";
@@ -46,47 +46,157 @@ export default function App() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
 
-  // Cache flags to prevent unnecessary reloads
-  const [feedCached, setFeedCached] = useState(false);
-  const [profilesCached, setProfilesCached] = useState(false);
-  const lastLoadedTabRef = useRef<string | null>(null);
+  // Cache references - prevent reloading
+  const cacheRef = useRef({
+    feed: [] as Meme[],
+    trending: [] as Meme[],
+    profiles: [] as Profile[],
+    lastLoadTime: 0,
+    loadedTabs: new Set<string>()
+  });
 
+  // Load data only on first mount or when explicitly needed
   useEffect(() => {
-    // Only load data when tab changes to a new tab or first load
-    if (activeTab !== lastLoadedTabRef.current) {
-      loadAllData();
-      lastLoadedTabRef.current = activeTab;
-    }
-  }, [activeTab]);
-
-  const loadAllData = async () => {
-    setLoading(true);
-    try {
-      const dbCurrentUser = await dataService.getCurrentUser();
-      setCurrentUser(dbCurrentUser || initialGuestProfile);
-      
-      // Only load memes if we're on feed, trending, or saves tab
-      if (["feed", "trending", "saves"].includes(activeTab)) {
+    const loadInitialData = async () => {
+      setLoading(true);
+      try {
+        const dbCurrentUser = await dataService.getCurrentUser();
+        setCurrentUser(dbCurrentUser || initialGuestProfile);
+        
         const dbMemes = await dataService.getMemes("approved", undefined, dbCurrentUser?.id || initialGuestProfile.id);
         setMemes(dbMemes);
-        setFeedCached(true);
-      }
-      
-      // Load profiles once and cache them
-      if (!profilesCached) {
+        cacheRef.current.feed = dbMemes;
+        cacheRef.current.trending = dbMemes;
+        
         const dbProfiles = await dataService.getProfilesList();
         setProfiles(dbProfiles);
-        setProfilesCached(true);
+        cacheRef.current.profiles = dbProfiles;
+        
+        const dbFollowingIds = await dataService.getFollowingList(dbCurrentUser?.id || initialGuestProfile.id);
+        setFollowingIds(dbFollowingIds);
+        
+        cacheRef.current.loadedTabs.add("feed");
+        cacheRef.current.lastLoadTime = Date.now();
+      } catch (e) { 
+        console.warn(e); 
+      } finally { 
+        setLoading(false); 
       }
-      
-      const dbFollowingIds = await dataService.getFollowingList(dbCurrentUser?.id || initialGuestProfile.id);
-      setFollowingIds(dbFollowingIds);
-    } catch (e) { 
-      console.warn(e); 
-    } finally { 
-      setLoading(false); 
+    };
+
+    loadInitialData();
+  }, []); // Only on mount
+
+  // ✅ Handle Like Toggle
+  const handleLikeToggle = useCallback(async (memeId: string) => {
+    const isRealUser = currentUser.id !== "guest-user-temp";
+    if (!isRealUser) {
+      setShowAuthModal(true);
+      setAuthTab("signin");
+      return;
     }
-  };
+
+    try {
+      const result = await dataService.toggleLike(memeId, currentUser.id);
+      
+      setMemes(prev => prev.map(m => 
+        m.id === memeId 
+          ? { ...m, liked_by_me: result.liked, likes_count: result.likesCount }
+          : m
+      ));
+      
+      cacheRef.current.feed = cacheRef.current.feed.map(m =>
+        m.id === memeId
+          ? { ...m, liked_by_me: result.liked, likes_count: result.likesCount }
+          : m
+      );
+    } catch (error) {
+      console.error("Error toggling like:", error);
+    }
+  }, [currentUser.id]);
+
+  // ✅ Handle Save Toggle
+  const handleSaveToggle = useCallback(async (memeId: string) => {
+    const isRealUser = currentUser.id !== "guest-user-temp";
+    if (!isRealUser) {
+      setShowAuthModal(true);
+      setAuthTab("signin");
+      return;
+    }
+
+    try {
+      const result = await dataService.toggleSave(memeId, currentUser.id);
+      
+      setMemes(prev => prev.map(m =>
+        m.id === memeId
+          ? { ...m, saved_by_me: result }
+          : m
+      ));
+      
+      cacheRef.current.feed = cacheRef.current.feed.map(m =>
+        m.id === memeId
+          ? { ...m, saved_by_me: result }
+          : m
+      );
+    } catch (error) {
+      console.error("Error toggling save:", error);
+    }
+  }, [currentUser.id]);
+
+  // ✅ Handle Follow Toggle
+  const handleFollowToggle = useCallback(async (followerId: string, followingId: string) => {
+    const isRealUser = currentUser.id !== "guest-user-temp";
+    if (!isRealUser) {
+      setShowAuthModal(true);
+      setAuthTab("signin");
+      return;
+    }
+
+    try {
+      await dataService.followUser(followerId, followingId);
+      
+      setFollowingIds(prev => 
+        prev.includes(followingId)
+          ? prev.filter(id => id !== followingId)
+          : [...prev, followingId]
+      );
+    } catch (error) {
+      console.error("Error toggling follow:", error);
+    }
+  }, [currentUser.id]);
+
+  // ✅ Handle Report Submit
+  const handleReportSubmit = useCallback((memeId: string, reason: string) => {
+    console.log("Report submitted:", { memeId, reason });
+  }, []);
+
+  // ✅ Handle Share Completed
+  const handleShareCompleted = useCallback(async (memeId: string) => {
+    try {
+      console.log("Share completed for meme:", memeId);
+    } catch (error) {
+      console.error("Error handling share:", error);
+    }
+  }, []);
+
+  // ✅ Handle Delete Meme
+  const handleDeleteMeme = useCallback(async (memeId: string) => {
+    const isRealUser = currentUser.id !== "guest-user-temp";
+    if (!isRealUser) {
+      setShowAuthModal(true);
+      setAuthTab("signin");
+      return;
+    }
+
+    try {
+      await dataService.deleteMeme(memeId, currentUser.id);
+      
+      setMemes(prev => prev.filter(m => m.id !== memeId));
+      cacheRef.current.feed = cacheRef.current.feed.filter(m => m.id !== memeId);
+    } catch (error) {
+      console.error("Error deleting meme:", error);
+    }
+  }, [currentUser.id]);
 
   const isRealUser = currentUser.id !== "guest-user-temp";
 
@@ -147,7 +257,7 @@ export default function App() {
         availableProfiles={profiles}
         onNavigate={(tab) => { setActiveTab(tab); setSelectedTag(null); }} 
         onSearch={setSearchQuery}
-        onUserSwitch={(p) => { setCurrentUser(p); loadAllData(); }} 
+        onUserSwitch={(p) => { setCurrentUser(p); }} 
         onMarkNotificationsRead={async () => {}}
         onShowAuthModal={() => { setShowAuthModal(true); setAuthTab("signin"); }} 
         onSignOutReal={async () => {
@@ -199,12 +309,12 @@ export default function App() {
               setAuthTab={setAuthTab} 
               setSearchQuery={setSearchQuery} 
               setSelectedTag={setSelectedTag} 
-              handleLikeToggle={async()=>{}} 
-              handleSaveToggle={async()=>{}} 
-              handleFollowToggle={async()=>{}} 
-              handleReportSubmit={()=>{}} 
-              handleShareCompleted={async()=>{}} 
-              handleDeleteMeme={async()=>{}} 
+              handleLikeToggle={handleLikeToggle}
+              handleSaveToggle={handleSaveToggle}
+              handleFollowToggle={handleFollowToggle}
+              handleReportSubmit={handleReportSubmit}
+              handleShareCompleted={handleShareCompleted}
+              handleDeleteMeme={handleDeleteMeme}
               setSelectedProfileId={setSelectedProfileId} 
               setActiveTab={setActiveTab} 
               setLightboxImage={setLightboxImage} 
@@ -217,20 +327,20 @@ export default function App() {
               memes={memes} 
               currentUser={currentUser} 
               followingIds={followingIds} 
-              handleLikeToggle={async()=>{}} 
-              handleSaveToggle={async()=>{}} 
-              handleFollowToggle={async()=>{}} 
+              handleLikeToggle={handleLikeToggle}
+              handleSaveToggle={handleSaveToggle}
+              handleFollowToggle={handleFollowToggle}
               setSelectedTag={setSelectedTag} 
-              handleReportSubmit={()=>{}} 
-              handleShareCompleted={async()=>{}} 
-              handleDeleteMeme={async()=>{}} 
+              handleReportSubmit={handleReportSubmit}
+              handleShareCompleted={handleShareCompleted}
+              handleDeleteMeme={handleDeleteMeme}
               setSelectedProfileId={setSelectedProfileId} 
               setActiveTab={setActiveTab} 
               setLightboxImage={setLightboxImage} 
             />
           )}
           
-          {/* صفحة إنشاء منشور جديد (تم إضافتها هنا لكي تفتح عند الضغط على زرار الزائد) */}
+          {/* صفحة إنشاء منشور جديد */}
           {activeTab === "create-post" && (
             <CreatePostPage 
               currentUser={currentUser} 
@@ -244,13 +354,13 @@ export default function App() {
               memes={memes} 
               currentUser={currentUser} 
               followingIds={followingIds} 
-              handleLikeToggle={async()=>{}} 
-              handleSaveToggle={async()=>{}} 
-              handleFollowToggle={async()=>{}} 
+              handleLikeToggle={handleLikeToggle}
+              handleSaveToggle={handleSaveToggle}
+              handleFollowToggle={handleFollowToggle}
               setSelectedTag={setSelectedTag} 
-              handleReportSubmit={()=>{}} 
-              handleShareCompleted={async()=>{}} 
-              handleDeleteMeme={async()=>{}} 
+              handleReportSubmit={handleReportSubmit}
+              handleShareCompleted={handleShareCompleted}
+              handleDeleteMeme={handleDeleteMeme}
               setSelectedProfileId={setSelectedProfileId} 
               setActiveTab={setActiveTab} 
               setLightboxImage={setLightboxImage} 
@@ -263,12 +373,12 @@ export default function App() {
               profiles={profiles} 
               currentUser={currentUser} 
               onNavigate={setActiveTab} 
-              onFollowToggle={async()=>{}} 
+              onFollowToggle={handleFollowToggle}
               followingIds={followingIds} 
             />
           )}
           
-          {/* صفحة الملف الشخصي للبروفايل الحالي */}
+          {/* صفحة الملف الشخصي */}
           {activeTab === "profile" && (
             <ProfilePage 
               profile={currentUser} 
@@ -280,13 +390,13 @@ export default function App() {
               setCurrentUser={setCurrentUser} 
               setProfiles={setProfiles} 
               setShowAuthModal={setShowAuthModal} 
-              handleFollowToggle={async()=>{}} 
-              handleLikeToggle={async()=>{}} 
-              handleSaveToggle={async()=>{}} 
+              handleFollowToggle={handleFollowToggle}
+              handleLikeToggle={handleLikeToggle}
+              handleSaveToggle={handleSaveToggle}
               setSelectedTag={setSelectedTag} 
-              handleReportSubmit={()=>{}} 
-              handleShareCompleted={async()=>{}} 
-              handleDeleteMeme={async()=>{}} 
+              handleReportSubmit={handleReportSubmit}
+              handleShareCompleted={handleShareCompleted}
+              handleDeleteMeme={handleDeleteMeme}
               setSelectedProfileId={setSelectedProfileId} 
               setActiveTab={setActiveTab} 
               setLightboxImage={setLightboxImage} 
