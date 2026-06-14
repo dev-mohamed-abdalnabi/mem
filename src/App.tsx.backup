@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Home, Flame, Bookmark, User, X, PlusCircle } from "lucide-react";
 
 import { Profile, Meme, Notification } from "./types";
@@ -46,17 +46,8 @@ export default function App() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
 
-  // Cache flags to prevent unnecessary reloads
-  const [feedCached, setFeedCached] = useState(false);
-  const [profilesCached, setProfilesCached] = useState(false);
-  const lastLoadedTabRef = useRef<string | null>(null);
-
   useEffect(() => {
-    // Only load data when tab changes to a new tab or first load
-    if (activeTab !== lastLoadedTabRef.current) {
-      loadAllData();
-      lastLoadedTabRef.current = activeTab;
-    }
+    loadAllData();
   }, [activeTab]);
 
   const loadAllData = async () => {
@@ -64,21 +55,10 @@ export default function App() {
     try {
       const dbCurrentUser = await dataService.getCurrentUser();
       setCurrentUser(dbCurrentUser || initialGuestProfile);
-      
-      // Only load memes if we're on feed, trending, or saves tab
-      if (["feed", "trending", "saves"].includes(activeTab)) {
-        const dbMemes = await dataService.getMemes("approved", undefined, dbCurrentUser?.id || initialGuestProfile.id);
-        setMemes(dbMemes);
-        setFeedCached(true);
-      }
-      
-      // Load profiles once and cache them
-      if (!profilesCached) {
-        const dbProfiles = await dataService.getProfilesList();
-        setProfiles(dbProfiles);
-        setProfilesCached(true);
-      }
-      
+      const dbMemes = await dataService.getMemes("approved", undefined, dbCurrentUser?.id || initialGuestProfile.id);
+      setMemes(dbMemes);
+      const dbProfiles = await dataService.getProfilesList();
+      setProfiles(dbProfiles);
       const dbFollowingIds = await dataService.getFollowingList(dbCurrentUser?.id || initialGuestProfile.id);
       setFollowingIds(dbFollowingIds);
     } catch (e) { 
@@ -105,36 +85,13 @@ export default function App() {
         />
       )}
 
-      {/* لايت بوكس للصور - محسّن مع error handling */}
+      {/* لايت بوكس للصور */}
       {lightboxImage && (
-        <div 
-          className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center backdrop-blur-sm" 
-          onClick={() => setLightboxImage(null)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              setLightboxImage(null);
-            }
-          }}
-          role="dialog"
-          aria-modal="true"
-        >
-          <button 
-            className="absolute top-4 right-4 text-white bg-white/10 p-3 rounded-full hover:bg-white/20 transition z-50"
-            onClick={() => setLightboxImage(null)}
-            title="إغلاق الصورة (Esc)"
-            aria-label="إغلاق الصورة"
-          >
+        <div className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center backdrop-blur-sm" onClick={() => setLightboxImage(null)}>
+          <button className="absolute top-4 right-4 text-white bg-white/10 p-3 rounded-full hover:bg-white/20 transition">
             <X className="w-6 h-6" />
           </button>
-          <img 
-            src={lightboxImage} 
-            alt="صورة بحجم كامل" 
-            className="max-w-full max-h-[92vh] object-contain animate-fade-in"
-            onError={() => {
-              console.error("Failed to load image in lightbox:", lightboxImage);
-              setLightboxImage(null);
-            }}
-          />
+          <img src={lightboxImage} alt="Full Size" className="max-w-full max-h-[92vh] object-contain" />
         </div>
       )}
 

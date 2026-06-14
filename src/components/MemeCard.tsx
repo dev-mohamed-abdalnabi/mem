@@ -21,6 +21,7 @@ interface MemeCardProps {
   onDeleteMeme: (memeId: string) => void;
   onUserProfileClick: (userId: string) => void;
   isFollowingCreator: boolean;
+  onImageClick?: (url: string) => void;
 }
 
 export default function MemeCard({
@@ -35,7 +36,8 @@ export default function MemeCard({
   onShareCompleted,
   onDeleteMeme,
   onUserProfileClick,
-  isFollowingCreator
+  isFollowingCreator,
+  onImageClick
 }: MemeCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [commentsList, setCommentsList] = useState<Comment[]>([]);
@@ -235,12 +237,27 @@ export default function MemeCard({
           )}
 
           {meme.image_url && (
-            <div className="rounded-xl border border-gray-200 overflow-hidden mb-3 max-h-[500px] w-full bg-gray-50 flex justify-center">
+            <div 
+              className="rounded-xl border border-gray-200 overflow-hidden mb-3 max-h-[500px] w-full bg-gray-50 flex justify-center cursor-pointer hover:opacity-90 transition-opacity group"
+              onClick={() => {
+                try {
+                  if (onImageClick) {
+                    onImageClick(meme.image_url);
+                  }
+                } catch (err) {
+                  console.error("Error opening image:", err);
+                }
+              }}
+            >
               <img
                 src={meme.image_url}
                 alt=""
-                className="max-w-full max-h-[500px] object-contain"
+                className="max-w-full max-h-[500px] object-contain group-hover:scale-105 transition-transform duration-200"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  console.error("Image failed to load:", meme.image_url);
+                  (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23f0f0f0" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%23999" font-size="12"%3EImage Error%3C/text%3E%3C/svg%3E';
+                }}
               />
             </div>
           )}

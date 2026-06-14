@@ -2,6 +2,7 @@ import React from "react";
 import { Clock } from "lucide-react";
 import { Meme, Profile } from "../types";
 import MemeCard from "../components/MemeCard";
+import { FeedLoadingSkeleton } from "../components/LoadingSkeletons";
 
 interface FeedPageProps {
   isRealUser: boolean;
@@ -47,9 +48,7 @@ export default function FeedPage({
   setLightboxImage,
 }: FeedPageProps) {
   return (
-    // تم إضافة max-w-2xl و mx-auto لتظبيط وضع الكمبيوتر عشان البوستات متكونش عريضة بزيادة
     <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto pb-24 md:pb-8 px-4 md:px-0">
-      
       {!isRealUser && (
         <div className="lg:hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-4">
           <div className="text-right">
@@ -64,9 +63,9 @@ export default function FeedPage({
           </button>
         </div>
       )}
-
+      
       {loading ? (
-        <div className="text-center py-12 text-gray-400 font-medium">جاري جلب آخر الكوميكسات من السيرفر...</div>
+        <FeedLoadingSkeleton />
       ) : filteredMemes.length === 0 ? (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-12 text-center flex flex-col items-center gap-3">
           <Clock className="w-10 h-10 text-gray-300 dark:text-gray-600" />
@@ -77,10 +76,9 @@ export default function FeedPage({
         </div>
       ) : (
         filteredMemes.map((meme) => (
-          // تم إضافة كلاسات الحواف الدائرية والظل البسيط هنا 
           <div 
             key={meme.id} 
-            className="post-wrapper w-full bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-800"
+            className="post-wrapper w-full bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-800 transition-all hover:shadow-md"
           >
             <MemeCard
               meme={meme}
