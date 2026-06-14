@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Plus, X, ChevronLeft, ChevronRight, Type, Video } from "lucide-react";
 import { Story, Profile } from "../types";
 import { dataService } from "../services/dataService";
@@ -19,10 +19,36 @@ export default function Stories({ currentUser }: StoriesProps) {
   const [textBgColor, setTextBgColor] = useState("#1877F2");
   const [textFontSize, setTextFontSize] = useState(32);
 
+  // 1. Load stories once when the component mounts
   useEffect(() => {
     loadStories();
-    
-    // Keyboard navigation for stories
+  }, []);
+
+  const loadStories = async () => {
+    try {
+      const data = await socialService.getStories();
+      setStories(data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // 2. Memoize derived data to prevent infinite re-renders
+  const userStories = useMemo(() => {
+    return stories.reduce((acc, story) => {
+      const uid = story.user_id;
+      if (!acc[uid]) acc[uid] = [];
+      acc[uid].push(story);
+      return acc;
+    }, {} as Record<string, Story[]>);
+  }, [stories]);
+
+  const currentUserStories = useMemo(() => {
+    return selectedStory ? userStories[selectedStory.user_id] || [] : [];
+  }, [selectedStory, userStories]);
+
+  // 3. Handle keyboard navigation safely
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!selectedStory) return;
       
@@ -45,15 +71,6 @@ export default function Stories({ currentUser }: StoriesProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedStory, selectedStoryIndex, currentUserStories]);
 
-  const loadStories = async () => {
-    try {
-      const data = await socialService.getStories();
-      setStories(data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -68,7 +85,7 @@ export default function Stories({ currentUser }: StoriesProps) {
       const url = await dataService.uploadMemeFile(file);
       const type = file.type.startsWith('video/') ? 'video' : 'image';
       await socialService.createStory(currentUser.id, url, type);
-      loadStories();
+      loadStories(); // Refresh stories after uploading
       setShowCreateModal(false);
       setCreateMode(null);
     } catch (e) {
@@ -136,7 +153,7 @@ export default function Stories({ currentUser }: StoriesProps) {
           const file = new File([blob], 'text-story.png', { type: 'image/png' });
           const url = await dataService.uploadMemeFile(file);
           await socialService.createStory(currentUser.id, url, 'image');
-          loadStories();
+          loadStories(); // Refresh stories after uploading
           setShowCreateModal(false);
           setCreateMode(null);
           setTextContent("");
@@ -149,16 +166,6 @@ export default function Stories({ currentUser }: StoriesProps) {
       setLoading(false);
     }
   };
-
-  // Group stories by user
-  const userStories = stories.reduce((acc, story) => {
-    const uid = story.user_id;
-    if (!acc[uid]) acc[uid] = [];
-    acc[uid].push(story);
-    return acc;
-  }, {} as Record<string, Story[]>);
-
-  const currentUserStories = selectedStory ? userStories[selectedStory.user_id] || [] : [];
 
   return (
     <>
