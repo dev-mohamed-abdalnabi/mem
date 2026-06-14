@@ -97,7 +97,7 @@ export const socialService = {
       console.error("Cover upload error:", error);
       throw error;
     }
-  }
+  }, // <--- 🟢 تم إضافة الفاصلة هنا
 
   // Post logic (Text only, Video, etc.)
   async createPost(post: Partial<Meme>): Promise<Meme> {
