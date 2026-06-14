@@ -27,16 +27,19 @@ export default function Stories({ currentUser }: StoriesProps) {
   const loadStories = async () => {
     try {
       const data = await socialService.getStories();
-      setStories(data);
+      // أمان: لو الداتا رجعت null خليها مصفوفة فاضية
+      setStories(data || []);
     } catch (e) {
       console.error(e);
+      setStories([]);
     }
   };
 
-  // 2. Memoize derived data to prevent infinite re-renders
+  // 2. Memoize derived data to prevent infinite re-renders & secure against nulls
   const userStories = useMemo(() => {
-    return stories.reduce((acc, story) => {
-      const uid = story.user_id;
+    return (stories || []).reduce((acc, story) => {
+      const uid = story?.user_id;
+      if (!uid) return acc; // أمان: تجاهل القصة لو ملهاش صاحب
       if (!acc[uid]) acc[uid] = [];
       acc[uid].push(story);
       return acc;
@@ -75,7 +78,7 @@ export default function Stories({ currentUser }: StoriesProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (currentUser.id === "guest-user-temp") {
+    if (currentUser?.id === "guest-user-temp" || !currentUser?.id) {
       alert("سجل دخول الأول يا بطل عشان ترفع حالة!");
       return;
     }
@@ -102,31 +105,27 @@ export default function Stories({ currentUser }: StoriesProps) {
       return;
     }
 
-    if (currentUser.id === "guest-user-temp") {
+    if (currentUser?.id === "guest-user-temp" || !currentUser?.id) {
       alert("سجل دخول الأول يا بطل عشان ترفع حالة!");
       return;
     }
 
     setLoading(true);
     try {
-      // Create a canvas with the text
       const canvas = document.createElement('canvas');
       canvas.width = 1080;
       canvas.height = 1920;
       const ctx = canvas.getContext('2d');
       
       if (ctx) {
-        // Fill background
         ctx.fillStyle = textBgColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Draw text
         ctx.fillStyle = '#FFFFFF';
         ctx.font = `bold ${textFontSize}px Arial, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
-        // Word wrap
         const words = textContent.split(' ');
         let line = '';
         let y = canvas.height / 2 - (textFontSize * 2);
@@ -147,13 +146,12 @@ export default function Stories({ currentUser }: StoriesProps) {
         ctx.fillText(line, canvas.width / 2, y);
       }
       
-      // Convert canvas to blob and upload
       canvas.toBlob(async (blob) => {
         if (blob) {
           const file = new File([blob], 'text-story.png', { type: 'image/png' });
           const url = await dataService.uploadMemeFile(file);
           await socialService.createStory(currentUser.id, url, 'image');
-          loadStories(); // Refresh stories after uploading
+          loadStories();
           setShowCreateModal(false);
           setCreateMode(null);
           setTextContent("");
@@ -177,8 +175,9 @@ export default function Stories({ currentUser }: StoriesProps) {
             className="relative cursor-pointer group"
           >
             <img 
-              src={currentUser.avatar_url || ""} 
+              src={currentUser?.avatar_url || ""} 
               className="w-14 h-14 rounded-full border-2 border-gray-200 object-cover group-hover:border-blue-500 transition-colors" 
+              alt="قصتك"
             />
             <div className="absolute bottom-0 right-0 bg-blue-500 text-white rounded-full p-0.5 border-2 border-white group-hover:bg-blue-600 transition-colors">
               <Plus className="w-3 h-3" />
@@ -199,11 +198,14 @@ export default function Stories({ currentUser }: StoriesProps) {
           >
             <div className="p-0.5 rounded-full border-2 border-blue-500 group-hover:border-blue-600 transition-colors">
               <img 
-                src={uStories[0].profiles?.avatar_url || ""} 
+                src={uStories[0]?.profiles?.avatar_url || ""} 
                 className="w-14 h-14 rounded-full border-2 border-white object-cover group-hover:scale-105 transition-transform" 
+                alt={uStories[0]?.profiles?.username || "مستخدم"}
               />
             </div>
-            <span className="text-[10px] text-gray-900 truncate w-14 text-center group-hover:text-blue-600 transition-colors">{uStories[0].profiles?.username}</span>
+            <span className="text-[10px] text-gray-900 truncate w-14 text-center group-hover:text-blue-600 transition-colors">
+              {uStories[0]?.profiles?.username || "مستخدم"}
+            </span>
           </div>
         ))}
       </div>
@@ -211,7 +213,6 @@ export default function Stories({ currentUser }: StoriesProps) {
       {/* Story Viewer Modal - Facebook Style Lightbox */}
       {selectedStory && (
         <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center backdrop-blur-sm p-4" onClick={() => setSelectedStory(null)}>
-          {/* Close Button */}
           <button 
             onClick={() => setSelectedStory(null)} 
             className="absolute top-4 right-4 text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all z-10 hover:scale-110 active:scale-95"
@@ -220,38 +221,34 @@ export default function Stories({ currentUser }: StoriesProps) {
             <X className="w-6 h-6" />
           </button>
 
-          {/* Story Container - Facebook Style */}
           <div className="relative w-full max-w-md aspect-[9/16] bg-gray-900 rounded-2xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            {/* Media */}
-            {selectedStory.media_type === 'video' ? (
+            {selectedStory?.media_type === 'video' ? (
               <video 
-                src={selectedStory.media_url} 
+                src={selectedStory?.media_url} 
                 autoPlay 
                 className="w-full h-full object-cover"
                 controls
               />
             ) : (
               <img 
-                src={selectedStory.media_url} 
+                src={selectedStory?.media_url} 
                 className="w-full h-full object-cover cursor-pointer hover:brightness-95 transition-all" 
                 alt="قصة"
               />
             )}
 
-            {/* Story Header - Facebook Style */}
             <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 via-black/40 to-transparent p-4 flex items-center gap-3">
               <img 
-                src={selectedStory.profiles?.avatar_url || ""} 
+                src={selectedStory?.profiles?.avatar_url || ""} 
                 className="w-10 h-10 rounded-full border-2 border-white object-cover" 
                 alt="الملف الشخصي"
               />
               <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-bold truncate">{selectedStory.profiles?.username}</p>
+                <p className="text-white text-sm font-bold truncate">{selectedStory?.profiles?.username || "مستخدم"}</p>
                 <p className="text-white/70 text-xs">قبل قليل</p>
               </div>
             </div>
 
-            {/* Navigation Arrows - Facebook Style */}
             {currentUserStories.length > 1 && (
               <>
                 <button
@@ -277,18 +274,16 @@ export default function Stories({ currentUser }: StoriesProps) {
                   <ChevronRight className="w-5 h-5" />
                 </button>
 
-                {/* Story Counter - Facebook Style */}
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-xs bg-black/50 px-3 py-1.5 rounded-full font-bold border border-white/20">
                   {selectedStoryIndex + 1} / {currentUserStories.length}
                 </div>
               </>
             )}
 
-            {/* Progress Bar - Facebook Style */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-white/20">
               <div 
                 className="h-full bg-white transition-all duration-300"
-                style={{ width: `${((selectedStoryIndex + 1) / currentUserStories.length) * 100}%` }}
+                style={{ width: `${((selectedStoryIndex + 1) / Math.max(1, currentUserStories.length)) * 100}%` }}
               />
             </div>
           </div>
@@ -377,7 +372,6 @@ export default function Stories({ currentUser }: StoriesProps) {
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">إنشاء حالة نصية</h2>
                 </div>
                 <div className="p-6 space-y-4">
-                  {/* Preview */}
                   <div 
                     className="w-full aspect-[9/16] rounded-lg flex items-center justify-center text-center p-6"
                     style={{ backgroundColor: textBgColor }}
@@ -390,7 +384,6 @@ export default function Stories({ currentUser }: StoriesProps) {
                     </p>
                   </div>
 
-                  {/* Text Input */}
                   <textarea
                     value={textContent}
                     onChange={(e) => setTextContent(e.target.value)}
@@ -398,7 +391,6 @@ export default function Stories({ currentUser }: StoriesProps) {
                     className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white resize-none h-24"
                   />
 
-                  {/* Color Picker */}
                   <div>
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">لون الخلفية</label>
                     <div className="flex gap-2">
@@ -413,7 +405,6 @@ export default function Stories({ currentUser }: StoriesProps) {
                     </div>
                   </div>
 
-                  {/* Font Size */}
                   <div>
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">حجم الخط: {textFontSize}px</label>
                     <input
@@ -449,3 +440,4 @@ export default function Stories({ currentUser }: StoriesProps) {
     </>
   );
 }
+
