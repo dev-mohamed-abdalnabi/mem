@@ -117,16 +117,18 @@ export default function ProfilePage({
       <div className="w-full bg-white dark:bg-[#111827] shadow-md border-b border-gray-200 dark:border-gray-800/60 rounded-b-2xl sm:rounded-b-[2rem]">
         <div className="max-w-5xl mx-auto relative">
           
-          {/* صورة الغلاف */}
+          {/* صورة الغلاف - محسّنة */}
           <div
             className="w-full h-52 sm:h-80 bg-gradient-to-r from-blue-600 to-indigo-700 relative bg-cover bg-center sm:rounded-b-2xl overflow-hidden cursor-pointer group"
             style={profile.cover_url ? { backgroundImage: `url(${profile.cover_url})` } : undefined}
             onClick={() => profile.cover_url && setLightboxImage(profile.cover_url)}
           >
+            {/* Overlay */}
             <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-all" />
             
+            {/* Edit Button for Own Profile */}
             {isOwnProfile && (
-              <label className="absolute bottom-4 left-4 bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-all border border-white/20 active:scale-95" onClick={(e) => e.stopPropagation()}>
+              <label className="absolute bottom-4 left-4 bg-black/70 hover:bg-black/90 text-white backdrop-blur-md px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-all border border-white/30 hover:border-white/50 active:scale-95 shadow-lg" onClick={(e) => e.stopPropagation()}>
                 <Camera className="w-4 h-4" />
                 <span>تحديث الغلاف</span>
                 <input
@@ -139,11 +141,22 @@ export default function ProfilePage({
                         const updated = { ...currentUser, cover_url: url };
                         setCurrentUser(updated);
                         setProfiles(prev => prev.map(p => p.id === updated.id ? updated : p));
+                        alert("تم تحديث الغلاف بنجاح!");
                       } catch (err) { alert("فشل رفع الغلاف"); }
                     }
                   }}
                 />
               </label>
+            )}
+            
+            {/* Hint for Own Profile */}
+            {isOwnProfile && !profile.cover_url && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-all">
+                <div className="text-center">
+                  <Camera className="w-12 h-12 text-white/80 mx-auto mb-2" />
+                  <p className="text-white font-bold text-sm">اضغط لتحديث الغلاف</p>
+                </div>
+              </div>
             )}
           </div>
 

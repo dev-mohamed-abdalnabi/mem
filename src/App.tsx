@@ -7,6 +7,7 @@ import { dataService } from "./services/dataService";
 import Header from "./components/Header";
 import RightSidebar from "./components/RightSidebar";
 import AuthModal from "./components/AuthModal";
+import Lightbox from "./components/Lightbox";
 
 import FeedPage from "./pages/FeedPage";
 import CreatePostPage from "./pages/CreatePostPage";
@@ -42,6 +43,7 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [lightboxMediaType, setLightboxMediaType] = useState<'image' | 'video' | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
@@ -215,39 +217,15 @@ export default function App() {
         />
       )}
 
-      {/* لايت بوكس للصور - محسّن مع error handling */}
-      {lightboxImage && (
-        <div 
-          className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center backdrop-blur-sm" 
-          onClick={() => setLightboxImage(null)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              setLightboxImage(null);
-            }
-          }}
-          role="dialog"
-          aria-modal="true"
-        >
-          <button 
-            className="absolute top-4 right-4 text-white bg-white/10 p-3 rounded-full hover:bg-white/20 transition z-50"
-            onClick={() => setLightboxImage(null)}
-            title="إغلاق الصورة (Esc)"
-            aria-label="إغلاق الصورة"
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <img 
-            src={lightboxImage} 
-            alt="صورة بحجم كامل" 
-            className="max-w-full max-h-[92vh] object-contain animate-fade-in"
-            onError={() => {
-              console.error("Failed to load image in lightbox:", lightboxImage);
-              setLightboxImage(null);
-            }}
-          />
-        </div>
-      )}
-
+      {/* Lightbox component for images and videos */}
+      <Lightbox
+        mediaUrl={lightboxImage}
+        mediaType={lightboxMediaType || 'image'}
+        onClose={() => {
+          setLightboxImage(null);
+          setLightboxMediaType(null);
+        }}
+      />
       {/* الهيدر العلوي */}
       <Header
         currentUser={currentUser} 

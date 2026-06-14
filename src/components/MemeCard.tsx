@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { Meme, Comment, Profile } from "../types";
 import { dataService } from "../services/dataService";
+import CustomVideoPlayer from "./CustomVideoPlayer";
 
 interface MemeCardProps {
   key?: string | number;
@@ -142,7 +143,7 @@ export default function MemeCard({
           {/* Media Display */}
           <div className="rounded-xl border border-gray-200 overflow-hidden mb-3 bg-gray-50 relative group">
             {meme.post_type === 'video' && meme.video_url ? (
-              <video src={meme.video_url} controls className="w-full max-h-[500px]" />
+              <CustomVideoPlayer src={meme.video_url} className="w-full max-h-[500px]" />
             ) : meme.post_type === 'multi-image' && meme.images && meme.images.length > 0 ? (
               <div className="relative">
                 <img src={meme.images[currentImageIndex]} className="w-full max-h-[500px] object-contain" onClick={() => onImageClick?.(meme.images![currentImageIndex])} />
