@@ -41,27 +41,63 @@ export const socialService = {
 
   // Banner / Cover upload logic
   async uploadCover(userId: string, file: File): Promise<string> {
-    const fileExt = file.name.split('.').pop();
+    // Validate file
+    if (!file) {
+      throw new Error("لم يتم اختيار ملف");
+    }
+
+    // Check file size (max 5MB for cover)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      throw new Error("حجم الصورة كبير جداً. الحد الأقصى 5MB.");
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      throw new Error("يجب أن يكون الملف صورة (JPG, PNG, إلخ)");
+    }
+
+    const fileExt = file.name.split('.').pop() || 'jpg';
     const fileName = `covers/${userId}_${Date.now()}.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("memes")
-      .upload(fileName, file);
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from("memes")
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
 
-    if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        throw new Error(`فشل رفع الصورة: ${uploadError.message}`);
+      }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from("memes")
-      .getPublicUrl(fileName);
+      const { data: { publicUrl } } = supabase.storage
+        .from("memes")
+        .getPublicUrl(fileName);
 
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ cover_url: publicUrl })
-      .eq("id", userId);
+      if (!publicUrl) {
+        throw new Error("فشل في الحصول على رابط الصورة");
+      }
 
-    if (updateError) throw updateError;
-    return publicUrl;
-  },
+      // Update profile with cover URL
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ cover_url: publicUrl })
+        .eq("id", userId);
+
+      if (updateError) {
+        console.error("Database update error:", updateError);
+        throw new Error(`فشل حفظ الغلاف في قاعدة البيانات: ${updateError.message}`);
+      }
+
+      return publicUrl;
+    } catch (error) {
+      console.error("Cover upload error:", error);
+      throw error;
+    }
+  }
 
   // Post logic (Text only, Video, etc.)
   async createPost(post: Partial<Meme>): Promise<Meme> {

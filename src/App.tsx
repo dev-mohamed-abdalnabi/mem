@@ -279,7 +279,7 @@ export default function App() {
             <FeedPage 
               isRealUser={isRealUser} 
               loading={loading} 
-              filteredMemes={memes.filter(m => m.caption.includes(searchQuery))} 
+              filteredMemes={memes.filter(m => (m.caption || "").includes(searchQuery))} 
               currentUser={currentUser} 
               followingIds={followingIds} 
               setMemes={setMemes} 

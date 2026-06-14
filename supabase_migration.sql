@@ -1,3 +1,6 @@
+-- 0. Add cover_url column to profiles table for profile covers
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS cover_url TEXT;
+
 -- 1. Fix null image_url constraint in memes table
 ALTER TABLE memes ALTER COLUMN image_url DROP NOT NULL;
 
