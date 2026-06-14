@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Camera, MessageCircle, Award, Clock, X, Check, Activity, CalendarDays, Shield } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Camera, MessageCircle, Award, Clock, X, Check, CalendarDays, Users, UserPlus, Image as ImageIcon } from "lucide-react";
 import { Profile, Meme } from "../types";
 import MemeCard from "../components/MemeCard";
 import { dataService } from "../services/dataService";
@@ -51,16 +51,30 @@ export default function ProfilePage({
   const [tempBio, setTempBio] = useState(profile.bio || "");
   const [tempName, setTempName] = useState(profile.username);
   
-  // رفع الصورة والمعاينة
+  // تبويبات الصفحة
+  const [activeProfileTab, setActiveProfileTab] = useState<"posts" | "info">("posts");
+  const [localUserMemes, setLocalUserMemes] = useState<Meme[]>(userMemes);
+  const [isLoadingMemes, setIsLoadingMemes] = useState(false);
+
+  // --- حالات أداة قص الصورة (Cropper) ---
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const imageRef = useRef<HTMLImageElement>(null);
 
-  // تبويبات الصفحة
-  const [activeProfileTab, setActiveProfileTab] = useState<"posts" | "info">("posts");
-  
-  const [localUserMemes, setLocalUserMemes] = useState<Meme[]>(userMemes);
-  const [isLoadingMemes, setIsLoadingMemes] = useState(false);
+  // منع السكرول عند فتح شاشة الصورة
+  useEffect(() => {
+    if (avatarPreview) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
+    return () => { document.body.style.overflow = "auto"; };
+  }, [avatarPreview]);
 
   useEffect(() => {
     const fetchUserMemes = async () => {
@@ -99,64 +113,147 @@ export default function ProfilePage({
     }
   };
 
-  const startEditing = () => {
-    setIsEditing(true);
-    setActiveProfileTab("info");
-  };
-
-  // اختيار الصورة للمعاينة
+  // --- دوال قص الصورة ---
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
       setAvatarPreview(URL.createObjectURL(file));
+      setZoom(1);
+      setPosition({ x: 0, y: 0 });
     }
   };
 
-  // تأكيد رفع الصورة
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    setPosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handlePointerUp = () => {
+    setIsDragging(false);
+  };
+
   const handleConfirmUpload = async () => {
-    if (!selectedFile) return;
-    setAvatarPreview(null);
+    if (!selectedFile || !imageRef.current) return;
     setIsUploadingAvatar(true);
+    
     try {
-      const url = await dataService.uploadAvatar(selectedFile);
-      setCurrentUser(prev => ({ ...prev, avatar_url: url }));
-      await dataService.updateProfile({ avatar_url: url });
+      // إنشاء Canvas لقص الصورة بالأبعاد والتحريك اللي اختاره المستخدم
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const size = 300; // حجم الصورة النهائي
+      canvas.width = size;
+      canvas.height = size;
+
+      if (ctx) {
+        // حساب الأبعاد
+        const img = imageRef.current;
+        const scale = zoom;
+        const width = img.naturalWidth * scale;
+        const height = img.naturalHeight * scale;
+        
+        // رسم الصورة مع تطبيق التحريك
+        ctx.drawImage(
+          img,
+          (size - width) / 2 + position.x,
+          (size - height) / 2 + position.y,
+          width,
+          height
+        );
+
+        // تحويل الـ Canvas لـ File ورفعه
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            const croppedFile = new File([blob], "avatar.jpg", { type: "image/jpeg" });
+            const url = await dataService.uploadAvatar(croppedFile);
+            setCurrentUser(prev => ({ ...prev, avatar_url: url }));
+            await dataService.updateProfile({ avatar_url: url });
+            setAvatarPreview(null);
+            setSelectedFile(null);
+          }
+        }, "image/jpeg", 0.9);
+      }
     } catch (err) {
-      alert("فشل رفع الصورة. تأكد من حجمها وأنها صورة صالحة.");
+      alert("فشل رفع الصورة.");
     } finally {
       setIsUploadingAvatar(false);
-      setSelectedFile(null);
     }
   };
+
+  // تنسيق تاريخ الانضمام
+  const joinDate = profile.created_at 
+    ? new Date(profile.created_at).toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' })
+    : "غير محدد";
 
   return (
     <div className="w-full pb-20 text-gray-900 dark:text-gray-100 font-sans">
       
-      {/* شاشة معاينة الصورة (تظهر فقط عند اختيار صورة) */}
+      {/* شاشة قص الصورة (Cropper Modal) */}
       {avatarPreview && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#16181c] rounded-2xl p-6 max-w-sm w-full shadow-2xl flex flex-col items-center">
-            <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">معاينة الصورة الشخصية</h3>
-            <p className="text-sm text-gray-500 mb-6 text-center">سيتم قص الصورة لتظهر بهذا الشكل الدائري في ملفك الشخصي.</p>
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-4">
+          <div className="w-full max-w-sm flex flex-col items-center">
+            <h3 className="text-white text-lg font-bold mb-2">ضبط الصورة الشخصية</h3>
+            <p className="text-gray-400 text-sm mb-6">قم بتحريك وتكبير الصورة لتناسب الدائرة</p>
             
-            {/* دائرة المعاينة */}
-            <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-gray-200 dark:border-gray-700 shadow-inner mb-8">
-              <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+            {/* حاوية القص الدائرية */}
+            <div 
+              className="w-64 h-64 rounded-full overflow-hidden border-4 border-white dark:border-gray-700 bg-black relative touch-none cursor-move shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerLeave={handlePointerUp}
+            >
+              <img 
+                ref={imageRef}
+                src={avatarPreview} 
+                alt="Crop preview" 
+                className="absolute top-1/2 left-1/2 origin-center max-w-none pointer-events-none"
+                style={{
+                  transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${zoom})`,
+                  minWidth: '100%',
+                  minHeight: '100%',
+                }}
+              />
             </div>
 
-            <div className="flex gap-3 w-full">
+            {/* التحكم في الزوم */}
+            <div className="w-full mt-8 px-4 flex items-center gap-3">
+              <span className="text-white text-xl">-</span>
+              <input 
+                type="range" 
+                min="0.5" 
+                max="3" 
+                step="0.1" 
+                value={zoom} 
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="flex-1 accent-[#1d9bf0]"
+              />
+              <span className="text-white text-xl">+</span>
+            </div>
+
+            {/* أزرار الحفظ والإلغاء مع تأثير التحميل */}
+            <div className="flex gap-3 w-full mt-8">
               <button 
+                disabled={isUploadingAvatar}
                 onClick={() => { setAvatarPreview(null); setSelectedFile(null); }}
-                className="flex-1 py-2.5 rounded-xl font-bold border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-full font-bold bg-gray-800 text-white hover:bg-gray-700 transition-colors disabled:opacity-50"
               >
-                <X className="w-4 h-4" /> إلغاء
+                إلغاء
               </button>
               <button 
+                disabled={isUploadingAvatar}
                 onClick={handleConfirmUpload}
-                className="flex-1 py-2.5 rounded-xl font-bold bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white transition-colors flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-full font-bold bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                <Check className="w-4 h-4" /> حفظ
+                {isUploadingAvatar ? <Clock className="w-5 h-5 animate-spin" /> : "حفظ الصورة"}
               </button>
             </div>
           </div>
@@ -167,10 +264,9 @@ export default function ProfilePage({
       <div className="px-4 pt-4 pb-2">
         <div className="flex justify-between items-start mb-3">
           
-          {/* الصورة الشخصية */}
           <div className="relative group">
             <div
-              className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden cursor-pointer relative ${isUploadingAvatar ? 'opacity-50' : ''}`}
+              className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden cursor-pointer relative ${isUploadingAvatar && !avatarPreview ? 'opacity-50' : ''}`}
               onClick={() => !isUploadingAvatar && setLightboxImage(profile.avatar_url || null)}
             >
               {profile.avatar_url ? (
@@ -178,28 +274,21 @@ export default function ProfilePage({
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-gray-400">{profile.username[0]}</div>
               )}
-              
-              {/* تأثير التحميل */}
-              {isUploadingAvatar && (
+              {isUploadingAvatar && !avatarPreview && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                   <Clock className="w-6 h-6 text-white animate-spin" />
                 </div>
               )}
             </div>
             
-            {/* زر تغيير الصورة */}
             {isOwnProfile && !isUploadingAvatar && (
-              <label className="absolute bottom-0 right-0 bg-gray-900 dark:bg-white p-1.5 sm:p-2 rounded-full cursor-pointer transition-transform hover:scale-110 shadow-md border-2 border-white dark:border-[#16181c]">
+              <label className="absolute bottom-0 right-0 bg-gray-900 dark:bg-white p-1.5 sm:p-2 rounded-full cursor-pointer shadow-md border-2 border-white dark:border-[#16181c]">
                 <Camera className="w-4 h-4 text-white dark:text-black" />
-                <input
-                  type="file" className="hidden" accept="image/*"
-                  onChange={handleFileSelect}
-                />
+                <input type="file" className="hidden" accept="image/*" onChange={handleFileSelect} />
               </label>
             )}
           </div>
 
-          {/* أزرار الإجراءات */}
           <div className="pt-2">
             {!isOwnProfile && isRealUser ? (
               <div className="flex gap-2">
@@ -223,7 +312,7 @@ export default function ProfilePage({
               </button>
             ) : isOwnProfile ? (
               <button 
-                onClick={startEditing}
+                onClick={() => { setIsEditing(true); setActiveProfileTab("info"); }}
                 className="px-4 py-1.5 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-white rounded-full font-bold text-[14px] hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
               >
                 تعديل الملف الشخصي
@@ -232,11 +321,8 @@ export default function ProfilePage({
           </div>
         </div>
 
-        {/* الاسم واليوزر */}
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white leading-5">
-            {profile.username}
-          </h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white leading-5">{profile.username}</h1>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-[14px] text-gray-500" dir="ltr">@{profile.username.replace(/\s+/g, '_').toLowerCase()}</span>
           </div>
@@ -247,56 +333,36 @@ export default function ProfilePage({
       <div className="flex w-full border-b border-gray-200 dark:border-gray-800 mt-2">
         <button
           onClick={() => setActiveProfileTab("posts")}
-          className={`flex-1 text-center py-3 text-[15px] font-bold transition-colors relative hover:bg-gray-100 dark:hover:bg-white/5 ${
-            activeProfileTab === "posts" ? "text-gray-900 dark:text-white" : "text-gray-500"
-          }`}
+          className={`flex-1 text-center py-3 text-[15px] font-bold transition-colors relative hover:bg-gray-100 dark:hover:bg-white/5 ${activeProfileTab === "posts" ? "text-gray-900 dark:text-white" : "text-gray-500"}`}
         >
           المنشورات
-          {activeProfileTab === "posts" && (
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-[#1d9bf0] rounded-t-full"></div>
-          )}
+          {activeProfileTab === "posts" && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-[#1d9bf0] rounded-t-full"></div>}
         </button>
         <button
           onClick={() => setActiveProfileTab("info")}
-          className={`flex-1 text-center py-3 text-[15px] font-bold transition-colors relative hover:bg-gray-100 dark:hover:bg-white/5 ${
-            activeProfileTab === "info" ? "text-gray-900 dark:text-white" : "text-gray-500"
-          }`}
+          className={`flex-1 text-center py-3 text-[15px] font-bold transition-colors relative hover:bg-gray-100 dark:hover:bg-white/5 ${activeProfileTab === "info" ? "text-gray-900 dark:text-white" : "text-gray-500"}`}
         >
           معلومات الحساب
-          {activeProfileTab === "info" && (
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-[#1d9bf0] rounded-t-full"></div>
-          )}
+          {activeProfileTab === "info" && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-1 bg-[#1d9bf0] rounded-t-full"></div>}
         </button>
       </div>
 
       {/* محتوى التبويبات */}
-      <div className="pb-10 pt-4 px-2 sm:px-4 bg-gray-50 dark:bg-transparent min-h-screen">
+      <div className="pb-10 pt-4 bg-gray-50/50 dark:bg-transparent min-h-screen">
         
-        {/* تاب المنشورات (تم تحويلها لستايل Cards) */}
+        {/* المنشورات (شكل كروت) */}
         {activeProfileTab === "posts" && (
-          <div className="space-y-4">
+          <div className="space-y-4 px-2 sm:px-4">
             {isLoadingMemes ? (
-              <div className="text-center py-10">
-                <Clock className="w-6 h-6 text-gray-400 mx-auto animate-spin" />
-              </div>
+              <div className="text-center py-10"><Clock className="w-6 h-6 text-gray-400 mx-auto animate-spin" /></div>
             ) : localUserMemes.length > 0 ? (
               localUserMemes.map(meme => (
-                // تصميم الكارت المنفصل للمنشور
                 <div key={meme.id} className="bg-white dark:bg-[#16181c] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
                   <MemeCard
-                    meme={meme}
-                    currentUser={currentUser}
-                    onLikeToggle={handleLikeToggle}
-                    onSaveToggle={handleSaveToggle}
-                    onFollowToggle={handleFollowToggle}
-                    onTagClick={setSelectedTag}
-                    onDeleteComment={() => {}}
-                    onReportSubmit={handleReportSubmit}
-                    onShareCompleted={handleShareCompleted}
-                    onDeleteMeme={handleDeleteMeme}
-                    onUserProfileClick={setSelectedProfileId}
-                    isFollowingCreator={followingIds.includes(meme.user_id)}
-                    onImageClick={setLightboxImage}
+                    meme={meme} currentUser={currentUser} onLikeToggle={handleLikeToggle} onSaveToggle={handleSaveToggle}
+                    onFollowToggle={handleFollowToggle} onTagClick={setSelectedTag} onDeleteComment={() => {}}
+                    onReportSubmit={handleReportSubmit} onShareCompleted={handleShareCompleted} onDeleteMeme={handleDeleteMeme}
+                    onUserProfileClick={setSelectedProfileId} isFollowingCreator={followingIds.includes(meme.user_id)} onImageClick={setLightboxImage}
                   />
                 </div>
               ))
@@ -308,82 +374,53 @@ export default function ProfilePage({
           </div>
         )}
 
-        {/* تاب المعلومات (تم زيادة التفاصيل وتنسيقها) */}
+        {/* معلومات الحساب (ستايل فيسبوك النظيف) */}
         {activeProfileTab === "info" && (
-          <div className="bg-white dark:bg-[#16181c] rounded-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-5 shadow-sm">
+          <div className="px-4">
             {isEditing ? (
-              // وضع تعديل المعلومات
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-[13px] font-bold text-gray-500 mb-1.5 px-1">الاسم بالكامل</label>
-                  <input
-                    type="text" value={tempName}
-                    onChange={(e) => setTempName(e.target.value)}
-                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-2.5 px-4 focus:border-[#1d9bf0] focus:ring-1 focus:ring-[#1d9bf0] outline-none text-[15px] text-gray-900 dark:text-white transition-shadow"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[13px] font-bold text-gray-500 mb-1.5 px-1">النبذة الشخصية</label>
-                  <textarea
-                    value={tempBio}
-                    onChange={(e) => setTempBio(e.target.value)}
-                    placeholder="اكتب شيئاً عن نفسك..."
-                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-2.5 px-4 focus:border-[#1d9bf0] focus:ring-1 focus:ring-[#1d9bf0] outline-none resize-none h-24 text-[15px] text-gray-900 dark:text-white transition-shadow"
-                  />
-                </div>
-                <div className="flex justify-end gap-3 pt-2">
-                  <button onClick={() => setIsEditing(false)} className="px-6 py-2.5 rounded-xl text-[14px] font-bold bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">إلغاء</button>
-                  <button onClick={handleSaveProfile} className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-[14px] font-bold hover:opacity-90 transition-opacity">حفظ التغييرات</button>
+              <div className="space-y-4 bg-white dark:bg-[#16181c] p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                <input type="text" value={tempName} onChange={(e) => setTempName(e.target.value)} placeholder="الاسم" className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-2 px-3 outline-none text-gray-900 dark:text-white" />
+                <textarea value={tempBio} onChange={(e) => setTempBio(e.target.value)} placeholder="النبذة الشخصية..." className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-2 px-3 outline-none resize-none h-20 text-gray-900 dark:text-white" />
+                <div className="flex justify-end gap-2 pt-2">
+                  <button onClick={() => setIsEditing(false)} className="px-5 py-2 rounded-full font-bold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">إلغاء</button>
+                  <button onClick={handleSaveProfile} className="px-5 py-2 bg-[#1d9bf0] text-white rounded-full font-bold">حفظ التغييرات</button>
                 </div>
               </div>
             ) : (
-              // عرض المعلومات بتفاصيل غنية
-              <div className="space-y-8">
+              // تصميم المعلومات الجديد (بدون مربعات، ستايل ليست زي الفيسبوك)
+              <div className="space-y-6">
                 
-                {/* قسم النبذة */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Activity className="w-5 h-5 text-[#1d9bf0]" />
-                    <h3 className="text-[16px] font-bold text-gray-900 dark:text-white">عن المستخدم</h3>
-                  </div>
-                  <p className="text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                    {profile.bio || "هذا المستخدم يفضل الصمت ولم يكتب نبذة شخصية بعد."}
+                {/* النبذة */}
+                <div className="border-b border-gray-200 dark:border-gray-800 pb-5">
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">نبذة</h2>
+                  <p className="text-[15px] text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+                    {profile.bio || "لا توجد نبذة شخصية."}
                   </p>
                 </div>
 
-                {/* قسم الإحصائيات (Grid) */}
+                {/* التفاصيل (قائمة) */}
                 <div>
-                  <h3 className="text-[16px] font-bold text-gray-900 dark:text-white mb-3">نظرة عامة</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col items-center text-center">
-                      <span className="text-2xl font-black text-gray-900 dark:text-white mb-1">{profile.followers_count}</span>
-                      <span className="text-[13px] text-gray-500 font-bold">متابعون</span>
-                    </div>
-                    <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col items-center text-center">
-                      <span className="text-2xl font-black text-gray-900 dark:text-white mb-1">{profile.following_count || 0}</span>
-                      <span className="text-[13px] text-gray-500 font-bold">يتابع</span>
-                    </div>
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30 flex flex-col items-center text-center col-span-2">
-                      <Award className="w-8 h-8 text-[#1d9bf0] mb-2" />
-                      <span className="text-lg font-black text-[#1d9bf0] mb-1">{profile.meme_level}</span>
-                      <span className="text-[13px] text-blue-600 dark:text-blue-400 font-bold">المستوى الحالي في المجرة</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* قسم تفاصيل الحساب */}
-                <div>
-                  <h3 className="text-[16px] font-bold text-gray-900 dark:text-white mb-3">تفاصيل الحساب</h3>
-                  <ul className="space-y-3">
-                    <li className="flex items-center gap-3 text-[14px] text-gray-600 dark:text-gray-400">
-                      <Shield className="w-4 h-4" />
-                      <span>حالة الحساب: </span>
-                      <strong className="text-green-600 dark:text-green-400 font-bold">نشط</strong>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">التفاصيل</h2>
+                  <ul className="space-y-4">
+                    <li className="flex items-center gap-3">
+                      <Award className="w-6 h-6 text-gray-400 dark:text-gray-500 shrink-0" />
+                      <span className="text-[15px] text-gray-900 dark:text-white">المستوى الحالي: <strong>{profile.meme_level}</strong></span>
                     </li>
-                    <li className="flex items-center gap-3 text-[14px] text-gray-600 dark:text-gray-400">
-                      <CalendarDays className="w-4 h-4" />
-                      <span>عدد المنشورات المعتمدة: </span>
-                      <strong className="text-gray-900 dark:text-white font-bold">{localUserMemes.length} منشور</strong>
+                    <li className="flex items-center gap-3">
+                      <Users className="w-6 h-6 text-gray-400 dark:text-gray-500 shrink-0" />
+                      <span className="text-[15px] text-gray-900 dark:text-white">يتابعه <strong>{profile.followers_count}</strong> شخص</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <UserPlus className="w-6 h-6 text-gray-400 dark:text-gray-500 shrink-0" />
+                      <span className="text-[15px] text-gray-900 dark:text-white">يتابع <strong>{profile.following_count || 0}</strong> شخص</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <ImageIcon className="w-6 h-6 text-gray-400 dark:text-gray-500 shrink-0" />
+                      <span className="text-[15px] text-gray-900 dark:text-white">نشر <strong>{localUserMemes.length}</strong> منشورات</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CalendarDays className="w-6 h-6 text-gray-400 dark:text-gray-500 shrink-0" />
+                      <span className="text-[15px] text-gray-900 dark:text-white">انضم في <strong>{joinDate}</strong></span>
                     </li>
                   </ul>
                 </div>
@@ -396,4 +433,4 @@ export default function ProfilePage({
       </div>
     </div>
   );
-              }
+                   }
