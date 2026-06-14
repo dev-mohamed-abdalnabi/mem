@@ -21,7 +21,29 @@ export default function Stories({ currentUser }: StoriesProps) {
 
   useEffect(() => {
     loadStories();
-  }, []);
+    
+    // Keyboard navigation for stories
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!selectedStory) return;
+      
+      if (e.key === "Escape") {
+        setSelectedStory(null);
+      }
+      if (e.key === "ArrowLeft" && selectedStoryIndex > 0) {
+        setSelectedStoryIndex(prev => Math.max(0, prev - 1));
+      }
+      if (e.key === "ArrowRight" && selectedStoryIndex < currentUserStories.length - 1) {
+        const nextIndex = selectedStoryIndex + 1;
+        if (nextIndex < currentUserStories.length) {
+          setSelectedStory(currentUserStories[nextIndex]);
+          setSelectedStoryIndex(nextIndex);
+        }
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedStory, selectedStoryIndex, currentUserStories]);
 
   const loadStories = async () => {
     try {
@@ -179,19 +201,20 @@ export default function Stories({ currentUser }: StoriesProps) {
         ))}
       </div>
 
-      {/* Story Viewer Modal - محسّن */}
+      {/* Story Viewer Modal - Facebook Style Lightbox */}
       {selectedStory && (
-        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center backdrop-blur-sm p-4" onClick={() => setSelectedStory(null)}>
           {/* Close Button */}
           <button 
             onClick={() => setSelectedStory(null)} 
-            className="absolute top-4 right-4 text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-all z-10"
+            className="absolute top-4 right-4 text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all z-10 hover:scale-110 active:scale-95"
+            title="إغلاق (Esc)"
           >
             <X className="w-6 h-6" />
           </button>
 
-          {/* Story Container */}
-          <div className="relative w-full max-w-md aspect-[9/16] bg-gray-900 rounded-2xl overflow-hidden shadow-2xl">
+          {/* Story Container - Facebook Style */}
+          <div className="relative w-full max-w-md aspect-[9/16] bg-gray-900 rounded-2xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
             {/* Media */}
             {selectedStory.media_type === 'video' ? (
               <video 
@@ -203,15 +226,17 @@ export default function Stories({ currentUser }: StoriesProps) {
             ) : (
               <img 
                 src={selectedStory.media_url} 
-                className="w-full h-full object-cover" 
+                className="w-full h-full object-cover cursor-pointer hover:brightness-95 transition-all" 
+                alt="قصة"
               />
             )}
 
-            {/* Story Header - محسّن */}
-            <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/60 to-transparent p-4 flex items-center gap-3">
+            {/* Story Header - Facebook Style */}
+            <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 via-black/40 to-transparent p-4 flex items-center gap-3">
               <img 
                 src={selectedStory.profiles?.avatar_url || ""} 
                 className="w-10 h-10 rounded-full border-2 border-white object-cover" 
+                alt="الملف الشخصي"
               />
               <div className="flex-1 min-w-0">
                 <p className="text-white text-sm font-bold truncate">{selectedStory.profiles?.username}</p>
@@ -219,13 +244,14 @@ export default function Stories({ currentUser }: StoriesProps) {
               </div>
             </div>
 
-            {/* Navigation Arrows */}
+            {/* Navigation Arrows - Facebook Style */}
             {currentUserStories.length > 1 && (
               <>
                 <button
                   onClick={() => setSelectedStoryIndex(prev => Math.max(0, prev - 1))}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-2 rounded-full transition-all disabled:opacity-50"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-2.5 rounded-full transition-all disabled:opacity-30 hover:scale-110 active:scale-95"
                   disabled={selectedStoryIndex === 0}
+                  title="السابق"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
@@ -237,20 +263,21 @@ export default function Stories({ currentUser }: StoriesProps) {
                       setSelectedStoryIndex(nextIndex);
                     }
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-2 rounded-full transition-all disabled:opacity-50"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-2.5 rounded-full transition-all disabled:opacity-30 hover:scale-110 active:scale-95"
                   disabled={selectedStoryIndex === currentUserStories.length - 1}
+                  title="التالي"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
 
-                {/* Story Counter */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-xs bg-black/40 px-3 py-1 rounded-full">
+                {/* Story Counter - Facebook Style */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-xs bg-black/50 px-3 py-1.5 rounded-full font-bold border border-white/20">
                   {selectedStoryIndex + 1} / {currentUserStories.length}
                 </div>
               </>
             )}
 
-            {/* Progress Bar */}
+            {/* Progress Bar - Facebook Style */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-white/20">
               <div 
                 className="h-full bg-white transition-all duration-300"

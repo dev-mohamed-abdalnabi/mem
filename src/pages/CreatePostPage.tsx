@@ -150,17 +150,84 @@ export default function CreatePostPage({ currentUser, setActiveTab }: CreatePost
           />
 
           {mediaFiles.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              {mediaFiles.map((media, idx) => (
-                <div key={idx} className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 aspect-square bg-gray-50 dark:bg-gray-900">
-                  {media.type === 'video' ? (
-                    <video src={media.preview} className="w-full h-full object-cover" />
+            <div className="mt-3 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
+              {/* Threads-style Preview */}
+              {mediaFiles.length === 1 ? (
+                <div className="relative aspect-square">
+                  {mediaFiles[0].type === 'video' ? (
+                    <video src={mediaFiles[0].preview} className="w-full h-full object-cover" />
                   ) : (
-                    <img src={media.preview} className="w-full h-full object-cover" alt="Preview" />
+                    <img src={mediaFiles[0].preview} className="w-full h-full object-cover" alt="Preview" />
                   )}
-                  <button type="button" onClick={() => removeMedia(idx)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 hover:bg-black/90"><X className="w-3 h-3" /></button>
+                  <button type="button" onClick={() => removeMedia(0)} className="absolute top-2 right-2 bg-black/70 text-white rounded-full p-1.5 hover:bg-black/90 transition-colors"><X className="w-4 h-4" /></button>
                 </div>
-              ))}
+              ) : mediaFiles.length === 2 ? (
+                <div className="grid grid-cols-2 gap-0.5 aspect-square">
+                  {mediaFiles.map((media, idx) => (
+                    <div key={idx} className="relative bg-gray-800 overflow-hidden group">
+                      {media.type === 'video' ? (
+                        <video src={media.preview} className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={media.preview} className="w-full h-full object-cover" alt={`Preview ${idx + 1}`} />
+                      )}
+                      <button type="button" onClick={() => removeMedia(idx)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 hover:bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-3 h-3" /></button>
+                    </div>
+                  ))}
+                </div>
+              ) : mediaFiles.length === 3 ? (
+                <div className="grid gap-0.5 aspect-square" style={{ gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr' }}>
+                  <div className="col-span-1 row-span-2 relative bg-gray-800 overflow-hidden group">
+                    {mediaFiles[0].type === 'video' ? (
+                      <video src={mediaFiles[0].preview} className="w-full h-full object-cover" />
+                    ) : (
+                      <img src={mediaFiles[0].preview} className="w-full h-full object-cover" alt="Preview 1" />
+                    )}
+                    <button type="button" onClick={() => removeMedia(0)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 hover:bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-3 h-3" /></button>
+                  </div>
+                  {mediaFiles.slice(1, 3).map((media, idx) => (
+                    <div key={idx + 1} className="relative bg-gray-800 overflow-hidden group">
+                      {media.type === 'video' ? (
+                        <video src={media.preview} className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={media.preview} className="w-full h-full object-cover" alt={`Preview ${idx + 2}`} />
+                      )}
+                      <button type="button" onClick={() => removeMedia(idx + 1)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 hover:bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-3 h-3" /></button>
+                    </div>
+                  ))}
+                </div>
+              ) : mediaFiles.length === 4 ? (
+                <div className="grid grid-cols-2 gap-0.5 aspect-square">
+                  {mediaFiles.map((media, idx) => (
+                    <div key={idx} className="relative bg-gray-800 overflow-hidden group">
+                      {media.type === 'video' ? (
+                        <video src={media.preview} className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={media.preview} className="w-full h-full object-cover" alt={`Preview ${idx + 1}`} />
+                      )}
+                      <button type="button" onClick={() => removeMedia(idx)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 hover:bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-3 h-3" /></button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* 5+ images */
+                <div className="grid grid-cols-2 gap-0.5 aspect-square">
+                  {mediaFiles.slice(0, 4).map((media, idx) => (
+                    <div key={idx} className="relative bg-gray-800 overflow-hidden group">
+                      {media.type === 'video' ? (
+                        <video src={media.preview} className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={media.preview} className="w-full h-full object-cover" alt={`Preview ${idx + 1}`} />
+                      )}
+                      {idx === 3 && mediaFiles.length > 4 && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <span className="text-white text-2xl font-black">+{mediaFiles.length - 4}</span>
+                        </div>
+                      )}
+                      <button type="button" onClick={() => removeMedia(idx)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 hover:bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-3 h-3" /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -170,7 +237,7 @@ export default function CreatePostPage({ currentUser, setActiveTab }: CreatePost
               placeholder="أضف هاشتاج..."
               value={newPostTags}
               onChange={(e) => setNewPostTags(e.target.value)}
-              className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2 text-xs text-right outline-none"
+              className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2 text-xs text-right outline-none focus:ring-2 focus:ring-blue-500"
             />
             <div className="flex gap-2">
               <label className="p-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 text-blue-500 rounded-xl cursor-pointer transition-colors" title="إضافة صور">

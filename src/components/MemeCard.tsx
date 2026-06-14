@@ -92,6 +92,11 @@ export default function MemeCard({
     });
   };
 
+  const handleMultiImageClick = (index: number) => {
+    setCurrentImageIndex(index);
+    onImageClick?.(meme.images![index]);
+  };
+
   const parseCaption = (caption: string | null) => {
     if (!caption) return "";
     return caption.split(" ").map((word, i) => {
@@ -140,23 +145,55 @@ export default function MemeCard({
 
           {meme.caption && <div className="text-sm text-gray-800 leading-relaxed mb-3">{parseCaption(meme.caption)}</div>}
 
-          {/* Media Display */}
+          {/* Media Display - Threads-style Collage for Multi-Image */}
           <div className="rounded-xl border border-gray-200 overflow-hidden mb-3 bg-gray-50 relative group">
             {meme.post_type === 'video' && meme.video_url ? (
               <CustomVideoPlayer src={meme.video_url} className="w-full max-h-[500px]" />
             ) : meme.post_type === 'multi-image' && meme.images && meme.images.length > 0 ? (
-              <div className="relative">
-                <img src={meme.images[currentImageIndex]} className="w-full max-h-[500px] object-contain" onClick={() => onImageClick?.(meme.images![currentImageIndex])} />
-                {meme.images.length > 1 && (
-                  <>
-                    <button onClick={() => setCurrentImageIndex(prev => Math.max(0, prev - 1))} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><ChevronLeft /></button>
-                    <button onClick={() => setCurrentImageIndex(prev => Math.min(meme.images!.length - 1, prev + 1))} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><ChevronRight /></button>
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                      {meme.images.map((_, i) => (
-                        <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === currentImageIndex ? 'bg-blue-500' : 'bg-gray-300'}`} />
-                      ))}
+              <div className="relative bg-gray-900">
+                {/* Threads-style Collage Layout */}
+                {meme.images.length === 2 ? (
+                  <div className="grid grid-cols-2 gap-0.5 aspect-square">
+                    {meme.images.map((img, idx) => (
+                      <div key={idx} className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(img)}>
+                        <img src={img} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt={`صورة ${idx + 1}`} />
+                      </div>
+                    ))}
+                  </div>
+                ) : meme.images.length === 3 ? (
+                  <div className="grid gap-0.5 aspect-square" style={{ gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr' }}>
+                    <div className="col-span-1 row-span-2 relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(meme.images![0])}>
+                      <img src={meme.images[0]} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt="صورة 1" />
                     </div>
-                  </>
+                    <div className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(meme.images![1])}>
+                      <img src={meme.images[1]} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt="صورة 2" />
+                    </div>
+                    <div className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(meme.images![2])}>
+                      <img src={meme.images[2]} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt="صورة 3" />
+                    </div>
+                  </div>
+                ) : meme.images.length === 4 ? (
+                  <div className="grid grid-cols-2 gap-0.5 aspect-square">
+                    {meme.images.map((img, idx) => (
+                      <div key={idx} className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(img)}>
+                        <img src={img} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt={`صورة ${idx + 1}`} />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  /* 5+ images: show first 4 with +X overlay on last */
+                  <div className="grid grid-cols-2 gap-0.5 aspect-square">
+                    {meme.images.slice(0, 4).map((img, idx) => (
+                      <div key={idx} className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(img)}>
+                        <img src={img} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt={`صورة ${idx + 1}`} />
+                        {idx === 3 && meme.images!.length > 4 && (
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <span className="text-white text-2xl font-black">+{meme.images!.length - 4}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             ) : meme.image_url ? (

@@ -16,11 +16,14 @@ export default function Lightbox({ mediaUrl, mediaType = 'image', onClose }: Lig
       if (e.key === "Escape") {
         onClose();
       }
-      if (e.key === "+") {
+      if (e.key === "+" || e.key === "=") {
         setScale(prev => Math.min(prev + 0.2, 3));
       }
-      if (e.key === "-") {
+      if (e.key === "-" || e.key === "_") {
         setScale(prev => Math.max(prev - 0.2, 0.5));
+      }
+      if (e.key === "0") {
+        setScale(1);
       }
     };
 
@@ -60,23 +63,23 @@ export default function Lightbox({ mediaUrl, mediaType = 'image', onClose }: Lig
         <X className="w-6 h-6" />
       </button>
 
-      {/* Controls */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/60 px-4 py-3 rounded-full backdrop-blur-sm z-50">
+      {/* Controls - Facebook Style */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/70 px-4 py-3 rounded-full backdrop-blur-md z-50 border border-white/20">
         {mediaType === 'image' && (
           <>
             <button
               onClick={() => setScale(prev => Math.max(prev - 0.2, 0.5))}
-              className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
-              title="تصغير (-))"
+              className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors hover:scale-110 active:scale-95"
+              title="تصغير (-)"
             >
               <ZoomOut className="w-5 h-5" />
             </button>
-            <span className="text-white text-sm px-2 py-2 min-w-[50px] text-center">
+            <span className="text-white text-sm px-3 py-2 min-w-[60px] text-center font-bold">
               {Math.round(scale * 100)}%
             </span>
             <button
               onClick={() => setScale(prev => Math.min(prev + 0.2, 3))}
-              className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
+              className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors hover:scale-110 active:scale-95"
               title="تكبير (+)"
             >
               <ZoomIn className="w-5 h-5" />
@@ -86,7 +89,7 @@ export default function Lightbox({ mediaUrl, mediaType = 'image', onClose }: Lig
         )}
         <button
           onClick={handleDownload}
-          className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
+          className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors hover:scale-110 active:scale-95"
           title="تحميل"
         >
           <Download className="w-5 h-5" />
@@ -130,10 +133,10 @@ export default function Lightbox({ mediaUrl, mediaType = 'image', onClose }: Lig
         )}
       </div>
 
-      {/* Info Text */}
-      <div className="absolute top-4 left-4 text-white/60 text-sm">
+      {/* Info Text - Facebook Style */}
+      <div className="absolute top-4 left-4 text-white/70 text-sm font-medium bg-black/40 px-3 py-2 rounded-lg backdrop-blur-sm border border-white/20">
         <p>اضغط Esc للإغلاق</p>
-        {mediaType === 'image' && <p>استخدم + و - لتكبير/تصغير</p>}
+        {mediaType === 'image' && <p className="text-xs text-white/60 mt-1">استخدم + و - لتكبير/تصغير أو 0 للإعادة</p>}
       </div>
     </div>
   );

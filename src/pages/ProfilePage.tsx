@@ -114,23 +114,24 @@ export default function ProfilePage({
     <div className="w-full min-h-screen bg-[#F0F2F5] dark:bg-[#0B0F19] text-gray-950 dark:text-gray-100 font-sans pb-12">
       
       {/* هيدر البروفايل */}
-      <div className="w-full bg-white dark:bg-[#111827] shadow-md border-b border-gray-200 dark:border-gray-800/60 rounded-b-2xl sm:rounded-b-[2rem]">
+      <div className="w-full bg-white dark:bg-[#111827] shadow-md border-b border-gray-200 dark:border-gray-800/60">
         <div className="max-w-5xl mx-auto relative">
           
-          {/* صورة الغلاف - محسّنة */}
+          {/* صورة الغلاف - محسّنة وزي الفيسبوك */}
           <div
-            className="w-full h-52 sm:h-80 bg-gradient-to-r from-blue-600 to-indigo-700 relative bg-cover bg-center sm:rounded-b-2xl overflow-hidden cursor-pointer group"
-            style={profile.cover_url ? { backgroundImage: `url(${profile.cover_url})` } : undefined}
+            className="w-full h-48 sm:h-72 md:h-80 bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700 relative bg-cover bg-center overflow-hidden cursor-pointer group"
+            style={profile.cover_url ? { backgroundImage: `url(${profile.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
             onClick={() => profile.cover_url && setLightboxImage(profile.cover_url)}
           >
-            {/* Overlay */}
-            <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-all" />
+            {/* Overlay - Professional */}
+            <div className={`absolute inset-0 ${profile.cover_url ? 'bg-black/20 group-hover:bg-black/30' : 'bg-gradient-to-b from-transparent to-black/20'} transition-all duration-300`} />
             
-            {/* Edit Button for Own Profile */}
+            {/* Edit Button for Own Profile - Facebook Style */}
             {isOwnProfile && (
-              <label className="absolute bottom-4 left-4 bg-black/70 hover:bg-black/90 text-white backdrop-blur-md px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-all border border-white/30 hover:border-white/50 active:scale-95 shadow-lg" onClick={(e) => e.stopPropagation()}>
+              <label className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 bg-white hover:bg-gray-100 text-gray-900 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer transition-all shadow-lg hover:shadow-xl active:scale-95 border border-gray-200" onClick={(e) => e.stopPropagation()}>
                 <Camera className="w-4 h-4" />
-                <span>تحديث الغلاف</span>
+                <span className="hidden sm:inline">تحديث الغلاف</span>
+                <span className="sm:hidden">تعديل</span>
                 <input
                   type="file" className="hidden" accept="image/*"
                   onChange={async (e) => {
@@ -141,8 +142,8 @@ export default function ProfilePage({
                         const updated = { ...currentUser, cover_url: url };
                         setCurrentUser(updated);
                         setProfiles(prev => prev.map(p => p.id === updated.id ? updated : p));
-                        alert("تم تحديث الغلاف بنجاح!");
-                      } catch (err) { alert("فشل رفع الغلاف"); }
+                        alert("تم تحديث الغلاف بنجاح! 🎉");
+                      } catch (err) { alert("فشل رفع الغلاف: " + (err instanceof Error ? err.message : 'خطأ غير معروف')); }
                     }
                   }}
                 />
@@ -151,35 +152,35 @@ export default function ProfilePage({
             
             {/* Hint for Own Profile */}
             {isOwnProfile && !profile.cover_url && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-all">
+              <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-all">
                 <div className="text-center">
-                  <Camera className="w-12 h-12 text-white/80 mx-auto mb-2" />
-                  <p className="text-white font-bold text-sm">اضغط لتحديث الغلاف</p>
+                  <Camera className="w-10 sm:w-12 h-10 sm:h-12 text-white/70 mx-auto mb-2" />
+                  <p className="text-white font-bold text-xs sm:text-sm">اضغط لإضافة صورة غلاف</p>
                 </div>
               </div>
             )}
           </div>
 
-          {/* تفاصيل الهيدر السفلي الأنيق */}
-          <div className="px-4 sm:px-8 pb-2 flex flex-col md:flex-row items-center md:items-end justify-between relative -mt-20 sm:-mt-24 gap-6">
+          {/* تفاصيل الهيدر السفلي الأنيق - Facebook Style */}
+          <div className="px-4 sm:px-8 pb-4 flex flex-col md:flex-row items-center md:items-end justify-between relative -mt-16 sm:-mt-20 gap-6 bg-gradient-to-b from-transparent to-white dark:to-[#111827] pt-4">
             
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 text-center sm:text-right w-full min-w-0">
               
-              {/* صورة الأفاتار */}
+              {/* صورة الأفاتار - Facebook Style */}
               <div className="relative shrink-0 group">
                 <div
-                  className="w-36 h-36 sm:w-44 sm:h-44 rounded-full border-4 border-white dark:border-[#111827] bg-gray-100 dark:bg-gray-800 shadow-xl overflow-hidden cursor-pointer relative"
+                  className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white dark:border-[#111827] bg-gray-100 dark:bg-gray-800 shadow-2xl overflow-hidden cursor-pointer relative hover:shadow-3xl transition-shadow"
                   onClick={() => setLightboxImage(profile.avatar_url || null)}
                 >
                   {profile.avatar_url ? (
-                    <img src={profile.avatar_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" referrerPolicy="no-referrer" alt="" />
+                    <img src={profile.avatar_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" referrerPolicy="no-referrer" alt="" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-6xl font-black bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 text-gray-500">{profile.username[0]}</div>
+                    <div className="w-full h-full flex items-center justify-center text-5xl sm:text-6xl font-black bg-gradient-to-br from-blue-200 to-indigo-300 dark:from-blue-700 dark:to-indigo-800 text-white">{profile.username[0]}</div>
                   )}
                 </div>
                 
                 {isOwnProfile && (
-                  <label className="absolute bottom-2 right-2 bg-[#1877F2] hover:bg-[#166FE5] text-white p-3 rounded-full cursor-pointer shadow-lg border-4 border-white dark:border-[#111827] transition-all active:scale-90" onClick={(e) => e.stopPropagation()}>
+                  <label className="absolute bottom-0 right-0 bg-[#1877F2] hover:bg-[#166FE5] text-white p-2.5 sm:p-3 rounded-full cursor-pointer shadow-lg border-4 border-white dark:border-[#111827] transition-all active:scale-90 hover:shadow-xl" onClick={(e) => e.stopPropagation()}>
                     <Camera className="w-4 h-4" />
                     <input
                       type="file" className="hidden" accept="image/*"
@@ -190,7 +191,8 @@ export default function ProfilePage({
                             const url = await dataService.uploadAvatar(file);
                             setCurrentUser(prev => ({ ...prev, avatar_url: url }));
                             await dataService.updateProfile({ avatar_url: url });
-                          } catch (err) { alert("فشل الرفع"); }
+                            alert("تم تحديث الصورة الشخصية! 🎉");
+                          } catch (err) { alert("فشل الرفع: " + (err instanceof Error ? err.message : 'خطأ غير معروف')); }
                         }
                       }}
                     />
@@ -198,9 +200,9 @@ export default function ProfilePage({
                 )}
               </div>
 
-              {/* نصوص الحساب والاسم */}
+              {/* نصوص الحساب والاسم - Facebook Style */}
               <div className="pb-2 min-w-0 flex-1">
-                <div className="flex items-center justify-center sm:justify-start gap-2 mb-1 min-h-[44px]">
+                <div className="flex items-center justify-center sm:justify-start gap-2 mb-2 min-h-[44px]">
                   {isEditingName ? (
                     <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 p-1 rounded-lg border border-gray-300 dark:border-gray-700 w-full max-w-sm">
                       <input
@@ -215,26 +217,26 @@ export default function ProfilePage({
                     <>
                       <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white truncate">{profile.username}</h1>
                       {isOwnProfile && (
-                        <button onClick={() => setIsEditingName(true)} className="p-1 text-gray-400 hover:text-blue-500 transition-colors"><Edit2 className="w-4 h-4" /></button>
+                        <button onClick={() => setIsEditingName(true)} className="p-1 text-gray-400 hover:text-blue-500 transition-colors" title="تعديل الاسم"><Edit2 className="w-4 h-4" /></button>
                       )}
                       <Flame className="w-5 h-5 text-orange-500 shrink-0 animate-pulse" />
                     </>
                   )}
                 </div>
 
-                <p className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-2">
-                  {profile.followers_count} متابع كفو • {profile.following_count || 0} يتابع
+                <p className="text-sm font-bold text-gray-600 dark:text-gray-400 mb-3">
+                  <span className="text-gray-900 dark:text-white font-black">{profile.followers_count}</span> متابع • <span className="text-gray-900 dark:text-white font-black">{profile.following_count || 0}</span> يتابع
                 </p>
                 
-                <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-3 py-1.5 rounded-full border border-blue-100 dark:border-blue-900/50 shadow-sm">
+                <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-3 py-1.5 rounded-full border border-blue-100 dark:border-blue-900/50 shadow-sm hover:shadow-md transition-shadow">
                   <Award className="w-3.5 h-3.5" />
                   {profile.meme_level}
                 </span>
               </div>
             </div>
 
-            {/* أزرار التحكم الرئيسية (تم تصليح الزرار الكبير هنا) */}
-            <div className="flex gap-2 w-full md:w-auto justify-center shrink-0 mb-2">
+            {/* أزرار التحكم الرئيسية - Facebook Style */}
+            <div className="flex gap-2 w-full md:w-auto justify-center shrink-0 mb-2 flex-wrap">
               {!isOwnProfile && isRealUser ? (
                 <>
                   <button
@@ -272,138 +274,94 @@ export default function ProfilePage({
 
           </div>
 
-          {/* شريط التبويبات الفيس بوكي - آمن تماماً ضد الكراشات */}
-          <div className="flex items-center px-4 sm:px-8 border-t border-gray-100 dark:border-gray-800/60 overflow-x-auto no-scrollbar">
+          {/* شريط التبويبات - Facebook Style */}
+          <div className="flex items-center px-4 sm:px-8 border-t border-gray-200 dark:border-gray-800/60 overflow-x-auto no-scrollbar bg-white dark:bg-[#111827]">
             <button
               onClick={() => setCurrentTab("posts")}
-              className={`px-4 py-4 font-black text-sm whitespace-nowrap transition-all border-b-4 ${
-                currentTab === "posts" ? "text-[#1877F2] border-[#1877F2]" : "text-gray-500 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50"
+              className={`px-4 py-3 font-black text-sm whitespace-nowrap transition-all border-b-[3px] ${
+                currentTab === "posts" ? "text-[#1877F2] border-[#1877F2]" : "text-gray-600 dark:text-gray-400 border-transparent hover:text-gray-900 dark:hover:text-gray-200"
               }`}
             >
               المنشورات
             </button>
             <button
               onClick={() => setCurrentTab("about")}
-              className={`px-4 py-4 font-black text-sm whitespace-nowrap transition-all border-b-4 ${
-                currentTab === "about" ? "text-[#1877F2] border-[#1877F2]" : "text-gray-500 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50"
+              className={`px-4 py-3 font-black text-sm whitespace-nowrap transition-all border-b-[3px] ${
+                currentTab === "about" ? "text-[#1877F2] border-[#1877F2]" : "text-gray-600 dark:text-gray-400 border-transparent hover:text-gray-900 dark:hover:text-gray-200"
               }`}
             >
-              حول العضو ومعلوماته
+              عن الملف الشخصي
             </button>
           </div>
-
         </div>
       </div>
 
-      {/* المحتوى الفعلي حسب التبويب المختار */}
-      <div className="max-w-5xl mx-auto w-full p-4 mt-2">
+      {/* محتوى الصفحة */}
+      <div className="max-w-5xl mx-auto px-4 py-6">
         {currentTab === "posts" ? (
-          <div className="w-full flex flex-col md:flex-row gap-5">
-            
-            {/* اللوحة التعريفية الجانبية */}
-            <div id="bio-section" className="w-full md:w-[350px] shrink-0 flex flex-col gap-4">
-              <div className="bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 p-5 rounded-2xl shadow-sm">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-black text-lg text-gray-900 dark:text-white">اللوحة التعريفية</h3>
-                  {isOwnProfile && !isEditingBio && (
-                    <button onClick={() => setIsEditingBio(true)} className="text-xs text-[#1877F2] font-bold hover:underline">تعديل</button>
-                  )}
-                </div>
-                
-                {isEditingBio ? (
-                  <div className="space-y-2">
-                    <textarea
-                      value={tempBio}
-                      onChange={(e) => setTempBio(e.target.value)}
-                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 p-3 text-sm text-gray-800 dark:text-gray-200 rounded-xl resize-none text-center font-medium"
-                      placeholder="اكتب إيفيه أو نبذة عنك يا أسطورة..." rows={3}
-                      autoFocus
-                    />
-                    <div className="flex gap-2 justify-end">
-                      <button onClick={() => { setTempBio(profile.bio || ""); setIsEditingBio(false); }} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg text-xs font-bold">إلغاء</button>
-                      <button onClick={handleSaveBio} className="px-4 py-1.5 bg-[#1877F2] text-white hover:bg-[#166FE5] rounded-lg text-xs font-bold shadow-sm">حفظ</button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 text-center leading-relaxed bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl border border-gray-100 dark:border-gray-800/40">
-                    {profile.bio || "مفيش كابشن.. العضو ده بيمسي عليكم في صمت."}
-                  </p>
-                )}
-
-                <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800/60 space-y-3.5 text-sm font-bold text-gray-600 dark:text-gray-300">
-                  <div className="flex items-center gap-3">
-                    <Award className="w-5 h-5 text-yellow-500 shrink-0" />
-                    <span>الرصيد القتالي: <strong className="text-gray-900 dark:text-white font-black">{profile.total_points} XP</strong></span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-5 h-5 text-blue-500 shrink-0" />
-                    <span>انضم للمجرة: <strong className="text-gray-900 dark:text-white font-black">{new Date(profile.created_at).getFullYear()}</strong></span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Users className="w-5 h-5 text-emerald-500 shrink-0" />
-                    <span>الجمهور: <strong className="text-gray-900 dark:text-white font-black">{profile.followers_count}</strong> أساطير</span>
-                  </div>
-                </div>
+          <div className="space-y-4">
+            {isLoadingMemes ? (
+              <div className="text-center py-12">
+                <Clock className="w-12 h-12 text-gray-300 mx-auto animate-spin" />
               </div>
-            </div>
-
-            {/* الفيد الرئيسي للميمز المنشورة */}
-            <div className="flex-1 flex flex-col gap-4">
-              <div className="bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 p-4 rounded-2xl shadow-sm flex items-center justify-between">
-                <h3 className="font-black text-gray-900 dark:text-white text-base">أرشيف الإيفيهات المرفوعة</h3>
-                <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-3 py-1.5 rounded-xl border border-blue-100 dark:border-blue-900/40">
-                  {localUserMemes.length} ميم قتالي
-                </span>
+            ) : localUserMemes.length > 0 ? (
+              localUserMemes.map(meme => (
+                <MemeCard
+                  key={meme.id}
+                  meme={meme}
+                  currentUser={currentUser}
+                  onLikeToggle={handleLikeToggle}
+                  onSaveToggle={handleSaveToggle}
+                  onFollowToggle={handleFollowToggle}
+                  onTagClick={setSelectedTag}
+                  onDeleteComment={() => {}}
+                  onReportSubmit={handleReportSubmit}
+                  onShareCompleted={handleShareCompleted}
+                  onDeleteMeme={handleDeleteMeme}
+                  onUserProfileClick={setSelectedProfileId}
+                  isFollowingCreator={followingIds.includes(meme.user_id)}
+                  onImageClick={setLightboxImage}
+                />
+              ))
+            ) : (
+              <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+                <p className="text-gray-500 dark:text-gray-400 font-bold">لا توجد منشورات حتى الآن</p>
               </div>
-
-              {isLoadingMemes ? (
-                <div className="flex justify-center py-10">
-                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-                </div>
-              ) : localUserMemes.length === 0 ? (
-                <div className="bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 rounded-2xl p-16 text-center text-gray-400 font-black shadow-sm text-lg">
-                  العضو ده لسه منشرش ضحك هنا.. شكله مكسل! 😴
-                </div>
-              ) : (
-                <div className="flex flex-col gap-4 w-full">
-                  {localUserMemes.map((meme) => (
-                    <div key={meme.id} className="w-full bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 rounded-2xl shadow-sm overflow-hidden p-1">
-                      <MemeCard
-                        meme={meme} currentUser={currentUser} onLikeToggle={handleLikeToggle} onSaveToggle={handleSaveToggle} onFollowToggle={handleFollowToggle} onTagClick={setSelectedTag}
-                        onDeleteComment={() => {}} onReportSubmit={handleReportSubmit} onShareCompleted={handleShareCompleted} onDeleteMeme={handleDeleteMeme}
-                        onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }}
-                        isFollowingCreator={followingIds.includes(meme.user_id)}
-                        onImageClick={setLightboxImage}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
+            )}
           </div>
         ) : (
-          /* تبويب "حول العضو" الفرعي */
-          <div className="w-full bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 p-6 rounded-2xl shadow-sm animate-fade-in">
-            <h3 className="font-black text-xl mb-4 text-gray-900 dark:text-white">تفاصيل ومجرة {profile.username}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm font-bold text-gray-600 dark:text-gray-300">
-              <div className="bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl">
-                <p className="text-xs text-gray-400 mb-1">المستوى الحالي في الميمز</p>
-                <p className="text-lg font-black text-blue-600 dark:text-blue-400">{profile.meme_level}</p>
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
+            <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4">النبذة الشخصية</h3>
+            
+            {isEditingBio ? (
+              <div className="space-y-3">
+                <textarea
+                  value={tempBio}
+                  onChange={(e) => setTempBio(e.target.value)}
+                  className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-3 text-gray-900 dark:text-white resize-none min-h-[120px]"
+                  placeholder="اكتب نبذة عن نفسك..."
+                />
+                <div className="flex gap-2">
+                  <button onClick={handleSaveBio} className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold transition-colors flex items-center justify-center gap-2">
+                    <Check className="w-4 h-4" /> حفظ
+                  </button>
+                  <button onClick={() => { setTempBio(profile.bio || ""); setIsEditingBio(false); }} className="flex-1 bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-4 py-2 rounded-lg font-bold transition-colors flex items-center justify-center gap-2">
+                    <X className="w-4 h-4" /> إلغاء
+                  </button>
+                </div>
               </div>
-              <div className="bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl">
-                <p className="text-xs text-gray-400 mb-1">الرصيد الكلي للنقاط</p>
-                <p className="text-lg font-black text-yellow-500">{profile.total_points} XP</p>
-              </div>
-              <div className="bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl">
-                <p className="text-xs text-gray-400 mb-1">تاريخ الهبوط في الكوكب</p>
-                <p className="text-base text-gray-800 dark:text-white">{new Date(profile.created_at).toLocaleDateString("ar-EG")}</p>
-              </div>
-              <div className="bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl">
-                <p className="text-xs text-gray-400 mb-1">القوة الجماهيرية</p>
-                <p className="text-base text-gray-800 dark:text-white">يتابع {profile.following_count || 0} شخص ومتبوع بواسطة {profile.followers_count} مقاتل</p>
-              </div>
-            </div>
+            ) : (
+              <>
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
+                  {profile.bio || "لا توجد نبذة شخصية بعد"}
+                </p>
+                {isOwnProfile && (
+                  <button onClick={() => setIsEditingBio(true)} className="text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-2">
+                    <Edit2 className="w-4 h-4" /> تعديل النبذة
+                  </button>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>
