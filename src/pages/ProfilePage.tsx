@@ -1,4 +1,4 @@
-hereimport React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Camera, MessageCircle, Award, Clock, ArrowRight } from "lucide-react";
 import { Profile, Meme } from "../types";
 import MemeCard from "../components/MemeCard";
