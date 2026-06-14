@@ -232,7 +232,7 @@ export default function App() {
               currentUser={currentUser} 
               isOwnProfile={true} 
               isRealUser={isRealUser} 
-              userMemes={[]} 
+              userMemes={memes.filter(m => m.user_id === currentUser.id)} 
               followingIds={followingIds} 
               setCurrentUser={setCurrentUser} 
               setProfiles={setProfiles} 

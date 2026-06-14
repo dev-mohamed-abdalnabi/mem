@@ -7,6 +7,7 @@ export interface Profile {
   id: string;
   username: string;
   avatar_url: string | null;
+  cover_url?: string | null;
   bio: string | null;
   website: string | null;
   role: UserRole;

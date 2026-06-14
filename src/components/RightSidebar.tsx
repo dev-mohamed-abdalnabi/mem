@@ -27,7 +27,7 @@ export default function RightSidebar({
 
   return (
     // ضفت dir="rtl" عشان نضمن إن الاتجاهات تكون مظبوطة دايماً
-    <div className="w-72 shrink-0 hidden lg:flex flex-col gap-6 order-3 pb-8" dir="rtl">
+    <div className="w-72 shrink-0 hidden lg:flex flex-col gap-6 order-3 pb-8 sticky top-24 h-fit" dir="rtl">
       
       {/* كرت تسجيل الدخول (شكل مودرن وجذاب) */}
       {!isRealUser && (

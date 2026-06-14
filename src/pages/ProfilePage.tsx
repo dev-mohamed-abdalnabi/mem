@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Camera, CheckCircle2, PlusCircle, MessageCircle, Edit2, Award, Clock, Users, Flame, Check, X } from "lucide-react";
 import { Profile, Meme } from "../types";
 import MemeCard from "../components/MemeCard";
@@ -56,6 +56,25 @@ export default function ProfilePage({
   
   // تبويب محلي آمن عشان نمنع الكراش الأسود نهائياً
   const [currentTab, setCurrentTab] = useState<"posts" | "about">("posts");
+  const [localUserMemes, setLocalUserMemes] = useState<Meme[]>(userMemes);
+  const [isLoadingMemes, setIsLoadingMemes] = useState(false);
+
+  useEffect(() => {
+    const fetchUserMemes = async () => {
+      if (profile.id) {
+        setIsLoadingMemes(true);
+        try {
+          const memes = await dataService.getMemes("approved", profile.id, currentUser.id);
+          setLocalUserMemes(memes);
+        } catch (err) {
+          console.error("Error fetching user memes:", err);
+        } finally {
+          setIsLoadingMemes(false);
+        }
+      }
+    };
+    fetchUserMemes();
+  }, [profile.id, currentUser.id]);
 
   const onFollowClick = async () => {
     if (!isRealUser) {
@@ -100,8 +119,8 @@ export default function ProfilePage({
           {/* صورة الغلاف */}
           <div
             className="w-full h-52 sm:h-80 bg-gradient-to-r from-blue-600 to-indigo-700 relative bg-cover bg-center sm:rounded-b-2xl overflow-hidden cursor-pointer group"
-            style={(profile as any).cover_url ? { backgroundImage: `url(${(profile as any).cover_url})` } : undefined}
-            onClick={() => (profile as any).cover_url && setLightboxImage((profile as any).cover_url)}
+            style={profile.cover_url ? { backgroundImage: `url(${profile.cover_url})` } : undefined}
+            onClick={() => profile.cover_url && setLightboxImage(profile.cover_url)}
           >
             <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-all" />
             
@@ -116,10 +135,10 @@ export default function ProfilePage({
                     if (file) {
                       try {
                         const url = await dataService.uploadAvatar(file);
-                        const updated = { ...currentUser, cover_url: url } as any;
+                        const updated = { ...currentUser, cover_url: url };
                         setCurrentUser(updated);
                         setProfiles(prev => prev.map(p => p.id === updated.id ? updated : p));
-                        await dataService.updateProfile({ cover_url: url } as any);
+                        await dataService.updateProfile({ cover_url: url });
                       } catch (err) { alert("فشل رفع الغلاف"); }
                     }
                   }}
@@ -320,17 +339,21 @@ export default function ProfilePage({
               <div className="bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 p-4 rounded-2xl shadow-sm flex items-center justify-between">
                 <h3 className="font-black text-gray-900 dark:text-white text-base">أرشيف الإيفيهات المرفوعة</h3>
                 <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-3 py-1.5 rounded-xl border border-blue-100 dark:border-blue-900/40">
-                  {userMemes.length} ميم قتالي
+                  {localUserMemes.length} ميم قتالي
                 </span>
               </div>
 
-              {userMemes.length === 0 ? (
+              {isLoadingMemes ? (
+                <div className="flex justify-center py-10">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                </div>
+              ) : localUserMemes.length === 0 ? (
                 <div className="bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 rounded-2xl p-16 text-center text-gray-400 font-black shadow-sm text-lg">
                   العضو ده لسه منشرش ضحك هنا.. شكله مكسل! 😴
                 </div>
               ) : (
                 <div className="flex flex-col gap-4 w-full">
-                  {userMemes.map((meme) => (
+                  {localUserMemes.map((meme) => (
                     <div key={meme.id} className="w-full bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-800/60 rounded-2xl shadow-sm overflow-hidden p-1">
                       <MemeCard
                         meme={meme} currentUser={currentUser} onLikeToggle={handleLikeToggle} onSaveToggle={handleSaveToggle} onFollowToggle={handleFollowToggle} onTagClick={setSelectedTag}

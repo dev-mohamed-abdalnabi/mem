@@ -1,42 +1,82 @@
-import React from "react";
+import React, { useState } from "react";
 import { Camera, X, Clock } from "lucide-react";
 import { Profile } from "../types";
+import { dataService } from "../services/dataService";
 
 interface CreatePostPageProps {
   currentUser: Profile;
-  loading: boolean;
-  newPostCaption: string;
-  setNewPostCaption: (val: string) => void;
-  newPostImage: string;
-  setNewPostImage: (val: string) => void;
-  newPostTags: string;
-  setNewPostTags: (val: string) => void;
-  postError: string;
-  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleQuickPostSubmit: (e: React.FormEvent) => Promise<void>;
   setActiveTab: (tab: string) => void;
 }
 
 export default function CreatePostPage({
   currentUser,
-  loading,
-  newPostCaption,
-  setNewPostCaption,
-  newPostImage,
-  setNewPostImage,
-  newPostTags,
-  setNewPostTags,
-  postError,
-  handleFileChange,
-  handleQuickPostSubmit,
   setActiveTab,
 }: CreatePostPageProps) {
+  const [loading, setLoading] = useState(false);
+  const [newPostCaption, setNewPostCaption] = useState("");
+  const [newPostImage, setNewPostImage] = useState("");
+  const [newPostFile, setNewPostFile] = useState<File | null>(null);
+  const [newPostTags, setNewPostTags] = useState("");
+  const [postError, setPostError] = useState("");
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNewPostFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewPostImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleQuickPostSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPostCaption.trim() && !newPostFile) {
+      setPostError("يا غالي اكتب حاجة أو ارفع صورة الميم الأول! 😂");
+      return;
+    }
+
+    setLoading(true);
+    setPostError("");
+
+    try {
+      let imageUrl = "";
+      if (newPostFile) {
+        imageUrl = await dataService.uploadMemeFile(newPostFile);
+      }
+
+      const tagsArray = newPostTags
+        .split(/[,\s]+/)
+        .map(tag => tag.trim().replace("#", ""))
+        .filter(tag => tag.length > 0);
+
+      await dataService.createMeme({
+        user_id: currentUser.id,
+        caption: newPostCaption,
+        image_url: imageUrl,
+        tags: tagsArray,
+        status: "approved"
+      });
+
+      // Reset form and go back to feed
+      setNewPostCaption("");
+      setNewPostImage("");
+      setNewPostFile(null);
+      setNewPostTags("");
+      setActiveTab("feed");
+    } catch (err: any) {
+      setPostError(err.message || "فشل نشر الميم، حاول تاني يا بطل.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="w-full max-w-xl mx-auto px-4 md:px-0 animate-fade-in">
-      {/* تم نقل الـ form لتشمل الكارت كله عشان زرار النشر اللي فوق يشتغل تلقائي عند الضغط */}
+    <div className="w-full max-w-xl mx-auto px-4 md:px-0 animate-fade-in py-6">
       <form onSubmit={handleQuickPostSubmit} className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm text-right flex flex-col gap-4">
         
-        {/* هيدر الصفحة العلوي: الإلغاء على اليمين، العنوان في النص، والنشر على اليسار بدون أي لخبطة */}
         <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
           <button 
             type="button" 
@@ -48,19 +88,16 @@ export default function CreatePostPage({
           
           <h2 className="text-base font-bold text-gray-900 dark:text-white">إنشاء منشور ميمز جديد</h2>
           
-          {/* زرار النشر في مكانه الطبيعي والصحيح علوياً */}
           <button 
             type="submit" 
-            disabled={(!newPostCaption.trim() && !newPostImage) || loading} 
+            disabled={(!newPostCaption.trim() && !newPostFile) || loading} 
             className="bg-blue-600 text-white px-4 py-1.5 rounded-xl text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors flex items-center gap-1.5 min-w-[70px] justify-center"
           >
             {loading ? <Clock className="w-3 h-3 animate-spin" /> : <><span>نشر</span> 🔥</>}
           </button>
         </div>
 
-        {/* محتوى المنشور والبيانات */}
         <div className="flex gap-4 pt-2">  
-          {/* بيانات كرت كاتب الميم */}
           <div className="flex-1 flex flex-col min-w-0">  
             <div className="flex items-center gap-2 mb-2 justify-end">
               <span className="font-bold text-sm text-gray-900 dark:text-white">{currentUser.username}</span>  
@@ -72,7 +109,6 @@ export default function CreatePostPage({
               />  
             </div>
 
-            {/* صندوق الكتابة الذكي */}
             <textarea  
               placeholder="بماذا تفكر يا غالي؟ أطلق الإيفيه..."  
               value={newPostCaption} 
@@ -81,13 +117,15 @@ export default function CreatePostPage({
               autoFocus  
             />  
 
-            {/* معاينة الصورة قبل رفعها وسهولة حذفها */}
             {newPostImage && (  
               <div className="relative mt-3 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 w-max max-w-full mx-auto">  
                 <img src={newPostImage} className="max-h-60 w-auto object-contain" alt="Preview" />  
                 <button 
                   type="button" 
-                  onClick={() => setNewPostImage("")} 
+                  onClick={() => {
+                    setNewPostImage("");
+                    setNewPostFile(null);
+                  }} 
                   className="absolute top-2 right-2 bg-black/70 text-white rounded-full p-1.5 hover:bg-black/90 transition-colors"
                 >  
                   <X className="w-4 h-4" />  
@@ -95,7 +133,6 @@ export default function CreatePostPage({
               </div>  
             )}  
 
-            {/* أدوات إرفاق الميديا والهاشتاجات المتناسقة */}
             <div className="flex items-center gap-3 mt-4 border-t border-gray-50 dark:border-gray-900 pt-4">  
               <input   
                 type="text" 
@@ -116,7 +153,6 @@ export default function CreatePostPage({
           </div>  
         </div>  
 
-        {/* عرض الأخطاء إن وجدت بشكل منسق */}
         {postError && (
           <p className="text-red-500 text-xs mt-1 text-center font-bold bg-red-50 dark:bg-red-950/30 p-2.5 rounded-xl border border-red-100 dark:border-red-900/50">
             {postError}

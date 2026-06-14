@@ -29,7 +29,7 @@ export default function Leaderboard({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-3xl p-5 text-right flex flex-col gap-6 shadow-sm">
+    <div className="bg-white border border-gray-200 rounded-3xl p-5 text-right flex flex-col gap-6 shadow-sm mb-20 md:mb-0">
       {/* Banner */}
       <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 rounded-2xl p-5 text-white relative overflow-hidden">
         <div className="absolute top-0 left-0 w-32 h-32 bg-white/5 rounded-full -translate-x-10 -translate-y-10 blur-xl" />
