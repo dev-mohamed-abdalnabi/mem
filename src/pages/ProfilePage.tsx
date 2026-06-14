@@ -3,6 +3,7 @@ import { Camera, CheckCircle2, PlusCircle, MessageCircle, Edit2, Award, Clock, U
 import { Profile, Meme } from "../types";
 import MemeCard from "../components/MemeCard";
 import { dataService } from "../services/dataService";
+import { socialService } from "../services/socialService";
 
 interface ProfilePageProps {
   profile: Profile;
@@ -134,11 +135,10 @@ export default function ProfilePage({
                     const file = e.target.files?.[0];
                     if (file) {
                       try {
-                        const url = await dataService.uploadAvatar(file);
+                        const url = await socialService.uploadCover(currentUser.id, file);
                         const updated = { ...currentUser, cover_url: url };
                         setCurrentUser(updated);
                         setProfiles(prev => prev.map(p => p.id === updated.id ? updated : p));
-                        await dataService.updateProfile({ cover_url: url });
                       } catch (err) { alert("فشل رفع الغلاف"); }
                     }
                   }}

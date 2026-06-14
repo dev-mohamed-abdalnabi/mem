@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Plus, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Story, Profile } from "../types";
 import { dataService } from "../services/dataService";
+import { socialService } from "../services/socialService";
 
 interface StoriesProps {
   currentUser: Profile;
@@ -18,7 +19,7 @@ export default function Stories({ currentUser }: StoriesProps) {
 
   const loadStories = async () => {
     try {
-      const data = await dataService.getStories();
+      const data = await socialService.getStories();
       setStories(data);
     } catch (e) {
       console.error(e);
@@ -29,14 +30,20 @@ export default function Stories({ currentUser }: StoriesProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (currentUser.id === "guest-user-temp") {
+      alert("سجل دخول الأول يا بطل عشان ترفع حالة!");
+      return;
+    }
+
     setLoading(true);
     try {
       const url = await dataService.uploadMemeFile(file);
       const type = file.type.startsWith('video/') ? 'video' : 'image';
-      await dataService.createStory(currentUser.id, url, type);
+      await socialService.createStory(currentUser.id, url, type);
       loadStories();
     } catch (e) {
-      alert("فشل رفع الحالة");
+      console.error("Story upload error:", e);
+      alert("فشل رفع الحالة، اتأكد إنك عامل تسجيل دخول حقيقي.");
     } finally {
       setLoading(false);
     }

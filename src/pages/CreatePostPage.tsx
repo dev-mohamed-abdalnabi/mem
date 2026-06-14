@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Camera, Clock, X, Video, Film } from "lucide-react";
 import { Profile } from "../types";
 import { dataService } from "../services/dataService";
+import { socialService } from "../services/socialService";
 
 interface CreatePostPageProps {
   currentUser: Profile;
@@ -96,7 +97,7 @@ export default function CreatePostPage({ currentUser, setActiveTab }: CreatePost
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
 
-      await dataService.createMeme({
+      await socialService.createPost({
         user_id: currentUser.id,
         caption: newPostCaption,
         image_url: imageUrl,
