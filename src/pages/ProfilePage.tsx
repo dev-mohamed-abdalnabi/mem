@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+hereimport React, { useState, useEffect } from "react";
 import { Camera, MessageCircle, Award, Clock, ArrowRight } from "lucide-react";
 import { Profile, Meme } from "../types";
 import MemeCard from "../components/MemeCard";
@@ -96,10 +96,10 @@ export default function ProfilePage({
       <div className="max-w-[600px] mx-auto sm:border-x border-gray-200 dark:border-gray-800/60 min-h-screen">
         
         <div 
-          className="sticky top-0 z-50 bg-white/80 dark:bg-black/30 backdrop-blur-md border-b border-gray-200 dark:border-gray-800/60 px-4 py-2 flex items-center gap-6 cursor-pointer" 
+          className="sticky top-0 z-50 bg-white/80 dark:bg-[#16181c]/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800/60 px-4 py-2 flex items-center gap-6 cursor-pointer" 
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         >
-          <button onClick={() => setSelectedProfileId(null)} className="p-2 -mx-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+          <button onClick={() => setSelectedProfileId(null)} className="p-2 -mx-2 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
             <ArrowRight className="w-5 h-5" />
           </button>
           <div className="flex flex-col">
@@ -112,7 +112,7 @@ export default function ProfilePage({
           <div className="flex justify-between items-start mb-3">
             <div className="relative group">
               <div
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-100 dark:bg-[#16181c] overflow-hidden cursor-pointer shrink-0"
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-100 dark:bg-[#16181c] border-4 border-white dark:border-[#16181c] overflow-hidden cursor-pointer shrink-0"
                 onClick={() => setLightboxImage(profile.avatar_url || null)}
               >
                 {profile.avatar_url ? (
@@ -123,7 +123,7 @@ export default function ProfilePage({
               </div>
               
               {isOwnProfile && (
-                <label className="absolute bottom-0 right-0 bg-gray-900/60 hover:bg-gray-900/80 p-1.5 sm:p-2 rounded-full cursor-pointer transition-colors backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
+                <label className="absolute bottom-1 right-1 bg-gray-900/60 hover:bg-gray-900/80 p-1.5 sm:p-2 rounded-full cursor-pointer transition-colors backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
                   <Camera className="w-4 h-4 text-white" />
                   <input
                     type="file" className="hidden" accept="image/*"
@@ -147,7 +147,7 @@ export default function ProfilePage({
             <div className="pt-2 flex gap-2">
               {!isOwnProfile && isRealUser ? (
                 <>
-                  <button className="p-2 border border-gray-300 dark:border-gray-600 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+                  <button className="p-2 border border-gray-300 dark:border-gray-600 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
                     <MessageCircle className="w-5 h-5 text-black dark:text-white" />
                   </button>
                   <button
@@ -168,7 +168,7 @@ export default function ProfilePage({
               ) : isOwnProfile ? (
                 <button 
                   onClick={() => setIsEditing(!isEditing)}
-                  className="px-4 py-1.5 border border-gray-300 dark:border-gray-600 text-black dark:text-white rounded-full font-bold text-[15px] hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                  className="px-4 py-1.5 border border-gray-300 dark:border-gray-600 text-black dark:text-white rounded-full font-bold text-[15px] hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
                 >
                   تعديل الملف الشخصي
                 </button>
@@ -195,7 +195,7 @@ export default function ProfilePage({
                 />
               </div>
               <div className="flex justify-end gap-3 mt-4">
-                <button onClick={() => setIsEditing(false)} className="px-5 py-2 border border-gray-300 dark:border-gray-600 rounded-full text-sm font-bold hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">إلغاء</button>
+                <button onClick={() => setIsEditing(false)} className="px-5 py-2 border border-gray-300 dark:border-gray-600 rounded-full text-sm font-bold hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">إلغاء</button>
                 <button onClick={handleSaveProfile} className="px-5 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full text-sm font-bold hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">حفظ</button>
               </div>
             </div>
@@ -214,4 +214,63 @@ export default function ProfilePage({
                 </div>
               </div>
 
-              <div className="mb-3 t
+              <div className="mb-3 text-[15px] leading-normal whitespace-pre-wrap text-black dark:text-white">
+                {profile.bio || "لا توجد نبذة شخصية"}
+              </div>
+
+              <div className="flex gap-5 text-[15px] text-gray-500 dark:text-gray-400 mb-2">
+                <button className="hover:underline flex gap-1">
+                  <span className="font-bold text-black dark:text-white">{profile.following_count || 0}</span> يتابع
+                </button>
+                <button className="hover:underline flex gap-1">
+                  <span className="font-bold text-black dark:text-white">{profile.followers_count}</span> متابع
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="flex border-b border-gray-200 dark:border-gray-800/60 mt-1">
+          <div className="flex-1 text-center hover:bg-gray-200 dark:hover:bg-white/5 transition-colors cursor-pointer flex justify-center">
+            <div className="py-3.5 font-bold text-black dark:text-white border-b-4 border-[#1d9bf0] rounded-sm text-[15px]">
+              المنشورات
+            </div>
+          </div>
+        </div>
+
+        <div className="pb-20">
+          {isLoadingMemes ? (
+            <div className="text-center py-12">
+              <Clock className="w-8 h-8 text-gray-400 mx-auto animate-spin" />
+            </div>
+          ) : localUserMemes.length > 0 ? (
+            localUserMemes.map(meme => (
+              <div key={meme.id} className="border-b border-gray-200 dark:border-gray-800/60">
+                <MemeCard
+                  meme={meme}
+                  currentUser={currentUser}
+                  onLikeToggle={handleLikeToggle}
+                  onSaveToggle={handleSaveToggle}
+                  onFollowToggle={handleFollowToggle}
+                  onTagClick={setSelectedTag}
+                  onDeleteComment={() => {}}
+                  onReportSubmit={handleReportSubmit}
+                  onShareCompleted={handleShareCompleted}
+                  onDeleteMeme={handleDeleteMeme}
+                  onUserProfileClick={setSelectedProfileId}
+                  isFollowingCreator={followingIds.includes(meme.user_id)}
+                  onImageClick={setLightboxImage}
+                />
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500 dark:text-gray-400 font-bold text-[15px]">لا توجد منشورات</p>
+            </div>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+}
