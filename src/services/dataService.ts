@@ -374,12 +374,12 @@ export const dataService = {
       const insertData: any = {
         user_id: dbUserId,
         caption: meme.caption || "",
-        status: "approved"
+        status: "approved",
+        post_type: meme.post_type || (meme.image_url ? 'image' : 'text'),
+        image_url: meme.image_url || null,
+        video_url: meme.video_url || null,
+        images: meme.images || []
       };
-
-      if (meme.image_url) {
-        insertData.image_url = meme.image_url;
-      }
 
       const { data, error } = await supabase
       .from("memes")
@@ -630,6 +630,14 @@ export const dataService = {
   },
 
   uploadMemeFile: async (file: File): Promise<string> => {
+    // Limit video size/duration (approx 2 mins)
+    if (file.type.startsWith('video/')) {
+      const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB limit as proxy for 2 mins
+      if (file.size > MAX_VIDEO_SIZE) {
+        throw new Error("الفيديو كبير جداً، الحد الأقصى حوالي 2 دقيقة.");
+      }
+    }
+
     // Basic image compression using Canvas if possible
     let fileToUpload: File | Blob = file;
     
@@ -711,5 +719,36 @@ export const dataService = {
       .getPublicUrl(fileName);
 
     return publicUrl;
+  },
+
+  // Stories
+  getStories: async (): Promise<Story[]> => {
+    const { data, error } = await supabase
+      .from("stories")
+      .select("*, profiles!user_id(*)")
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false });
+    
+    if (error) throw error;
+    return data as Story[];
+  },
+
+  createStory: async (userId: string, mediaUrl: string, mediaType: 'image' | 'video'): Promise<Story> => {
+    const dbUserId = ensureUUID(userId);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+    const { data, error } = await supabase
+      .from("stories")
+      .insert({
+        user_id: dbUserId,
+        media_url: mediaUrl,
+        media_type: mediaType,
+        expires_at: expiresAt
+      })
+      .select("*, profiles!user_id(*)")
+      .single();
+    
+    if (error) throw error;
+    return data as Story;
   }
 };

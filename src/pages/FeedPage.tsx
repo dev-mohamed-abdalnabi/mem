@@ -2,6 +2,7 @@ import React from "react";
 import { Clock } from "lucide-react";
 import { Meme, Profile } from "../types";
 import MemeCard from "../components/MemeCard";
+import Stories from "../components/Stories";
 import { FeedLoadingSkeleton } from "../components/LoadingSkeletons";
 
 interface FeedPageProps {
@@ -49,6 +50,7 @@ export default function FeedPage({
 }: FeedPageProps) {
   return (
     <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto pb-24 md:pb-8 px-4 md:px-0">
+      {isRealUser && <Stories currentUser={currentUser} />}
       {!isRealUser && (
         <div className="lg:hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-4">
           <div className="text-right">

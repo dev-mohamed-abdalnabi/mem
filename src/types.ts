@@ -22,7 +22,10 @@ export interface Profile {
 export interface Meme {
   id: string;
   user_id: string;
-  image_url: string;
+  image_url: string | null;
+  images?: string[];
+  video_url?: string | null;
+  post_type: 'image' | 'video' | 'text' | 'multi-image';
   caption: string | null;
   likes_count: number;
   comments_count: number;
@@ -88,6 +91,16 @@ export interface Report {
   resolved_by: string | null;
   resolution_note: string | null;
   created_at: string;
+}
+
+export interface Story {
+  id: string;
+  user_id: string;
+  media_url: string;
+  media_type: 'image' | 'video';
+  created_at: string;
+  expires_at: string;
+  profiles?: Profile;
 }
 
 // Preset popular Arabic meme templates for the Meme Maker
