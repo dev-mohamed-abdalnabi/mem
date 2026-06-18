@@ -3,6 +3,7 @@ import Header from "../Header";
 import RightSidebar from "../RightSidebar";
 import AuthModal from "../AuthModal";
 import Lightbox from "../Lightbox";
+import BottomNavigation from "../BottomNavigation";
 import { Profile, Notification, Meme } from "../../types";
 
 /**
@@ -79,6 +80,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         mediaUrl={lightboxImage}
         mediaType={lightboxMediaType || 'image'}
         onClose={onCloseLightbox}
+      />
+
+      {/* الشريط السفلي للموبايل (BottomNavigation) */}
+      <BottomNavigation
+        activeTab={activeTab}
+        onNavigate={onNavigate}
+        currentUser={currentUser}
+        isRealUser={isRealUser}
+        onShowAuthModal={onShowAuthModal}
       />
 
       {/* الهيدر العلوي (Header) */}
