@@ -1,14 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Home, Flame, Bookmark, User, X, PlusCircle } from "lucide-react";
 
+// استيراد الأنواع والخدمات
 import { Profile, Meme, Notification } from "./types";
 import { dataService } from "./services/dataService";
 
-import Header from "./components/Header";
-import RightSidebar from "./components/RightSidebar";
-import AuthModal from "./components/AuthModal";
-import Lightbox from "./components/Lightbox";
-
+// استيراد مكونات الواجهة
+import MainLayout from "./components/layout/MainLayout";
 import FeedPage from "./pages/FeedPage";
 import CreatePostPage from "./pages/CreatePostPage";
 import SavesPage from "./pages/SavesPage";
@@ -16,6 +13,9 @@ import TrendingPage from "./pages/TrendingPage";
 import ProfilePage from "./pages/ProfilePage";
 import Leaderboard from "./components/Leaderboard";
 
+/**
+ * البيانات الافتراضية للمستخدم الزائر
+ */
 const initialGuestProfile: Profile = {
   id: "guest-user-temp",
   username: "زائر_مجهول",
@@ -32,23 +32,24 @@ const initialGuestProfile: Profile = {
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState("feed");
-  const [currentUser, setCurrentUser] = useState<Profile>(initialGuestProfile);
-  const [memes, setMemes] = useState<Meme[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  // --- حالات التطبيق (States) ---
+  const [activeTab, setActiveTab] = useState("feed"); // التبويب النشط
+  const [currentUser, setCurrentUser] = useState<Profile>(initialGuestProfile); // المستخدم الحالي
+  const [memes, setMemes] = useState<Meme[]>([]); // قائمة الميمز
+  const [profiles, setProfiles] = useState<Profile[]>([]); // قائمة البروفايلات
+  const [notifications, setNotifications] = useState<Notification[]>([]); // الإشعارات
+  const [loading, setLoading] = useState(true); // حالة التحميل
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null); // معرف البروفايل المختار
 
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-  const [lightboxMediaType, setLightboxMediaType] = useState<'image' | 'video' | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [followingIds, setFollowingIds] = useState<string[]>([]);
+  const [showAuthModal, setShowAuthModal] = useState(false); // إظهار مودال الدخول
+  const [authTab, setAuthTab] = useState<"signin" | "signup">("signin"); // تبويب مودال الدخول
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null); // صورة اللايت بوكس
+  const [lightboxMediaType, setLightboxMediaType] = useState<'image' | 'video' | null>(null); // نوع ميديا اللايت بوكس
+  const [searchQuery, setSearchQuery] = useState(""); // نص البحث
+  const [selectedTag, setSelectedTag] = useState<string | null>(null); // التاج المختار
+  const [followingIds, setFollowingIds] = useState<string[]>([]); // قائمة المعرفات التي يتابعها المستخدم
 
-  // Cache references - prevent reloading
+  // مرجع للكاش لمنع إعادة التحميل غير الضرورية
   const cacheRef = useRef({
     feed: [] as Meme[],
     trending: [] as Meme[],
@@ -57,7 +58,9 @@ export default function App() {
     loadedTabs: new Set<string>()
   });
 
-  // Load data only on first mount or when explicitly needed
+  /**
+   * تحميل البيانات الأولية عند تشغيل التطبيق
+   */
   useEffect(() => {
     const loadInitialData = async () => {
       setLoading(true);
@@ -80,16 +83,20 @@ export default function App() {
         cacheRef.current.loadedTabs.add("feed");
         cacheRef.current.lastLoadTime = Date.now();
       } catch (e) { 
-        console.warn(e); 
+        console.warn("خطأ في تحميل البيانات:", e); 
       } finally { 
         setLoading(false); 
       }
     };
 
     loadInitialData();
-  }, []); // Only on mount
+  }, []);
 
-  // ✅ Handle Like Toggle
+  // --- دوال التعامل مع الأحداث (Handlers) ---
+
+  /**
+   * التفاعل مع الإعجاب (Like)
+   */
   const handleLikeToggle = useCallback(async (memeId: string) => {
     const isRealUser = currentUser.id !== "guest-user-temp";
     if (!isRealUser) {
@@ -106,18 +113,14 @@ export default function App() {
           ? { ...m, liked_by_me: result.liked, likes_count: result.likesCount }
           : m
       ));
-      
-      cacheRef.current.feed = cacheRef.current.feed.map(m =>
-        m.id === memeId
-          ? { ...m, liked_by_me: result.liked, likes_count: result.likesCount }
-          : m
-      );
     } catch (error) {
       console.error("Error toggling like:", error);
     }
   }, [currentUser.id]);
 
-  // ✅ Handle Save Toggle
+  /**
+   * التفاعل مع الحفظ (Save)
+   */
   const handleSaveToggle = useCallback(async (memeId: string) => {
     const isRealUser = currentUser.id !== "guest-user-temp";
     if (!isRealUser) {
@@ -128,24 +131,17 @@ export default function App() {
 
     try {
       const result = await dataService.toggleSave(memeId, currentUser.id);
-      
       setMemes(prev => prev.map(m =>
-        m.id === memeId
-          ? { ...m, saved_by_me: result }
-          : m
+        m.id === memeId ? { ...m, saved_by_me: result } : m
       ));
-      
-      cacheRef.current.feed = cacheRef.current.feed.map(m =>
-        m.id === memeId
-          ? { ...m, saved_by_me: result }
-          : m
-      );
     } catch (error) {
       console.error("Error toggling save:", error);
     }
   }, [currentUser.id]);
 
-  // ✅ Handle Follow Toggle
+  /**
+   * التفاعل مع المتابعة (Follow)
+   */
   const handleFollowToggle = useCallback(async (followerId: string, followingId: string) => {
     const isRealUser = currentUser.id !== "guest-user-temp";
     if (!isRealUser) {
@@ -156,7 +152,6 @@ export default function App() {
 
     try {
       await dataService.followUser(followerId, followingId);
-      
       setFollowingIds(prev => 
         prev.includes(followingId)
           ? prev.filter(id => id !== followingId)
@@ -167,34 +162,16 @@ export default function App() {
     }
   }, [currentUser.id]);
 
-  // ✅ Handle Report Submit
-  const handleReportSubmit = useCallback((memeId: string, reason: string) => {
-    console.log("Report submitted:", { memeId, reason });
-  }, []);
-
-  // ✅ Handle Share Completed
-  const handleShareCompleted = useCallback(async (memeId: string) => {
-    try {
-      console.log("Share completed for meme:", memeId);
-    } catch (error) {
-      console.error("Error handling share:", error);
-    }
-  }, []);
-
-  // ✅ Handle Delete Meme
+  /**
+   * حذف ميم
+   */
   const handleDeleteMeme = useCallback(async (memeId: string) => {
     const isRealUser = currentUser.id !== "guest-user-temp";
-    if (!isRealUser) {
-      setShowAuthModal(true);
-      setAuthTab("signin");
-      return;
-    }
+    if (!isRealUser) return;
 
     try {
       await dataService.deleteMeme(memeId, currentUser.id);
-      
       setMemes(prev => prev.filter(m => m.id !== memeId));
-      cacheRef.current.feed = cacheRef.current.feed.filter(m => m.id !== memeId);
     } catch (error) {
       console.error("Error deleting meme:", error);
     }
@@ -202,220 +179,111 @@ export default function App() {
 
   const isRealUser = currentUser.id !== "guest-user-temp";
 
+  /**
+   * عرض المحتوى بناءً على التبويب النشط
+   */
+  const renderContent = () => {
+    const commonProps = {
+      currentUser,
+      followingIds,
+      handleLikeToggle,
+      handleSaveToggle,
+      handleFollowToggle,
+      setSelectedTag,
+      handleReportSubmit: (memeId: string, reason: string) => console.log("Report:", { memeId, reason }),
+      handleShareCompleted: async (memeId: string) => console.log("Shared:", memeId),
+      handleDeleteMeme,
+      setSelectedProfileId,
+      setActiveTab,
+      setLightboxImage
+    };
+
+    switch (activeTab) {
+      case "feed":
+        return (
+          <FeedPage 
+            {...commonProps}
+            isRealUser={isRealUser} 
+            loading={loading} 
+            filteredMemes={memes.filter(m => (m.caption || "").includes(searchQuery))} 
+            setMemes={setMemes} 
+            setShowAuthModal={setShowAuthModal} 
+            setAuthTab={setAuthTab} 
+            setSearchQuery={setSearchQuery} 
+          />
+        );
+      case "trending":
+        return <TrendingPage {...commonProps} memes={memes} />;
+      case "create-post":
+        return <CreatePostPage currentUser={currentUser} setActiveTab={setActiveTab} />;
+      case "saves":
+        return <SavesPage {...commonProps} memes={memes} />;
+      case "leaderboard":
+        return (
+          <Leaderboard 
+            profiles={profiles} 
+            currentUser={currentUser} 
+            onNavigate={setActiveTab} 
+            onFollowToggle={handleFollowToggle}
+            followingIds={followingIds} 
+          />
+        );
+      case "profile":
+      case "user-profile":
+        const profileToShow = activeTab === "profile" 
+          ? currentUser 
+          : (profiles.find(p => p.id === selectedProfileId) || initialGuestProfile);
+        return (
+          <ProfilePage 
+            {...commonProps}
+            profile={profileToShow} 
+            isOwnProfile={profileToShow.id === currentUser.id} 
+            isRealUser={isRealUser} 
+            userMemes={memes.filter(m => m.user_id === profileToShow.id)} 
+            setCurrentUser={setCurrentUser} 
+            setProfiles={setProfiles} 
+            setShowAuthModal={setShowAuthModal} 
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 flex flex-col antialiased" dir="rtl">
-      
-      {/* مودال تسجيل الدخول وإنشاء الحساب */}
-      {showAuthModal && (
-        <AuthModal 
-          isOpen={showAuthModal} 
-          onClose={() => setShowAuthModal(false)} 
-          initialTab={authTab}
-          authTab={authTab}
-          setAuthTab={setAuthTab}
-          setShowAuthModal={setShowAuthModal}
-        />
-      )}
-
-      {/* Lightbox component for images and videos */}
-      <Lightbox
-        mediaUrl={lightboxImage}
-        mediaType={lightboxMediaType || 'image'}
-        onClose={() => {
-          setLightboxImage(null);
-          setLightboxMediaType(null);
-        }}
-      />
-      {/* الهيدر العلوي */}
-      <Header
-        currentUser={currentUser} 
-        notifications={notifications} 
-        activeTab={activeTab} 
-        isRealUser={isRealUser} 
-        availableProfiles={profiles}
-        onNavigate={(tab) => { setActiveTab(tab); setSelectedTag(null); }} 
-        onSearch={setSearchQuery}
-        onUserSwitch={(p) => { setCurrentUser(p); }} 
-        onMarkNotificationsRead={async () => {}}
-        onShowAuthModal={() => { setShowAuthModal(true); setAuthTab("signin"); }} 
-        onSignOutReal={async () => {
-          try {
-            if (dataService.logout) {
-              await dataService.logout();
-            } else if (dataService.signOut) {
-              await dataService.signOut();
-            }
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            localStorage.removeItem("supabase.auth.token");
-            sessionStorage.clear();
-          } catch (error) {
-            console.error("خطأ أثناء تسجيل الخروج الحقيقي:", error);
-          } finally {
-            setCurrentUser(initialGuestProfile);
-            window.location.reload();
-          }
-        }}
-      />
-
-      {/* جسد التطبيق والمحتوى الرئيسي */}
-      <main className="max-w-7xl mx-auto px-0 md:px-4 py-6 w-full flex-1 flex lg:flex-row flex-col gap-6 items-start">
-        
-        {/* القائمة الجانبية للشاشات الكبيرة */}
-        <RightSidebar
-          isRealUser={isRealUser} 
-          profiles={profiles}
-          onShowAuthModal={() => { setShowAuthModal(true); setAuthTab("signin"); }}
-          setSelectedProfileId={setSelectedProfileId} 
-          setActiveTab={setActiveTab}
-          activeTab={activeTab} 
-        />
-
-        {/* مساحة عرض الصفحات بناءً على التبويب النشط */}
-        <div className="flex-1 max-w-full lg:max-w-2xl mx-auto w-full">
-          
-          {/* صفحة الفيد الرئيسي */}
-          {activeTab === "feed" && (
-            <FeedPage 
-              isRealUser={isRealUser} 
-              loading={loading} 
-              filteredMemes={memes.filter(m => (m.caption || "").includes(searchQuery))} 
-              currentUser={currentUser} 
-              followingIds={followingIds} 
-              setMemes={setMemes} 
-              setShowAuthModal={setShowAuthModal} 
-              setAuthTab={setAuthTab} 
-              setSearchQuery={setSearchQuery} 
-              setSelectedTag={setSelectedTag} 
-              handleLikeToggle={handleLikeToggle}
-              handleSaveToggle={handleSaveToggle}
-              handleFollowToggle={handleFollowToggle}
-              handleReportSubmit={handleReportSubmit}
-              handleShareCompleted={handleShareCompleted}
-              handleDeleteMeme={handleDeleteMeme}
-              setSelectedProfileId={setSelectedProfileId} 
-              setActiveTab={setActiveTab} 
-              setLightboxImage={setLightboxImage} 
-            />
-          )}
-          
-          {/* صفحة التريند والمنشورات الشائعة */}
-          {activeTab === "trending" && (
-            <TrendingPage 
-              memes={memes} 
-              currentUser={currentUser} 
-              followingIds={followingIds} 
-              handleLikeToggle={handleLikeToggle}
-              handleSaveToggle={handleSaveToggle}
-              handleFollowToggle={handleFollowToggle}
-              setSelectedTag={setSelectedTag} 
-              handleReportSubmit={handleReportSubmit}
-              handleShareCompleted={handleShareCompleted}
-              handleDeleteMeme={handleDeleteMeme}
-              setSelectedProfileId={setSelectedProfileId} 
-              setActiveTab={setActiveTab} 
-              setLightboxImage={setLightboxImage} 
-            />
-          )}
-          
-          {/* صفحة إنشاء منشور جديد */}
-          {activeTab === "create-post" && (
-            <CreatePostPage 
-              currentUser={currentUser} 
-              setActiveTab={setActiveTab} 
-            />
-          )}
-          
-          {/* صفحة المحفوظات */}
-          {activeTab === "saves" && (
-            <SavesPage 
-              memes={memes} 
-              currentUser={currentUser} 
-              followingIds={followingIds} 
-              handleLikeToggle={handleLikeToggle}
-              handleSaveToggle={handleSaveToggle}
-              handleFollowToggle={handleFollowToggle}
-              setSelectedTag={setSelectedTag} 
-              handleReportSubmit={handleReportSubmit}
-              handleShareCompleted={handleShareCompleted}
-              handleDeleteMeme={handleDeleteMeme}
-              setSelectedProfileId={setSelectedProfileId} 
-              setActiveTab={setActiveTab} 
-              setLightboxImage={setLightboxImage} 
-            />
-          )}
-          
-          {/* صفحة قائمة المتصدرين */}
-          {activeTab === "leaderboard" && (
-            <Leaderboard 
-              profiles={profiles} 
-              currentUser={currentUser} 
-              onNavigate={setActiveTab} 
-              onFollowToggle={handleFollowToggle}
-              followingIds={followingIds} 
-            />
-          )}
-          
-	          {/* صفحة الملف الشخصي */}
-	          {activeTab === "profile" && (
-	            <ProfilePage 
-	              profile={currentUser} 
-	              currentUser={currentUser} 
-	              isOwnProfile={true} 
-	              isRealUser={isRealUser} 
-	              userMemes={memes.filter(m => m.user_id === currentUser.id)} 
-	              followingIds={followingIds} 
-	              setCurrentUser={setCurrentUser} 
-	              setProfiles={setProfiles} 
-	              setShowAuthModal={setShowAuthModal} 
-	              handleFollowToggle={handleFollowToggle}
-	              handleLikeToggle={handleLikeToggle}
-	              handleSaveToggle={handleSaveToggle}
-	              setSelectedTag={setSelectedTag} 
-	              handleReportSubmit={handleReportSubmit}
-	              handleShareCompleted={handleShareCompleted}
-	              handleDeleteMeme={handleDeleteMeme}
-	              setSelectedProfileId={setSelectedProfileId} 
-	              setActiveTab={setActiveTab} 
-	              setLightboxImage={setLightboxImage} 
-	            />
-	          )}
-
-	          {/* صفحة عرض بروفايل مستخدم آخر */}
-	          {activeTab === "user-profile" && selectedProfileId && (
-	            <ProfilePage 
-	              profile={profiles.find(p => p.id === selectedProfileId) || initialGuestProfile} 
-	              currentUser={currentUser} 
-	              isOwnProfile={selectedProfileId === currentUser.id} 
-	              isRealUser={isRealUser} 
-	              userMemes={memes.filter(m => m.user_id === selectedProfileId)} 
-	              followingIds={followingIds} 
-	              setCurrentUser={setCurrentUser} 
-	              setProfiles={setProfiles} 
-	              setShowAuthModal={setShowAuthModal} 
-	              handleFollowToggle={handleFollowToggle}
-	              handleLikeToggle={handleLikeToggle}
-	              handleSaveToggle={handleSaveToggle}
-	              setSelectedTag={setSelectedTag} 
-	              handleReportSubmit={handleReportSubmit}
-	              handleShareCompleted={handleShareCompleted}
-	              handleDeleteMeme={handleDeleteMeme}
-	              setSelectedProfileId={setSelectedProfileId} 
-	              setActiveTab={setActiveTab} 
-	              setLightboxImage={setLightboxImage} 
-	            />
-	          )}
-        </div>
-      </main>
-
-      {/* الملاحة السفلية للهواتف والموبايل فقط */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex items-center justify-around py-3 lg:hidden">
-        <button onClick={() => setActiveTab("feed")} className={`p-2 ${activeTab === 'feed' ? 'text-blue-600' : 'text-gray-500'}`}><Home className="w-6 h-6" /></button>
-        <button onClick={() => setActiveTab("trending")} className={`p-2 ${activeTab === 'trending' ? 'text-blue-600' : 'text-gray-500'}`}><Flame className="w-6 h-6" /></button>
-        <button onClick={() => setActiveTab("create-post")} className={`p-2 ${activeTab === 'create-post' ? 'text-blue-600' : 'text-gray-500'}`}><PlusCircle className="w-6 h-6" /></button>
-        <button onClick={() => setActiveTab("saves")} className={`p-2 ${activeTab === 'saves' ? 'text-blue-600' : 'text-gray-500'}`}><Bookmark className="w-6 h-6" /></button>
-        <button onClick={() => setActiveTab("profile")} className={`p-2 ${activeTab === 'profile' ? 'text-blue-600' : 'text-gray-500'}`}><User className="w-6 h-6" /></button>
-      </nav>
-    </div>
+    <MainLayout
+      currentUser={currentUser}
+      notifications={notifications}
+      activeTab={activeTab}
+      isRealUser={isRealUser}
+      profiles={profiles}
+      showAuthModal={showAuthModal}
+      authTab={authTab}
+      lightboxImage={lightboxImage}
+      lightboxMediaType={lightboxMediaType}
+      onNavigate={(tab) => { setActiveTab(tab); setSelectedTag(null); }}
+      onSearch={setSearchQuery}
+      onUserSwitch={setCurrentUser}
+      onMarkNotificationsRead={async () => {}}
+      onShowAuthModal={() => { setShowAuthModal(true); setAuthTab("signin"); }}
+      onCloseAuthModal={() => setShowAuthModal(false)}
+      setAuthTab={setAuthTab}
+      setShowAuthModal={setShowAuthModal}
+      onSignOutReal={async () => {
+        try {
+          await dataService.logout?.();
+          localStorage.clear();
+          sessionStorage.clear();
+        } catch (error) {
+          console.error("Logout error:", error);
+        } finally {
+          window.location.reload();
+        }
+      }}
+      setSelectedProfileId={setSelectedProfileId}
+      onCloseLightbox={() => { setLightboxImage(null); setLightboxMediaType(null); }}
+    >
+      {renderContent()}
+    </MainLayout>
   );
 }

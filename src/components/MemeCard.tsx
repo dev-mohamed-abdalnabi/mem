@@ -7,23 +7,30 @@ import { Meme, Comment, Profile } from "../types";
 import { dataService } from "../services/dataService";
 import CustomVideoPlayer from "./CustomVideoPlayer";
 
+/**
+ * واجهة الخصائص لمكون بطاقة الميم (MemeCard)
+ */
 interface MemeCardProps {
   key?: string | number;
-  meme: Meme;
-  currentUser: Profile;
-  onLikeToggle: (memeId: string) => void;
-  onSaveToggle: (memeId: string) => void;
-  onFollowToggle: (followerId: string, followingId: string) => void;
-  onTagClick: (tag: string) => void;
-  onDeleteComment: (commentId: string) => void;
-  onReportSubmit: (memeId: string, reason: string) => void;
-  onShareCompleted: (memeId: string) => void;
-  onDeleteMeme: (memeId: string) => void;
-  onUserProfileClick: (userId: string) => void;
-  isFollowingCreator: boolean;
-  onImageClick?: (url: string) => void;
+  meme: Meme; // بيانات الميم
+  currentUser: Profile; // المستخدم الحالي
+  onLikeToggle: (memeId: string) => void; // وظيفة الإعجاب
+  onSaveToggle: (memeId: string) => void; // وظيفة الحفظ
+  onFollowToggle: (followerId: string, followingId: string) => void; // وظيفة المتابعة
+  onTagClick: (tag: string) => void; // وظيفة النقر على الهاشتاج
+  onDeleteComment: (commentId: string) => void; // وظيفة حذف تعليق
+  onReportSubmit: (memeId: string, reason: string) => void; // وظيفة الإبلاغ
+  onShareCompleted: (memeId: string) => void; // وظيفة اكتمال المشاركة
+  onDeleteMeme: (memeId: string) => void; // وظيفة حذف الميم
+  onUserProfileClick: (userId: string) => void; // وظيفة الانتقال لبروفايل المستخدم
+  isFollowingCreator: boolean; // هل يتابع المستخدم صاحب الميم
+  onImageClick?: (url: string) => void; // وظيفة تكبير الصورة
 }
 
+/**
+ * مكون بطاقة الميم (MemeCard)
+ * يعرض المنشور مع تفاعلاته وتعليقاته
+ */
 export default function MemeCard({
   meme,
   currentUser,
@@ -39,21 +46,26 @@ export default function MemeCard({
   isFollowingCreator,
   onImageClick
 }: MemeCardProps) {
-  const [showComments, setShowComments] = useState(false);
-  const [commentsList, setCommentsList] = useState<Comment[]>([]);
-  const [newCommentText, setNewCommentText] = useState("");
-  const [loadingComments, setLoadingComments] = useState(false);
-  const [commentError, setCommentError] = useState("");
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [shareSuccess, setShareSuccess] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  // --- حالات المكون (States) ---
+  const [showComments, setShowComments] = useState(false); // إظهار التعليقات
+  const [commentsList, setCommentsList] = useState<Comment[]>([]); // قائمة التعليقات
+  const [newCommentText, setNewCommentText] = useState(""); // نص التعليق الجديد
+  const [loadingComments, setLoadingComments] = useState(false); // حالة تحميل التعليقات
+  const [commentError, setCommentError] = useState(""); // خطأ في التعليق
+  const [showReportModal, setShowReportModal] = useState(false); // إظهار مودال الإبلاغ
+  const [shareSuccess, setShareSuccess] = useState(false); // نجاح المشاركة
+  const [currentImageIndex, setCurrentImageIndex] = useState(0); // مؤشر الصورة الحالية في المنشورات المتعددة
 
+  // تحميل التعليقات عند فتح قسم التعليقات
   useEffect(() => {
     if (showComments) {
       loadComments();
     }
   }, [showComments, meme.id]);
 
+  /**
+   * جلب التعليقات من الخدمة
+   */
   const loadComments = async () => {
     setLoadingComments(true);
     try {
@@ -69,6 +81,9 @@ export default function MemeCard({
   const handleLike = () => onLikeToggle(meme.id);
   const handleSave = () => onSaveToggle(meme.id);
 
+  /**
+   * إرسال تعليق جديد
+   */
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCommentText.trim()) return;
@@ -83,6 +98,9 @@ export default function MemeCard({
     }
   };
 
+  /**
+   * نسخ رابط المنشور للمشاركة
+   */
   const handleShareClick = () => {
     onShareCompleted(meme.id);
     const shareLink = `${window.location.origin}/?meme=${meme.id}`;
@@ -92,11 +110,9 @@ export default function MemeCard({
     });
   };
 
-  const handleMultiImageClick = (index: number) => {
-    setCurrentImageIndex(index);
-    onImageClick?.(meme.images![index]);
-  };
-
+  /**
+   * تحليل النص لاستخراج الهاشتاجات وجعلها قابلة للنقر
+   */
   const parseCaption = (caption: string | null) => {
     if (!caption) return "";
     return caption.split(" ").map((word, i) => {
@@ -112,11 +128,13 @@ export default function MemeCard({
     });
   };
 
+  // معلومات منشئ المحتوى
   const creator = meme.profiles || { id: meme.user_id, username: "ميمر_مجهول", avatar_url: null, meme_level: "مبتدئ" };
 
   return (
     <article className="bg-white border-b border-gray-200 text-right flex flex-col mb-0 transition-all shadow-sm hover:shadow-md">
       <div className="flex gap-3 p-4">
+        {/* الجزء الأيمن: الأفاتار وزر المتابعة */}
         <div className="flex flex-col items-center gap-2 shrink-0">
           <div className="relative">
             <div className="cursor-pointer hover:opacity-80" onClick={() => onUserProfileClick(creator.id)}>
@@ -129,6 +147,7 @@ export default function MemeCard({
           <div className="w-0.5 grow bg-gray-100 rounded-full"></div>
         </div>
 
+        {/* الجزء الأيسر: المحتوى والتفاعلات */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-1.5">
@@ -143,15 +162,16 @@ export default function MemeCard({
             </div>
           </div>
 
+          {/* نص المنشور */}
           {meme.caption && <div className="text-sm text-gray-800 leading-relaxed mb-3">{parseCaption(meme.caption)}</div>}
 
-          {/* Media Display - Threads-style Collage for Multi-Image */}
+          {/* عرض الميديا (صورة، فيديو، أو مجموعة صور) */}
           <div className="rounded-xl border border-gray-200 overflow-hidden mb-3 bg-gray-50 relative group">
             {meme.post_type === 'video' && meme.video_url ? (
               <CustomVideoPlayer src={meme.video_url} className="w-full max-h-[500px]" />
             ) : meme.post_type === 'multi-image' && meme.images && meme.images.length > 0 ? (
               <div className="relative bg-gray-900">
-                {/* Threads-style Collage Layout */}
+                {/* تخطيط الصور المتعددة */}
                 {meme.images.length === 2 ? (
                   <div className="grid grid-cols-2 gap-0.5 aspect-square">
                     {meme.images.map((img, idx) => (
@@ -181,7 +201,6 @@ export default function MemeCard({
                     ))}
                   </div>
                 ) : (
-                  /* 5+ images: show first 4 with +X overlay on last */
                   <div className="grid grid-cols-2 gap-0.5 aspect-square">
                     {meme.images.slice(0, 4).map((img, idx) => (
                       <div key={idx} className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(img)}>
@@ -201,6 +220,7 @@ export default function MemeCard({
             ) : null}
           </div>
 
+          {/* أزرار التفاعل */}
           <div className="flex items-center gap-4 py-1">
             <button onClick={handleLike} className={`flex items-center gap-1 ${meme.liked_by_me ? "text-red-500" : "text-gray-800"}`}><Heart className={`w-5 h-5 ${meme.liked_by_me ? "fill-red-500" : ""}`} /></button>
             <button onClick={() => setShowComments(!showComments)} className="flex items-center gap-1 text-gray-800"><MessageCircle className="w-5 h-5" /></button>
@@ -215,9 +235,11 @@ export default function MemeCard({
         </div>
       </div>
 
+      {/* رسائل النجاح والخطأ */}
       {shareSuccess && <div className="bg-green-50 border-y border-green-100 px-4 py-2 text-xs text-green-700 font-extrabold">تم نسخ الرابط بنجاح! 🚀</div>}
       {commentError && <div className="bg-red-50 border-y border-red-100 px-4 py-2.5 text-xs text-red-700 font-bold">{commentError}</div>}
 
+      {/* قسم التعليقات */}
       {showComments && (
         <div className="bg-gray-50/50 p-4 border-t border-gray-100 flex flex-col gap-3">
           {commentsList.map((c) => (

@@ -2,15 +2,22 @@ import React from "react";
 import { Home, Flame, Bookmark, User, LogIn, Sparkles } from "lucide-react";
 import { Profile } from "../types";
 
+/**
+ * واجهة الخصائص لمكون القائمة الجانبية اليمنى
+ */
 interface RightSidebarProps {
-  isRealUser: boolean;
-  profiles: Profile[];
-  onShowAuthModal: () => void;
-  setSelectedProfileId: (id: string) => void;
-  setActiveTab: (tab: string) => void;
-  activeTab?: string;
+  isRealUser: boolean; // هل المستخدم مسجل دخول فعلياً
+  profiles: Profile[]; // قائمة البروفايلات (للمستقبل أو الميزات الإضافية)
+  onShowAuthModal: () => void; // وظيفة إظهار مودال تسجيل الدخول
+  setSelectedProfileId: (id: string | null) => void; // وظيفة تحديد بروفايل مستخدم
+  setActiveTab: (tab: string) => void; // وظيفة تغيير التبويب النشط
+  activeTab?: string; // التبويب النشط حالياً
 }
 
+/**
+ * مكون القائمة الجانبية (RightSidebar)
+ * يظهر في الشاشات الكبيرة ويحتوي على روابط التنقل السريع وبطاقة تسجيل الدخول
+ */
 export default function RightSidebar({
   isRealUser,
   onShowAuthModal,
@@ -18,6 +25,7 @@ export default function RightSidebar({
   activeTab = "feed",
 }: RightSidebarProps) {
 
+  // قائمة عناصر التنقل الرئيسية
   const navItems = [
     { id: "feed", label: "الرئيسية", icon: Home },
     { id: "trending", label: "الترند", icon: Flame },
@@ -26,13 +34,12 @@ export default function RightSidebar({
   ];
 
   return (
-    // ضفت dir="rtl" عشان نضمن إن الاتجاهات تكون مظبوطة دايماً
     <div className="w-72 shrink-0 hidden lg:flex flex-col gap-6 order-3 pb-8 sticky top-24 h-fit" dir="rtl">
       
-      {/* كرت تسجيل الدخول (شكل مودرن وجذاب) */}
+      {/* بطاقة تسجيل الدخول للمستخدمين غير المسجلين */}
       {!isRealUser && (
         <div className="relative overflow-hidden bg-white dark:bg-[#16181c] rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-gray-100 dark:border-gray-800/80 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
-          {/* إضاءة خفيفة في الخلفية تدي لمسة شياكة */}
+          {/* لمسة جمالية: إضاءة خلفية خفيفة */}
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 dark:bg-blue-500/5 rounded-full blur-2xl pointer-events-none"></div>
           
           <div className="relative z-10">
@@ -58,7 +65,7 @@ export default function RightSidebar({
         </div>
       )}
 
-      {/* قائمة الأقسام الرئيسية (Minimal & Clean) */}
+      {/* قائمة التنقل الرئيسية */}
       <div className="bg-white dark:bg-[#16181c] rounded-3xl p-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-gray-100 dark:border-gray-800/80">
         <nav className="flex flex-col gap-1.5">
           {navItems.map((item) => {
@@ -75,12 +82,12 @@ export default function RightSidebar({
                     : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium"
                 }`}
               >
-                {/* خلفية الزرار وهو Active */}
+                {/* خلفية العنصر النشط */}
                 {isActive && (
                   <div className="absolute inset-0 bg-blue-50/80 dark:bg-blue-500/10 rounded-2xl transition-all" />
                 )}
 
-                {/* خلفية الزرار لما الماوس ييجي عليه (Hover) */}
+                {/* خلفية عند تمرير الماوس */}
                 {!isActive && (
                   <div className="absolute inset-0 bg-gray-50 dark:bg-gray-800/40 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity duration-300" />
                 )}

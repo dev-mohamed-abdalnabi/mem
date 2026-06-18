@@ -1,21 +1,28 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search, Bell, Trophy, User, Flame, LogOut, PlusCircle, Settings, LogIn, Sun, Moon } from "lucide-react";
+import { Search, Bell, Trophy, User, Flame, LogOut, PlusCircle, Settings, LogIn, Sun, Moon } from "lucide-center";
 import { Profile, Notification } from "../types";
 
+/**
+ * واجهة الخصائص لمكون الهيدر
+ */
 interface HeaderProps {
-  currentUser: Profile;
-  notifications: Notification[];
-  onNavigate: (tab: string) => void;
-  onSearch: (query: string) => void;
-  activeTab: string;
-  onUserSwitch: (profile: Profile) => void;
-  availableProfiles: Profile[];
-  onMarkNotificationsRead: () => void;
-  onShowAuthModal: () => void;
-  onSignOutReal: () => void;
-  isRealUser: boolean;
+  currentUser: Profile; // المستخدم الحالي
+  notifications: Notification[]; // قائمة الإشعارات
+  onNavigate: (tab: string) => void; // وظيفة التنقل
+  onSearch: (query: string) => void; // وظيفة البحث
+  activeTab: string; // التبويب النشط
+  onUserSwitch: (profile: Profile) => void; // وظيفة تبديل المستخدم
+  availableProfiles: Profile[]; // البروفايلات المتاحة
+  onMarkNotificationsRead: () => void; // وضع علامة مقروء على الإشعارات
+  onShowAuthModal: () => void; // إظهار مودال الدخول
+  onSignOutReal: () => void; // تسجيل الخروج
+  isRealUser: boolean; // هل المستخدم حقيقي
 }
 
+/**
+ * مكون الهيدر العلوي (Header)
+ * يحتوي على اللوجو، شريط البحث، الإشعارات، وقائمة المستخدم
+ */
 export default function Header({
   currentUser,
   notifications,
@@ -29,13 +36,15 @@ export default function Header({
   onSignOutReal,
   isRealUser
 }: HeaderProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  // --- حالات المكون الداخلية ---
+  const [searchQuery, setSearchQuery] = useState(""); // نص البحث الحالي
+  const [showUserDropdown, setShowUserDropdown] = useState(false); // إظهار قائمة المستخدم
+  const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false); // إظهار قائمة الإشعارات
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // تأكيد تسجيل الخروج
 
   const dropdownContainerRef = useRef<HTMLDivElement>(null);
 
+  // حالة الوضع الداكن (Dark Mode)
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return document.documentElement.classList.contains('dark') || 
@@ -44,6 +53,9 @@ export default function Header({
     return false;
   });
 
+  /**
+   * تبديل الثيم بين الفاتح والداكن
+   */
   const toggleTheme = (mode: 'light' | 'dark') => {
     const isDark = mode === 'dark';
     setIsDarkMode(isDark);
@@ -58,17 +70,24 @@ export default function Header({
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
+  /**
+   * التعامل مع تغيير نص البحث
+   */
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setSearchQuery(val);
     onSearch(val);
   };
 
+  /**
+   * إغلاق القوائم المنسدلة
+   */
   const closeUserDropdown = () => {
     setShowUserDropdown(false);
     setShowLogoutConfirm(false);
   };
 
+  // إغلاق القوائم عند النقر خارجها
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownContainerRef.current && !dropdownContainerRef.current.contains(event.target as Node)) {
@@ -84,6 +103,7 @@ export default function Header({
     };
   }, []);
 
+  // تنسيقات مشتركة للأزرار
   const unifiedBtnClass = "h-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors cursor-pointer text-gray-700 dark:text-gray-200 font-bold";
   const unifiedIconClass = `${unifiedBtnClass} w-10`;
 
@@ -91,7 +111,7 @@ export default function Header({
     <header className="sticky top-0 z-50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 transition-all">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
         
-        {/* Logo and Points */}
+        {/* اللوجو والنقاط */}
         <div className="flex items-center gap-3">
           <div
             onClick={() => onNavigate("feed")}
@@ -107,6 +127,7 @@ export default function Header({
             </div>
           </div>
 
+          {/* عرض نقاط المستخدم */}
           <div 
             onClick={() => onNavigate("leaderboard")}
             className="h-10 px-4 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center gap-1.5 text-sm font-bold cursor-pointer select-none transition-colors text-gray-800 dark:text-gray-200"
@@ -117,8 +138,8 @@ export default function Header({
           </div>
         </div>
 
-        {/* Central Search Bar */}
-        <div className="flex-1 max-w-md relative hidden md:block">
+        {/* شريط البحث المركزي */}
+        <div className="flex-1 max-md relative hidden md:block">
           <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
             <Search className="w-4 h-4" />
           </div>
@@ -131,10 +152,10 @@ export default function Header({
           />
         </div>
 
-        {/* Right Actions & Utilities */}
+        {/* الإجراءات والقوائم المنسدلة */}
         <div ref={dropdownContainerRef} className="flex items-center gap-2">
           
-          {/* Post Button */}
+          {/* زر نشر ميم جديد */}
           <button
             onClick={() => onNavigate("create-post")}
             className={`h-10 px-4 rounded-full flex items-center gap-2 font-bold text-sm transition-colors cursor-pointer ${
@@ -148,7 +169,7 @@ export default function Header({
             <span className="hidden sm:inline">انشر ميم</span>
           </button>
 
-          {/* Notifications Trigger */}
+          {/* قائمة الإشعارات */}
           <div className="relative">
             <button
               onClick={() => {
@@ -165,6 +186,7 @@ export default function Header({
               )}
             </button>
 
+            {/* محتوى قائمة الإشعارات */}
             {showNotificationsDropdown && (
               <div className="absolute top-full mt-2 w-[320px] max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl py-2 text-right z-50 shadow-2xl -left-12 sm:left-0 origin-top-left">
                 <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
@@ -192,6 +214,7 @@ export default function Header({
                           !notif.is_read ? "bg-blue-50/50 dark:bg-blue-900/20" : ""
                         }`}
                       >
+                        {/* صورة صاحب الإشعار */}
                         {notif.actor?.avatar_url ? (
                           <img src={notif.actor.avatar_url} alt="avatar" className="w-8 h-8 rounded-full object-cover bg-gray-100 dark:bg-gray-800" />
                         ) : (
@@ -221,7 +244,7 @@ export default function Header({
             )}
           </div>
 
-          {/* Current User Trigger */}
+          {/* قائمة المستخدم الحالي */}
           <div className="relative">
             <button
               onClick={() => {
@@ -254,7 +277,7 @@ export default function Header({
               )}
             </button>
 
-            {/* Profile Dropdown */}
+            {/* محتوى قائمة الملف الشخصي */}
             {showUserDropdown && (
               <div className="absolute top-full mt-2 w-64 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl py-2 text-right z-50 shadow-2xl -left-2 sm:left-0 origin-top-left">
                 {isRealUser ? (
@@ -270,6 +293,7 @@ export default function Header({
                     </div>
 
                     <div className="py-2">
+                      {/* تبديل الثيم */}
                       <div className="px-3 pb-2 mb-1 border-b border-gray-100 dark:border-gray-800">
                         <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-xl flex items-center">
                           <button 
@@ -292,67 +316,33 @@ export default function Header({
                         <Settings className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                       </button>
 
-                      <button onClick={() => { onNavigate("leaderboard"); closeUserDropdown(); }} className="w-full text-right px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 font-bold flex items-center justify-between transition-colors">
-                        <span>المتصدرين</span>
-                        <Trophy className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                      </button>
-                    </div>
-
-                    <div className="border-t border-gray-100 dark:border-gray-800 mt-1">
-                      {showLogoutConfirm ? (
-                        <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/80 rounded-b-2xl">
-                          <p className="text-xs text-gray-800 dark:text-gray-200 font-bold mb-2 text-center">هل أنت متأكد من الخروج؟</p>
-                          <div className="flex items-center justify-center gap-2">
-                            <button onClick={() => { onSignOutReal(); closeUserDropdown(); }} className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-colors flex-1">
-                              نعم، خروج
-                            </button>
-                            <button onClick={() => setShowLogoutConfirm(false)} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors flex-1 ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}>
-                              إلغاء
-                            </button>
+                      {/* تسجيل الخروج */}
+                      <div className="border-t border-gray-100 dark:border-gray-800 mt-2 pt-2">
+                        {!showLogoutConfirm ? (
+                          <button onClick={() => setShowLogoutConfirm(true)} className="w-full text-right px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600 dark:text-red-400 font-bold flex items-center justify-between transition-colors">
+                            <span>تسجيل الخروج</span>
+                            <LogOut className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <div className="px-4 py-2 bg-red-50 dark:bg-red-900/10 mx-2 rounded-xl">
+                            <p className="text-[10px] text-red-600 dark:text-red-400 font-bold text-center mb-2">متأكد إنك طالع؟</p>
+                            <div className="flex gap-2">
+                              <button onClick={onSignOutReal} className="flex-1 bg-red-600 text-white py-1 rounded-lg text-[10px] font-black hover:bg-red-700">نعم</button>
+                              <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-1 rounded-lg text-[10px] font-black">إلغاء</button>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <button onClick={(e) => { e.stopPropagation(); setShowLogoutConfirm(true); }} className="w-full px-4 py-3 text-right text-sm text-red-600 dark:text-red-400 font-bold flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer rounded-b-2xl">
-                          <LogOut className="w-4 h-4" />
-                          <span>تسجيل الخروج</span>
-                        </button>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </>
                 ) : (
-                  <>
-                    <div className="px-4 py-4 border-b border-gray-100 dark:border-gray-800 text-center bg-gray-50/50 dark:bg-gray-800/80 rounded-t-2xl">
-                      <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <User className="w-6 h-6 text-gray-400 dark:text-gray-500" />
-                      </div>
-                      <p className="font-bold text-gray-900 dark:text-white text-sm">أهلاً بك يا زائر!</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">سجل دخولك لتتمكن من النشر والتفاعل.</p>
-                    </div>
-                    
-                    <div className="py-2 px-3">
-                      <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-xl flex items-center">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); toggleTheme('light'); }}
-                          className={`flex-1 flex justify-center items-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${!isDarkMode ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-white'}`}
-                        >
-                          <Sun className="w-4 h-4" /> فاتح
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); toggleTheme('dark'); }}
-                          className={`flex-1 flex justify-center items-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${isDarkMode ? 'bg-gray-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-                        >
-                          <Moon className="w-4 h-4" /> داكن
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="p-3 border-t border-gray-100 dark:border-gray-800 mt-1">
-                      <button onClick={() => { onShowAuthModal(); closeUserDropdown(); }} className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all">
-                        <LogIn className="w-4 h-4" />
-                        <span>دخول / إنشاء حساب</span>
-                      </button>
-                    </div>
-                  </>
+                  <div className="p-4 text-center">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 font-bold mb-4">سجل دخول عشان ترفع ميمز وتجمع نقاط! 🚀</p>
+                    <button onClick={() => { onShowAuthModal(); closeUserDropdown(); }} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/20">
+                      <LogIn className="w-4 h-4" />
+                      سجل دخولك الآن
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -361,4 +351,4 @@ export default function Header({
       </div>
     </header>
   );
-                        }
+}
