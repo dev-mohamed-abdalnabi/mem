@@ -35,12 +35,15 @@ export default function App() {
   // --- حالات التطبيق (States) ---
   const [activeTab, setActiveTab] = useState("feed"); // التبويب النشط
   const [currentUser, setCurrentUser] = useState<Profile>(initialGuestProfile); // المستخدم الحالي
-  const [memes, setMemes] = useState<Meme[]>([]); // قائمة الميمز
+  const [memes, setMemes] = useState<Meme[]>([]); // قائمة الميمز المعروضة
   const [profiles, setProfiles] = useState<Profile[]>([]); // قائمة البروفايلات
   const [notifications, setNotifications] = useState<Notification[]>([]); // الإشعارات
-  const [loading, setLoading] = useState(true); // حالة التحميل
+  const [loading, setLoading] = useState(true); // حالة التحميل الأولية
+  const [loadingMore, setLoadingMore] = useState(false); // حالة تحميل المزيد من البيانات
+  const [hasMore, setHasMore] = useState(true); // هل توجد بيانات إضافية للتحميل
+  const [page, setPage] = useState(0); // رقم الصفحة الحالية للتحميل التدريجي
+  
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null); // معرف البروفايل المختار
-
   const [showAuthModal, setShowAuthModal] = useState(false); // إظهار مودال الدخول
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin"); // تبويب مودال الدخول
   const [lightboxImage, setLightboxImage] = useState<string | null>(null); // صورة اللايت بوكس
@@ -68,20 +71,17 @@ export default function App() {
         const dbCurrentUser = await dataService.getCurrentUser();
         setCurrentUser(dbCurrentUser || initialGuestProfile);
         
-        const dbMemes = await dataService.getMemes("approved", undefined, dbCurrentUser?.id || initialGuestProfile.id);
+        // تحميل الصفحة الأولى من الميمز (10 عناصر)
+        const dbMemes = await dataService.getMemes("approved", undefined, dbCurrentUser?.id || initialGuestProfile.id, 0, 10);
         setMemes(dbMemes);
-        cacheRef.current.feed = dbMemes;
-        cacheRef.current.trending = dbMemes;
+        setPage(1); // الاستعداد للصفحة التالية
+        setHasMore(dbMemes.length === 10);
         
         const dbProfiles = await dataService.getProfilesList();
         setProfiles(dbProfiles);
-        cacheRef.current.profiles = dbProfiles;
         
         const dbFollowingIds = await dataService.getFollowingList(dbCurrentUser?.id || initialGuestProfile.id);
         setFollowingIds(dbFollowingIds);
-        
-        cacheRef.current.loadedTabs.add("feed");
-        cacheRef.current.lastLoadTime = Date.now();
       } catch (e) { 
         console.warn("خطأ في تحميل البيانات:", e); 
       } finally { 
@@ -92,11 +92,37 @@ export default function App() {
     loadInitialData();
   }, []);
 
+  /**
+   * تحميل المزيد من الميمز (Infinite Scroll)
+   */
+  const loadMoreMemes = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+
+    setLoadingMore(true);
+    try {
+      const nextMemes = await dataService.getMemes(
+        "approved", 
+        undefined, 
+        currentUser.id, 
+        page, 
+        10
+      );
+
+      if (nextMemes.length < 10) {
+        setHasMore(false);
+      }
+
+      setMemes(prev => [...prev, ...nextMemes]);
+      setPage(prev => prev + 1);
+    } catch (error) {
+      console.error("Error loading more memes:", error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, page, currentUser.id]);
+
   // --- دوال التعامل مع الأحداث (Handlers) ---
 
-  /**
-   * التفاعل مع الإعجاب (Like)
-   */
   const handleLikeToggle = useCallback(async (memeId: string) => {
     const isRealUser = currentUser.id !== "guest-user-temp";
     if (!isRealUser) {
@@ -107,7 +133,6 @@ export default function App() {
 
     try {
       const result = await dataService.toggleLike(memeId, currentUser.id);
-      
       setMemes(prev => prev.map(m => 
         m.id === memeId 
           ? { ...m, liked_by_me: result.liked, likes_count: result.likesCount }
@@ -118,9 +143,6 @@ export default function App() {
     }
   }, [currentUser.id]);
 
-  /**
-   * التفاعل مع الحفظ (Save)
-   */
   const handleSaveToggle = useCallback(async (memeId: string) => {
     const isRealUser = currentUser.id !== "guest-user-temp";
     if (!isRealUser) {
@@ -139,9 +161,6 @@ export default function App() {
     }
   }, [currentUser.id]);
 
-  /**
-   * التفاعل مع المتابعة (Follow)
-   */
   const handleFollowToggle = useCallback(async (followerId: string, followingId: string) => {
     const isRealUser = currentUser.id !== "guest-user-temp";
     if (!isRealUser) {
@@ -162,9 +181,6 @@ export default function App() {
     }
   }, [currentUser.id]);
 
-  /**
-   * حذف ميم
-   */
   const handleDeleteMeme = useCallback(async (memeId: string) => {
     const isRealUser = currentUser.id !== "guest-user-temp";
     if (!isRealUser) return;
@@ -205,6 +221,9 @@ export default function App() {
             {...commonProps}
             isRealUser={isRealUser} 
             loading={loading} 
+            loadingMore={loadingMore}
+            hasMore={hasMore}
+            loadMore={loadMoreMemes}
             filteredMemes={memes.filter(m => (m.caption || "").includes(searchQuery))} 
             setMemes={setMemes} 
             setShowAuthModal={setShowAuthModal} 
@@ -261,7 +280,15 @@ export default function App() {
       authTab={authTab}
       lightboxImage={lightboxImage}
       lightboxMediaType={lightboxMediaType}
-      onNavigate={(tab) => { setActiveTab(tab); setSelectedTag(null); }}
+      onNavigate={(tab) => { 
+        setActiveTab(tab); 
+        setSelectedTag(null);
+        // إعادة تعيين الصفحة عند تغيير التبويب إذا لزم الأمر
+        if (tab === "feed") {
+          setPage(1);
+          setHasMore(true);
+        }
+      }}
       onSearch={setSearchQuery}
       onUserSwitch={setCurrentUser}
       onMarkNotificationsRead={async () => {}}
@@ -271,7 +298,7 @@ export default function App() {
       setShowAuthModal={setShowAuthModal}
       onSignOutReal={async () => {
         try {
-          await dataService.logout?.();
+          await dataService.signOut?.();
           localStorage.clear();
           sessionStorage.clear();
         } catch (error) {

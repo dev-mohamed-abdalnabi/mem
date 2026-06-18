@@ -273,7 +273,24 @@ export const dataService = {
   },
 
   // Memes Content
-  getMemes: async (status: string = "approved", userId?: string, currentUserId?: string): Promise<Meme[]> => {
+  /**
+   * جلب الميمز مع دعم التحميل التدريجي (Pagination)
+   * @param status حالة الميم (افتراضياً approved)
+   * @param userId جلب ميمز مستخدم معين
+   * @param currentUserId المستخدم الحالي للتحقق من الإعجابات والحفظ
+   * @param page رقم الصفحة للتحميل التدريجي
+   * @param limit عدد العناصر في كل صفحة
+   */
+  getMemes: async (
+    status: string = "approved", 
+    userId?: string, 
+    currentUserId?: string, 
+    page: number = 0, 
+    limit: number = 10
+  ): Promise<Meme[]> => {
+    const from = page * limit;
+    const to = from + limit - 1;
+
     let query = supabase
       .from("memes")
       .select("*, profiles!user_id(*)")
@@ -283,7 +300,10 @@ export const dataService = {
       query = query.eq("user_id", ensureUUID(userId));
     }
 
-    const { data, error } = await query.order("created_at", { ascending: false });
+    // تطبيق الترتيب والترقيم (Pagination)
+    const { data, error } = await query
+      .order("created_at", { ascending: false })
+      .range(from, to);
     
     if (error) throw error;
     
