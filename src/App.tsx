@@ -48,6 +48,7 @@ export default function App() {
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin"); // تبويب مودال الدخول
   const [lightboxImage, setLightboxImage] = useState<string | null>(null); // صورة اللايت بوكس
   const [lightboxMediaType, setLightboxMediaType] = useState<'image' | 'video' | null>(null); // نوع ميديا اللايت بوكس
+  const [selectedMemeForComments, setSelectedMemeForComments] = useState<Meme | null>(null); // المنشور المختار لعرض التعليقات
   const [searchQuery, setSearchQuery] = useState(""); // نص البحث
   const [selectedTag, setSelectedTag] = useState<string | null>(null); // التاج المختار
   const [followingIds, setFollowingIds] = useState<string[]>([]); // قائمة المعرفات التي يتابعها المستخدم
@@ -228,7 +229,8 @@ export default function App() {
             setMemes={setMemes} 
             setShowAuthModal={setShowAuthModal} 
             setAuthTab={setAuthTab} 
-            setSearchQuery={setSearchQuery} 
+            setSearchQuery={setSearchQuery}
+            onOpenComments={(meme) => setSelectedMemeForComments(meme)}
           />
         );
       case "trending":
@@ -311,6 +313,25 @@ export default function App() {
       onCloseLightbox={() => { setLightboxImage(null); setLightboxMediaType(null); }}
     >
       {renderContent()}
+      
+      {selectedMemeForComments && (
+        <PostDetailModal 
+          meme={selectedMemeForComments}
+          currentUser={currentUser}
+          onClose={() => setSelectedMemeForComments(null)}
+          onLikeToggle={handleLikeToggle}
+          onSaveToggle={handleSaveToggle}
+          onShare={(id) => {
+            const shareLink = `${window.location.origin}/?meme=${id}`;
+            navigator.clipboard.writeText(shareLink);
+          }}
+          onUserProfileClick={(id) => {
+            setSelectedProfileId(id);
+            setActiveTab("user-profile");
+            setSelectedMemeForComments(null);
+          }}
+        />
+      )}
     </MainLayout>
   );
 }

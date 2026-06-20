@@ -31,6 +31,7 @@ interface FeedPageProps {
   setSelectedProfileId: (id: string | null) => void;
   setActiveTab: (tab: string) => void;
   setLightboxImage: (url: string | null) => void;
+  onOpenComments?: (meme: Meme) => void;
 }
 
 /**
@@ -60,6 +61,7 @@ export default function FeedPage({
   setSelectedProfileId,
   setActiveTab,
   setLightboxImage,
+  onOpenComments,
 }: FeedPageProps) {
   
   const loaderRef = useRef<HTMLDivElement>(null);
@@ -143,6 +145,7 @@ export default function FeedPage({
                 onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }}
                 isFollowingCreator={followingIds.includes(meme.user_id)}
                 onImageClick={(url: string) => setLightboxImage(url)}
+                onOpenComments={onOpenComments}
               />
             </div>
           ))}

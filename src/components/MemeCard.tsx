@@ -3,6 +3,7 @@ import {
   Heart, MessageCircle, Share2, Bookmark, 
   Trash2, AlertOctagon, Check, Frown, ShieldAlert, PlusCircle, ChevronRight, ChevronLeft
 } from "lucide-react";
+import PostDetailModal from "./PostDetailModal";
 import { Meme, Comment, Profile } from "../types";
 import { dataService } from "../services/dataService";
 import CustomVideoPlayer from "./CustomVideoPlayer";
@@ -25,6 +26,7 @@ interface MemeCardProps {
   onUserProfileClick: (userId: string) => void; // وظيفة الانتقال لبروفايل المستخدم
   isFollowingCreator: boolean; // هل يتابع المستخدم صاحب الميم
   onImageClick?: (url: string) => void; // وظيفة تكبير الصورة
+  onOpenComments?: (meme: Meme) => void; // وظيفة فتح التعليقات في صفحة كاملة
 }
 
 /**
@@ -80,6 +82,13 @@ export default function MemeCard({
 
   const handleLike = () => onLikeToggle(meme.id);
   const handleSave = () => onSaveToggle(meme.id);
+  const handleOpenComments = () => {
+    if (onOpenComments) {
+      onOpenComments(meme);
+    } else {
+      setShowComments(!showComments);
+    }
+  };
 
   /**
    * إرسال تعليق جديد
@@ -223,14 +232,14 @@ export default function MemeCard({
           {/* أزرار التفاعل */}
           <div className="flex items-center gap-4 py-1">
             <button onClick={handleLike} className={`flex items-center gap-1 ${meme.liked_by_me ? "text-red-500" : "text-gray-800"}`}><Heart className={`w-5 h-5 ${meme.liked_by_me ? "fill-red-500" : ""}`} /></button>
-            <button onClick={() => setShowComments(!showComments)} className="flex items-center gap-1 text-gray-800"><MessageCircle className="w-5 h-5" /></button>
+            <button onClick={handleOpenComments} className="flex items-center gap-1 text-gray-800"><MessageCircle className="w-5 h-5" /></button>
             <button onClick={handleShareClick} className="flex items-center gap-1 text-gray-800"><Share2 className="w-5 h-5" /></button>
             <button onClick={handleSave} className={`flex items-center gap-1 ${meme.saved_by_me ? "text-orange-500" : "text-gray-800"}`}><Bookmark className={`w-5 h-5 ${meme.saved_by_me ? "fill-orange-500" : ""}`} /></button>
           </div>
           <div className="flex items-center gap-2 mt-2 text-xs text-gray-400 font-medium">
             <span>{meme.likes_count} إعجاب</span>
             <span>•</span>
-            <button onClick={() => setShowComments(!showComments)} className="hover:underline">{meme.comments_count} ردود</button>
+            <button onClick={handleOpenComments} className="hover:underline">{meme.comments_count} ردود</button>
           </div>
         </div>
       </div>
