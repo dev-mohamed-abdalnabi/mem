@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX } from "lucide-react";
 
 interface CustomVideoPlayerProps {
   src: string;
@@ -22,12 +22,12 @@ export default function CustomVideoPlayer({
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [buffered, setBuffered] = useState(0);
   
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
+  const hideTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     const video = videoRef.current;
@@ -81,41 +81,17 @@ export default function CustomVideoPlayer({
     }
   }, [volume, isMuted]);
 
-  const handleMouseMove = () => {
+  const handleInteraction = () => {
     setShowControls(true);
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
+    
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
     }
     
     if (isPlaying) {
-      controlsTimeoutRef.current = setTimeout(() => {
+      hideTimeoutRef.current = setTimeout(() => {
         setShowControls(false);
-      }, 3000);
-    }
-  };
-
-  const handleFullscreen = () => {
-    if (!containerRef.current) return;
-    
-    if (!isFullscreen) {
-      if (containerRef.current.requestFullscreen) {
-        containerRef.current.requestFullscreen();
-      } else if ((containerRef.current as any).webkitRequestFullscreen) {
-        (containerRef.current as any).webkitRequestFullscreen();
-      }
-    } else {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else if ((document as any).webkitFullscreenElement) {
-        (document as any).webkitExitFullscreen();
-      }
-    }
-    setIsFullscreen(!isFullscreen);
-  };
-
-  const handleSkip = (seconds: number) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = Math.max(0, Math.min(duration, currentTime + seconds));
+      }, 4000);
     }
   };
 
@@ -132,8 +108,9 @@ export default function CustomVideoPlayer({
   return (
     <div
       ref={containerRef}
-      className={`relative bg-black rounded-lg overflow-hidden group ${className}`}
-      onMouseMove={handleMouseMove}
+      className={`relative bg-black rounded-lg overflow-hidden group w-full ${className}`}
+      onTouchStart={handleInteraction}
+      onMouseMove={handleInteraction}
       onMouseLeave={() => isPlaying && setShowControls(false)}
     >
       {/* Video Element */}
@@ -143,6 +120,7 @@ export default function CustomVideoPlayer({
         poster={poster}
         className="w-full h-full object-contain"
         onClick={() => setIsPlaying(!isPlaying)}
+        playsInline
       />
 
       {/* Loading Spinner */}
@@ -165,7 +143,7 @@ export default function CustomVideoPlayer({
 
       {/* Controls */}
       <div
-        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 ${
+        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-3 sm:p-4 transition-opacity duration-300 ${
           showControls ? "opacity-100" : "opacity-0"
         }`}
       >
@@ -177,6 +155,14 @@ export default function CustomVideoPlayer({
               const percent = (e.clientX - rect.left) / rect.width;
               if (videoRef.current) {
                 videoRef.current.currentTime = percent * duration;
+              }
+            }}
+            onTouchEnd={(e) => {
+              const touch = e.changedTouches[0];
+              const rect = e.currentTarget.getBoundingClientRect();
+              const percent = (touch.clientX - rect.left) / rect.width;
+              if (videoRef.current) {
+                videoRef.current.currentTime = Math.max(0, Math.min(duration, percent * duration));
               }
             }}
           >
@@ -194,12 +180,12 @@ export default function CustomVideoPlayer({
         </div>
 
         {/* Controls Row */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-1">
             {/* Play/Pause */}
             <button
               onClick={() => setIsPlaying(!isPlaying)}
-              className="text-white hover:text-red-500 transition-colors p-1"
+              className="text-white hover:text-red-500 transition-colors p-1 flex-shrink-0"
               title={isPlaying ? "إيقاف مؤقت" : "تشغيل"}
             >
               {isPlaying ? (
@@ -209,27 +195,11 @@ export default function CustomVideoPlayer({
               )}
             </button>
 
-            {/* Skip Buttons */}
-            <button
-              onClick={() => handleSkip(-10)}
-              className="text-white hover:text-red-500 transition-colors p-1"
-              title="رجوع 10 ثواني"
-            >
-              <SkipBack className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => handleSkip(10)}
-              className="text-white hover:text-red-500 transition-colors p-1"
-              title="تقديم 10 ثواني"
-            >
-              <SkipForward className="w-5 h-5" />
-            </button>
-
             {/* Volume Control */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => setIsMuted(!isMuted)}
-                className="text-white hover:text-red-500 transition-colors p-1"
+                className="text-white hover:text-red-500 transition-colors p-1 flex-shrink-0"
                 title={isMuted ? "تفعيل الصوت" : "كتم الصوت"}
               >
                 {isMuted || volume === 0 ? (
@@ -249,39 +219,19 @@ export default function CustomVideoPlayer({
                   setVolume(val);
                   if (val > 0) setIsMuted(false);
                 }}
-                className="w-16 h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-red-500"
+                className="w-12 h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-red-500 hidden sm:block"
                 title="مستوى الصوت"
               />
             </div>
 
             {/* Time Display */}
-            <div className="text-white text-sm ml-2">
+            <div className="text-white text-xs sm:text-sm ml-auto flex-shrink-0">
               <span>{formatTime(currentTime)}</span>
               <span className="text-white/50"> / </span>
               <span>{formatTime(duration)}</span>
             </div>
           </div>
-
-          {/* Fullscreen Button */}
-          <button
-            onClick={handleFullscreen}
-            className="text-white hover:text-red-500 transition-colors p-1"
-            title={isFullscreen ? "خروج من ملء الشاشة" : "ملء الشاشة"}
-          >
-            {isFullscreen ? (
-              <Minimize className="w-5 h-5" />
-            ) : (
-              <Maximize className="w-5 h-5" />
-            )}
-          </button>
         </div>
-      </div>
-
-      {/* Keyboard Shortcuts Hint */}
-      <div className={`absolute top-2 left-2 text-white/40 text-xs transition-opacity duration-300 ${
-        showControls ? "opacity-100" : "opacity-0"
-      }`}>
-        <p>Space: تشغيل/إيقاف | ←/→: تقديم/رجوع | F: ملء الشاشة</p>
       </div>
     </div>
   );

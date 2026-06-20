@@ -1,5 +1,5 @@
 import React from "react";
-import { X, ZoomIn, ZoomOut, Download } from "lucide-react";
+import { X, ZoomIn, ZoomOut, Download, Heart, MessageCircle, Share2 } from "lucide-react";
 
 interface LightboxProps {
   mediaUrl: string | null;
@@ -10,20 +10,12 @@ interface LightboxProps {
 export default function Lightbox({ mediaUrl, mediaType = 'image', onClose }: LightboxProps) {
   const [scale, setScale] = React.useState(1);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isLiked, setIsLiked] = React.useState(false);
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
-      }
-      if (e.key === "+" || e.key === "=") {
-        setScale(prev => Math.min(prev + 0.2, 3));
-      }
-      if (e.key === "-" || e.key === "_") {
-        setScale(prev => Math.max(prev - 0.2, 0.5));
-      }
-      if (e.key === "0") {
-        setScale(1);
       }
     };
 
@@ -42,9 +34,19 @@ export default function Lightbox({ mediaUrl, mediaType = 'image', onClose }: Lig
     document.body.removeChild(link);
   };
 
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'مشاركة',
+        text: 'شارك هذا المحتوى',
+        url: mediaUrl
+      }).catch(err => console.log('Share error:', err));
+    }
+  };
+
   return (
     <div
-      className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[9999] bg-black/98 flex items-center justify-center backdrop-blur-sm p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
@@ -53,48 +55,14 @@ export default function Lightbox({ mediaUrl, mediaType = 'image', onClose }: Lig
       role="dialog"
       aria-modal="true"
     >
-      {/* Close Button */}
+      {/* Close Button - Top Left */}
       <button
-        className="absolute top-4 right-4 text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all z-50 hover:scale-110 active:scale-95"
+        className="absolute top-4 left-4 text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all z-50 hover:scale-110 active:scale-95"
         onClick={onClose}
-        title="إغلاق (Esc)"
         aria-label="إغلاق"
       >
         <X className="w-6 h-6" />
       </button>
-
-      {/* Controls - Facebook Style */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/70 px-4 py-3 rounded-full backdrop-blur-md z-50 border border-white/20">
-        {mediaType === 'image' && (
-          <>
-            <button
-              onClick={() => setScale(prev => Math.max(prev - 0.2, 0.5))}
-              className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors hover:scale-110 active:scale-95"
-              title="تصغير (-)"
-            >
-              <ZoomOut className="w-5 h-5" />
-            </button>
-            <span className="text-white text-sm px-3 py-2 min-w-[60px] text-center font-bold">
-              {Math.round(scale * 100)}%
-            </span>
-            <button
-              onClick={() => setScale(prev => Math.min(prev + 0.2, 3))}
-              className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors hover:scale-110 active:scale-95"
-              title="تكبير (+)"
-            >
-              <ZoomIn className="w-5 h-5" />
-            </button>
-            <div className="w-px bg-white/20" />
-          </>
-        )}
-        <button
-          onClick={handleDownload}
-          className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors hover:scale-110 active:scale-95"
-          title="تحميل"
-        >
-          <Download className="w-5 h-5" />
-        </button>
-      </div>
 
       {/* Media Container */}
       <div className="max-w-5xl max-h-[90vh] w-full flex items-center justify-center overflow-auto">
@@ -104,6 +72,7 @@ export default function Lightbox({ mediaUrl, mediaType = 'image', onClose }: Lig
             className="max-w-full max-h-[90vh] rounded-xl shadow-2xl"
             controls
             autoPlay
+            playsInline
             onLoadStart={() => setIsLoading(true)}
             onCanPlay={() => setIsLoading(false)}
             onError={() => {
@@ -133,10 +102,78 @@ export default function Lightbox({ mediaUrl, mediaType = 'image', onClose }: Lig
         )}
       </div>
 
-      {/* Info Text - Facebook Style */}
-      <div className="absolute top-4 left-4 text-white/70 text-sm font-medium bg-black/40 px-3 py-2 rounded-lg backdrop-blur-sm border border-white/20">
-        <p>اضغط Esc للإغلاق</p>
-        {mediaType === 'image' && <p className="text-xs text-white/60 mt-1">استخدم + و - لتكبير/تصغير أو 0 للإعادة</p>}
+      {/* Bottom Action Bar - Instagram Style */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent p-4 sm:p-6">
+        <div className="flex items-center justify-between gap-3 max-w-5xl mx-auto">
+          {/* Left Actions */}
+          <div className="flex items-center gap-3">
+            {/* Like Button */}
+            <button
+              onClick={() => setIsLiked(!isLiked)}
+              className={`p-2 rounded-full transition-all hover:scale-110 active:scale-95 ${
+                isLiked 
+                  ? 'bg-red-500/30 text-red-400' 
+                  : 'bg-white/10 hover:bg-white/20 text-white'
+              }`}
+              title="إعجاب"
+            >
+              <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
+            </button>
+
+            {/* Comment Button */}
+            <button
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-110 active:scale-95"
+              title="تعليق"
+            >
+              <MessageCircle className="w-6 h-6" />
+            </button>
+
+            {/* Share Button */}
+            <button
+              onClick={handleShare}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-110 active:scale-95"
+              title="مشاركة"
+            >
+              <Share2 className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-3">
+            {/* Zoom Controls - Images Only */}
+            {mediaType === 'image' && (
+              <>
+                <button
+                  onClick={() => setScale(prev => Math.max(prev - 0.2, 0.5))}
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-110 active:scale-95"
+                  title="تصغير"
+                >
+                  <ZoomOut className="w-5 h-5" />
+                </button>
+                <span className="text-white text-sm font-bold min-w-[50px] text-center">
+                  {Math.round(scale * 100)}%
+                </span>
+                <button
+                  onClick={() => setScale(prev => Math.min(prev + 0.2, 3))}
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-110 active:scale-95"
+                  title="تكبير"
+                >
+                  <ZoomIn className="w-5 h-5" />
+                </button>
+                <div className="w-px h-6 bg-white/20" />
+              </>
+            )}
+
+            {/* Download Button */}
+            <button
+              onClick={handleDownload}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-110 active:scale-95"
+              title="تحميل"
+            >
+              <Download className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
