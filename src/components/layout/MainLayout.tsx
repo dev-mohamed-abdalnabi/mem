@@ -76,11 +76,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       )}
 
       {/* مكون عرض الصور والفيديوهات بشكل مكبر (Lightbox) */}
-      <Lightbox
-        mediaUrl={lightboxImage}
-        mediaType={lightboxMediaType || 'image'}
-        onClose={onCloseLightbox}
-      />
+      {lightboxImage && (
+        <Lightbox
+          mediaUrl={lightboxImage}
+          mediaType={lightboxMediaType || 'image'}
+          onClose={onCloseLightbox}
+        />
+      )}
 
       {/* الشريط السفلي للموبايل (BottomNavigation) */}
       <BottomNavigation

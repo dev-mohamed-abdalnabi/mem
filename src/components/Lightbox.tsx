@@ -12,6 +12,8 @@ export default function Lightbox({ mediaUrl, mediaType = 'image', onClose }: Lig
   const [isLiked, setIsLiked] = useState(false);
 
   useEffect(() => {
+    if (!mediaUrl) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
@@ -26,7 +28,7 @@ export default function Lightbox({ mediaUrl, mediaType = 'image', onClose }: Lig
       window.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = 'auto';
     };
-  }, [onClose]);
+  }, [onClose, mediaUrl]);
 
   if (!mediaUrl) return null;
 

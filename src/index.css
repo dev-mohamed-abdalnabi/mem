@@ -202,13 +202,15 @@ article {
 }
 
 /* ===== MODALS & OVERLAYS ===== */
-.fixed.inset-0 {
+/* Only apply background to actual modal backdrops, not all fixed inset-0 elements */
+.modal-backdrop,
+[role="dialog"].fixed.inset-0 {
   background-color: rgba(0, 0, 0, 0.6);
 }
 
-.fixed.inset-0 > div {
-  background-color: var(--card);
-  color: var(--foreground);
+/* Specific fix for potential freezing */
+body.modal-open {
+  overflow: hidden;
 }
 
 /* ===== COLOR SCHEME ===== */
