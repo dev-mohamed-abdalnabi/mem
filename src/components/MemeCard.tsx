@@ -46,7 +46,8 @@ export default function MemeCard({
   onDeleteMeme,
   onUserProfileClick,
   isFollowingCreator,
-  onImageClick
+  onImageClick,
+  onOpenComments
 }: MemeCardProps) {
   // --- حالات المكون (States) ---
   const [showComments, setShowComments] = useState(false); // إظهار التعليقات

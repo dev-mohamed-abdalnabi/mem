@@ -12,6 +12,7 @@ import SavesPage from "./pages/SavesPage";
 import TrendingPage from "./pages/TrendingPage";
 import ProfilePage from "./pages/ProfilePage";
 import Leaderboard from "./components/Leaderboard";
+import PostDetailModal from "./components/PostDetailModal";
 
 /**
  * البيانات الافتراضية للمستخدم الزائر
