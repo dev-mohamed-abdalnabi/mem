@@ -770,5 +770,62 @@ export const dataService = {
     
     if (error) throw error;
     return data as Story;
+  },
+
+  /**
+   * إرسال بلاغ عن منشور مخالف
+   */
+  submitReport: async (memeId: string, reporterId: string, reason: string): Promise<boolean> => {
+    if (reporterId === "guest-user-temp") {
+      throw new Error("سجل دخول الأول عشان تقدر تبلغ عن المحتوى المخالف! 😉");
+    }
+
+    const { error } = await supabase
+      .from("reports")
+      .insert({
+        meme_id: ensureUUID(memeId),
+        reporter_id: ensureUUID(reporterId),
+        reason: reason,
+        status: "open"
+      });
+
+    if (error) {
+      console.error("Error submitting report:", error);
+      throw new Error(`فشل إرسال البلاغ: ${error.message}`);
+    }
+
+    return true;
+  },
+
+  /**
+   * جلب قائمة البلاغات المفتوحة (للمشرفين فقط)
+   */
+  getReports: async (): Promise<Report[]> => {
+    const { data, error } = await supabase
+      .from("reports")
+      .select("*, meme:meme_id(*), reporter:reporter_id(*)")
+      .eq("status", "open")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data as Report[];
+  },
+
+  /**
+   * تحديث حالة البلاغ (حل أو رفض)
+   */
+  updateReportStatus: async (reportId: string, status: 'resolved' | 'dismissed', adminId: string, note?: string): Promise<boolean> => {
+    const { error } = await supabase
+      .from("reports")
+      .update({
+        status,
+        resolved_by: ensureUUID(adminId),
+        resolution_note: note,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", reportId);
+
+    if (error) throw error;
+    return true;
   }
 };

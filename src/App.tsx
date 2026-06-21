@@ -13,6 +13,7 @@ import TrendingPage from "./pages/TrendingPage";
 import ProfilePage from "./pages/ProfilePage";
 import Leaderboard from "./components/Leaderboard";
 import PostDetailModal from "./components/PostDetailModal";
+import AdminPanel from "./pages/AdminPanel"; // لوحة تحكم المشرف
 
 /**
  * البيانات الافتراضية للمستخدم الزائر
@@ -267,6 +268,9 @@ export default function App() {
             setShowAuthModal={setShowAuthModal} 
           />
         );
+      case "admin":
+        // لوحة تحكم المشرف - محمية بكلمة مرور
+        return <AdminPanel currentUser={currentUser} setActiveTab={setActiveTab} />;
       default:
         return null;
     }

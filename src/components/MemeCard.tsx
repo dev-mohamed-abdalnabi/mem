@@ -56,6 +56,8 @@ export default function MemeCard({
   const [loadingComments, setLoadingComments] = useState(false); // حالة تحميل التعليقات
   const [commentError, setCommentError] = useState(""); // خطأ في التعليق
   const [showReportModal, setShowReportModal] = useState(false); // إظهار مودال الإبلاغ
+  const [reportReason, setReportReason] = useState(""); // سبب البلاغ
+  const [reportSubmitting, setReportSubmitting] = useState(false); // حالة إرسال البلاغ
   const [shareSuccess, setShareSuccess] = useState(false); // نجاح المشاركة
   const [currentImageIndex, setCurrentImageIndex] = useState(0); // مؤشر الصورة الحالية في المنشورات المتعددة
 
@@ -88,6 +90,26 @@ export default function MemeCard({
       onOpenComments(meme);
     } else {
       setShowComments(!showComments);
+    }
+  };
+
+  /**
+   * إرسال البلاغ عن المنشور
+   */
+  const handleReportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reportReason.trim()) return;
+
+    setReportSubmitting(true);
+    try {
+      await dataService.submitReport(meme.id, currentUser.id, reportReason);
+      setShowReportModal(false);
+      setReportReason("");
+      onReportSubmit(meme.id, reportReason);
+    } catch (err: any) {
+      console.error("خطأ في إرسال البلاغ:", err);
+    } finally {
+      setReportSubmitting(false);
     }
   };
 
@@ -265,6 +287,55 @@ export default function MemeCard({
             <input type="text" value={newCommentText} onChange={(e) => setNewCommentText(e.target.value)} placeholder="اكتب ردك..." className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none" />
             <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold">إرسال</button>
           </form>
+        </div>
+      )}
+
+      {/* مودال الإبلاغ عن المنشور */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full text-right">
+            <h3 className="text-xl font-black text-gray-900 mb-4">الإبلاغ عن المنشور</h3>
+            
+            <form onSubmit={handleReportSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">سبب البلاغ</label>
+                <select
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-right outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                >
+                  <option value="">اختر السبب</option>
+                  <option value="محتوى مسيء">محتوى مسيء</option>
+                  <option value="عنف أو إيذاء">عنف أو إيذاء</option>
+                  <option value="محتوى جنسي">محتوى جنسي</option>
+                  <option value="انتهاك الخصوصية">انتهاك الخصوصية</option>
+                  <option value="محتوى مزعج">محتوى مزعج</option>
+                  <option value="محتوى كاذب">محتوى كاذب</option>
+                  <option value="أخرى">أخرى</option>
+                </select>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowReportModal(false);
+                    setReportReason("");
+                  }}
+                  className="flex-1 bg-gray-200 text-gray-900 px-4 py-2 rounded-lg font-bold hover:bg-gray-300 transition-colors"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  disabled={!reportReason || reportSubmitting}
+                  className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {reportSubmitting ? "جاري الإرسال..." : "إرسال البلاغ"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </article>
