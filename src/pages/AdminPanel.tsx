@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { AlertTriangle, Users, Trash2, Eye, EyeOff, Pin, Zap, Lock, LogOut, BarChart3, Activity } from "lucide-react";
+import { AlertTriangle, Users, Trash2, Eye, EyeOff, Pin, Zap, Lock, LogOut, BarChart3, Activity, TrendingUp, MessageSquare, Check, X } from "lucide-react";
 import { supabase } from "../supabaseClient";
 import { Profile } from "../types";
 
@@ -28,6 +28,24 @@ interface BannedAccount {
   expires_at?: string;
 }
 
+interface AdminLog {
+  id: string;
+  admin_id: string;
+  action: string;
+  target_type: string;
+  target_id: string;
+  created_at: string;
+}
+
+interface Meme {
+  id: string;
+  user_id: string;
+  caption: string;
+  image_url: string;
+  created_at: string;
+  profiles?: Profile;
+}
+
 /**
  * لوحة تحكم المشرف - صفحة محمية بكلمة مرور
  * تتحكم في جميع جوانب الموقع من البلاغات والحسابات والمنشورات
@@ -39,24 +57,40 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
   const [activeTab, setLocalActiveTab] = useState<"reports" | "users" | "memes" | "logs" | "stats">("reports");
   const [reports, setReports] = useState<Report[]>([]);
   const [bannedAccounts, setBannedAccounts] = useState<BannedAccount[]>([]);
+  const [adminLogs, setAdminLogs] = useState<AdminLog[]>([]);
+  const [memes, setMemes] = useState<Meme[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [stats, setStats] = useState<any>(null);
 
   // --- التحقق من صلاحيات المشرف ---
   useEffect(() => {
     if (!isAuthenticated) return;
-    loadReports();
-    loadBannedAccounts();
+    loadAllData();
   }, [isAuthenticated, activeTab]);
 
   /**
+   * تحميل جميع البيانات المطلوبة
+   */
+  const loadAllData = async () => {
+    setLoading(true);
+    try {
+      if (activeTab === "reports") loadReports();
+      else if (activeTab === "users") loadBannedAccounts();
+      else if (activeTab === "memes") loadMemes();
+      else if (activeTab === "logs") loadAdminLogs();
+      else if (activeTab === "stats") loadStats();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
    * التحقق من كلمة مرور المشرف
-   * كلمة المرور يجب تغييرها في الإنتاج
    */
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // كلمة المرور الافتراضية (يجب تغييرها في الإنتاج)
     const ADMIN_PASSWORD = "mem_admin_2026_secure";
     
     if (adminPassword === ADMIN_PASSWORD) {
@@ -71,10 +105,9 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
   };
 
   /**
-   * جلب البلاغات المفتوحة من قاعدة البيانات
+   * جلب البلاغات المفتوحة
    */
   const loadReports = async () => {
-    setLoading(true);
     try {
       const { data, error: err } = await supabase
         .from("reports")
@@ -86,8 +119,6 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
       setReports(data || []);
     } catch (e: any) {
       setError(`خطأ في جلب البلاغات: ${e.message}`);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -95,7 +126,6 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
    * جلب الحسابات المحظورة
    */
   const loadBannedAccounts = async () => {
-    setLoading(true);
     try {
       const { data, error: err } = await supabase
         .from("banned_accounts")
@@ -107,8 +137,65 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
       setBannedAccounts(data || []);
     } catch (e: any) {
       setError(`خطأ في جلب الحسابات المحظورة: ${e.message}`);
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  /**
+   * جلب المنشورات
+   */
+  const loadMemes = async () => {
+    try {
+      const { data, error: err } = await supabase
+        .from("memes")
+        .select("*, profiles:user_id(*)")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (err) throw err;
+      setMemes(data || []);
+    } catch (e: any) {
+      setError(`خطأ في جلب المنشورات: ${e.message}`);
+    }
+  };
+
+  /**
+   * جلب سجل الأنشطة
+   */
+  const loadAdminLogs = async () => {
+    try {
+      const { data, error: err } = await supabase
+        .from("admin_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (err) throw err;
+      setAdminLogs(data || []);
+    } catch (e: any) {
+      setError(`خطأ في جلب السجلات: ${e.message}`);
+    }
+  };
+
+  /**
+   * جلب الإحصائيات
+   */
+  const loadStats = async () => {
+    try {
+      const [memeCount, userCount, reportCount, bannedCount] = await Promise.all([
+        supabase.from("memes").select("id", { count: "exact", head: true }),
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "open"),
+        supabase.from("banned_accounts").select("id", { count: "exact", head: true }).eq("is_active", true)
+      ]);
+
+      setStats({
+        totalMemes: memeCount.count || 0,
+        totalUsers: userCount.count || 0,
+        openReports: reportCount.count || 0,
+        bannedAccounts: bannedCount.count || 0
+      });
+    } catch (e: any) {
+      setError(`خطأ في جلب الإحصائيات: ${e.message}`);
     }
   };
 
@@ -118,17 +205,14 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
   const resolveReport = async (reportId: string, memeId: string, action: "delete" | "dismiss") => {
     try {
       if (action === "delete") {
-        // حذف المنشور من قاعدة البيانات
         await supabase.from("memes").delete().eq("id", memeId);
       }
 
-      // تحديث حالة البلاغ
       await supabase
         .from("reports")
         .update({ status: action === "delete" ? "resolved" : "dismissed" })
         .eq("id", reportId);
 
-      // تسجيل النشاط في السجل
       await logAdminAction("resolve_report", "report", reportId, { action });
 
       setSuccess(`تم ${action === "delete" ? "حذف" : "رفض"} البلاغ بنجاح!`);
@@ -178,7 +262,80 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
   };
 
   /**
-   * تسجيل نشاط المشرف في السجل
+   * حذف منشور
+   */
+  const deleteMeme = async (memeId: string) => {
+    try {
+      await supabase.from("memes").delete().eq("id", memeId);
+      await logAdminAction("delete_meme", "meme", memeId);
+      setSuccess("تم حذف المنشور بنجاح!");
+      loadMemes();
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (e: any) {
+      setError(`خطأ: ${e.message}`);
+    }
+  };
+
+  /**
+   * إخفاء منشور
+   */
+  const hideMeme = async (memeId: string) => {
+    try {
+      await supabase.from("meme_moderation").upsert({
+        meme_id: memeId,
+        is_hidden: true,
+        hidden_at: new Date().toISOString()
+      });
+      await logAdminAction("hide_meme", "meme", memeId);
+      setSuccess("تم إخفاء المنشور بنجاح!");
+      loadMemes();
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (e: any) {
+      setError(`خطأ: ${e.message}`);
+    }
+  };
+
+  /**
+   * تثبيت منشور
+   */
+  const pinMeme = async (memeId: string) => {
+    try {
+      await supabase.from("meme_moderation").upsert({
+        meme_id: memeId,
+        is_pinned: true,
+        pinned_at: new Date().toISOString()
+      });
+      await logAdminAction("pin_meme", "meme", memeId);
+      setSuccess("تم تثبيت المنشور بنجاح!");
+      loadMemes();
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (e: any) {
+      setError(`خطأ: ${e.message}`);
+    }
+  };
+
+  /**
+   * تعزيز منشور
+   */
+  const boostMeme = async (memeId: string) => {
+    try {
+      await supabase.from("meme_moderation").upsert({
+        meme_id: memeId,
+        is_boosted: true,
+        boost_level: 5,
+        boosted_at: new Date().toISOString()
+      });
+      await logAdminAction("boost_meme", "meme", memeId);
+      setSuccess("تم تعزيز المنشور بنجاح!");
+      loadMemes();
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (e: any) {
+      setError(`خطأ: ${e.message}`);
+    }
+  };
+
+  /**
+   * تسجيل نشاط المشرف
    */
   const logAdminAction = async (action: string, targetType: string, targetId: string, details?: any) => {
     try {
@@ -352,9 +509,117 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
               ))
             )}
           </div>
-        ) : (
-          <p className="text-gray-600 text-center py-12">هذا القسم قيد التطوير</p>
-        )}
+        ) : activeTab === "memes" ? (
+          <div className="space-y-4">
+            <h2 className="text-xl font-black mb-4">المنشورات ({memes.length})</h2>
+            {memes.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">لا توجد منشورات</p>
+            ) : (
+              memes.map((meme) => (
+                <div key={meme.id} className="border border-gray-200 rounded-xl p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <p className="font-bold text-gray-900">{meme.profiles?.username}</p>
+                      <p className="text-sm text-gray-600 mt-1">{meme.caption?.substring(0, 100)}</p>
+                    </div>
+                  </div>
+
+                  {meme.image_url && (
+                    <img
+                      src={meme.image_url}
+                      alt="المنشور"
+                      className="w-full max-h-64 object-cover rounded-lg mb-4"
+                    />
+                  )}
+
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => deleteMeme(meme.id)}
+                      className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-700 transition-colors flex items-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      حذف
+                    </button>
+                    <button
+                      onClick={() => hideMeme(meme.id)}
+                      className="bg-yellow-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-yellow-700 transition-colors flex items-center gap-2"
+                    >
+                      <EyeOff className="w-4 h-4" />
+                      إخفاء
+                    </button>
+                    <button
+                      onClick={() => pinMeme(meme.id)}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    >
+                      <Pin className="w-4 h-4" />
+                      تثبيت
+                    </button>
+                    <button
+                      onClick={() => boostMeme(meme.id)}
+                      className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-purple-700 transition-colors flex items-center gap-2"
+                    >
+                      <Zap className="w-4 h-4" />
+                      تعزيز
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        ) : activeTab === "logs" ? (
+          <div className="space-y-4">
+            <h2 className="text-xl font-black mb-4">سجل الأنشطة ({adminLogs.length})</h2>
+            {adminLogs.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">لا توجد سجلات</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="px-4 py-2 font-bold">الإجراء</th>
+                      <th className="px-4 py-2 font-bold">النوع</th>
+                      <th className="px-4 py-2 font-bold">الوقت</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminLogs.map((log) => (
+                      <tr key={log.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="px-4 py-2">{log.action}</td>
+                        <td className="px-4 py-2">{log.target_type}</td>
+                        <td className="px-4 py-2 text-gray-600">{new Date(log.created_at).toLocaleDateString("ar-EG")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        ) : activeTab === "stats" ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {stats && [
+              { label: "إجمالي المنشورات", value: stats.totalMemes, icon: TrendingUp, color: "blue" },
+              { label: "إجمالي المستخدمين", value: stats.totalUsers, icon: Users, color: "green" },
+              { label: "البلاغات المفتوحة", value: stats.openReports, icon: AlertTriangle, color: "red" },
+              { label: "الحسابات المحظورة", value: stats.bannedAccounts, icon: Lock, color: "yellow" }
+            ].map((stat, i) => {
+              const Icon = stat.icon;
+              const colorClass = {
+                blue: "bg-blue-100 text-blue-600",
+                green: "bg-green-100 text-green-600",
+                red: "bg-red-100 text-red-600",
+                yellow: "bg-yellow-100 text-yellow-600"
+              }[stat.color];
+
+              return (
+                <div key={i} className={`${colorClass} rounded-xl p-6 text-center`}>
+                  <Icon className="w-8 h-8 mx-auto mb-2" />
+                  <p className="text-2xl font-black">{stat.value}</p>
+                  <p className="text-sm font-bold mt-2">{stat.label}</p>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
     </div>
   );
