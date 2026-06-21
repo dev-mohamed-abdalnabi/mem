@@ -66,8 +66,15 @@ export default function App() {
 
   /**
    * تحميل البيانات الأولية عند تشغيل التطبيق
+   * والتحقق من رابط الصفحة الحالي
    */
   useEffect(() => {
+    // التحقق من رابط الصفحة لتحديد التبويب النشط
+    const path = window.location.pathname;
+    if (path === '/admin' || path.includes('admin')) {
+      setActiveTab('admin');
+    }
+
     const loadInitialData = async () => {
       setLoading(true);
       try {
