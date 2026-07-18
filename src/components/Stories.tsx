@@ -495,10 +495,17 @@ export default function Stories({ currentUser }: StoriesProps) {
           onClick={() => setSelectedStory(null)}
         >
           {/* شريط التقدم المقسّم بستايل واتساب/انستجرام - بيتعبى تلقائي مع الوقت */}
-          {/* z-30 عشان يبان فوق خلفية الهيدر المتدرجة (z-20)، لأنها كانت بتغطيه بالكامل */}
-          <div className="absolute top-0 left-0 right-0 z-30 flex gap-1 p-2 pt-3">
+          {/* z-30 عشان يبان فوق خلفية الهيدر المتدرجة (z-20) اللي كانت بتغطيه بالكامل */}
+          {/* dir="ltr" ثابتة: الصفحة كلها rtl، فمن غيرها ترتيب القطاعات وحركة
+              التعبئة كانوا بيتقلبوا (يمشوا من اليمين للشمال). شريط الحالات
+              لازم يفضل يمشي شمال-لليمين زي واتساب/انستجرام أياً كانت لغة الجهاز */}
+          <div dir="ltr" className="absolute top-0 left-0 right-0 z-30 flex gap-1 p-2 pt-3">
             {currentUserStories.map((_, i) => (
-              <div key={i} className="h-1 flex-1 bg-white/30 rounded-full overflow-hidden">
+              <div
+                key={i}
+                className="h-1 flex-1 bg-white/40 rounded-full overflow-hidden"
+                style={{ boxShadow: "0 0 2px rgba(0,0,0,0.5)" }}
+              >
                 <div
                   className="h-full bg-white rounded-full"
                   style={{
