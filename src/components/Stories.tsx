@@ -15,6 +15,50 @@ const MAX_STORY_VIDEO_SECONDS = 60;
 // إيموجيهات التفاعل السريع بستايل واتساب
 const QUICK_REACTIONS = ["❤️", "😂", "😮", "😢", "👏", "🔥"];
 
+// ألوان تدرج حلقة الحالة (نفس روح انستجرام/واتساب)
+const RING_GRADIENT_STOPS: [number, number, number][] = [
+  [245, 158, 11], // amber-500
+  [236, 72, 153],  // pink-500
+  [59, 130, 246],  // blue-500
+];
+
+function lerp(a: number, b: number, t: number) {
+  return Math.round(a + (b - a) * t);
+}
+
+// بيرجع لون في نقطة t (من 0 لـ 1) على تدرج متعدد النقط
+function colorAt(t: number): string {
+  const segs = RING_GRADIENT_STOPS.length - 1;
+  const scaled = Math.min(Math.max(t, 0), 1) * segs;
+  const idx = Math.min(Math.floor(scaled), segs - 1);
+  const localT = scaled - idx;
+  const [r1, g1, b1] = RING_GRADIENT_STOPS[idx];
+  const [r2, g2, b2] = RING_GRADIENT_STOPS[idx + 1];
+  return `rgb(${lerp(r1, r2, localT)}, ${lerp(g1, g2, localT)}, ${lerp(b1, b2, localT)})`;
+}
+
+// بيبني خلفية conic-gradient لحلقة الأفاتار مقسّمة على عدد الحالات،
+// كل حتة تمثل حالة: ملونة لو لسه ما اتشافتش، ورمادية لو اتشافت خلاص.
+// نفس فكرة شريط التقدم المقسّم اللي بيظهر جوه عارض الحالة.
+function buildStoryRingBackground(uStories: Story[], viewedStoryIds: Set<string>): string {
+  const n = uStories.length;
+  if (n <= 1) {
+    return "linear-gradient(to top right, rgb(245,158,11), rgb(236,72,153), rgb(59,130,246))";
+  }
+  const gapDeg = Math.min(8, 360 / n / 4); // فجوة صغيرة بين كل حتة وبعضها
+  const segDeg = 360 / n;
+  const stops: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const viewed = viewedStoryIds.has(uStories[i]?.id);
+    const color = viewed ? "rgba(209, 213, 219, 0.9)" : colorAt(n === 1 ? 0 : i / (n - 1));
+    const start = i * segDeg;
+    const end = start + segDeg - gapDeg;
+    stops.push(`${color} ${start}deg ${end}deg`);
+    stops.push(`transparent ${end}deg ${start + segDeg}deg`);
+  }
+  return `conic-gradient(from -90deg, ${stops.join(", ")})`;
+}
+
 /**
  * توقيت نسبي حقيقي بالعربي بدل ما كانت كل الحالات مكتوب عليها "قبل قليل"
  * بشكل ثابت مهما كان وقتها الفعلي.
@@ -77,7 +121,7 @@ export default function Stories({ currentUser }: StoriesProps) {
 
   // 2. تجميع الحالات حسب صاحبها
   const userStories = useMemo(() => {
-    return (stories || []).reduce((acc, story) => {
+    return (stories || []).reduce<Record<string, Story[]>>((acc, story) => {
       const uid = story?.user_id;
       if (!uid) return acc;
       if (!acc[uid]) acc[uid] = [];
@@ -309,11 +353,14 @@ export default function Stories({ currentUser }: StoriesProps) {
               className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group"
               onClick={() => openStory(uStories[0], 0)}
             >
-              <div className={
-                isFullyViewed
-                  ? "p-0.5 rounded-full border-2 border-gray-300 group-hover:border-gray-400 transition-colors relative"
-                  : "p-[3px] rounded-full bg-gradient-to-tr from-amber-400 via-pink-500 to-blue-500 group-hover:opacity-90 transition-opacity relative"
-              }>
+              <div
+                className={
+                  isFullyViewed
+                    ? "p-0.5 rounded-full border-2 border-gray-300 group-hover:border-gray-400 transition-colors relative"
+                    : "p-[3px] rounded-full group-hover:opacity-90 transition-opacity relative"
+                }
+                style={isFullyViewed ? undefined : { background: buildStoryRingBackground(uStories, viewedStoryIds) }}
+              >
                 <img
                   src={uStories[0]?.profiles?.avatar_url || ""}
                   className="w-14 h-14 rounded-full border-2 border-white object-cover group-hover:scale-105 transition-transform"

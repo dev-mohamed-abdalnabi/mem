@@ -62,6 +62,10 @@ export default function ProfilePage({
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [zoom, setZoom] = useState(1);
+  // مقياس "احتواء" الصورة جوه الدائرة أول ما تتفتح (زي object-fit: cover)
+  // قبل كده الصورة كانت بترسم بحجمها الطبيعي بالبيكسل، فأي صورة موبايل
+  // (غالبًا آلاف البيكسل) كانت بتظهر مكبّرة جدًا وتفص من نص الصورة بس.
+  const [baseScale, setBaseScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -122,8 +126,20 @@ export default function ProfilePage({
       setSelectedFile(file);
       setAvatarPreview(URL.createObjectURL(file));
       setZoom(1);
+      setBaseScale(1);
       setPosition({ x: 0, y: 0 });
     }
+  };
+
+  // بيتنفذ أول ما الصورة تحمّل جوه أداة القص، وبيحسب أصغر مقياس يخلي
+  // الصورة تغطي الدائرة بالكامل (زي object-fit: cover) بدل ما تظهر
+  // بحجمها الطبيعي وتبان مكبّرة جدًا.
+  const handleCropImageLoad = () => {
+    const img = imageRef.current;
+    const containerSize = cropContainerRef.current?.getBoundingClientRect().width || 256;
+    if (!img || !img.naturalWidth || !img.naturalHeight) return;
+    const fitScale = Math.max(containerSize / img.naturalWidth, containerSize / img.naturalHeight);
+    setBaseScale(fitScale);
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -168,9 +184,11 @@ export default function ProfilePage({
 
       if (ctx) {
         // حساب الأبعاد بنفس مقياس الحاوية اللي المستخدم شاف الصورة جواها
+        // (baseScale بيخلي الصورة تغطي الدائرة زي المعاينة بالظبط، وzoom فوقه)
         const img = imageRef.current;
-        const displayWidth = img.naturalWidth * zoom;
-        const displayHeight = img.naturalHeight * zoom;
+        const effectiveScale = baseScale * zoom;
+        const displayWidth = img.naturalWidth * effectiveScale;
+        const displayHeight = img.naturalHeight * effectiveScale;
         const width = displayWidth * scaleFactor;
         const height = displayHeight * scaleFactor;
         const drawX = (size - width) / 2 + position.x * scaleFactor;
@@ -179,20 +197,25 @@ export default function ProfilePage({
         // رسم الصورة مع تطبيق التحريك بنفس ما هو ظاهر على الشاشة بالظبط
         ctx.drawImage(img, drawX, drawY, width, height);
 
-        // تحويل الـ Canvas لـ File ورفعه
-        canvas.toBlob(async (blob) => {
-          if (blob) {
-            const croppedFile = new File([blob], "avatar.jpg", { type: "image/jpeg" });
-            const url = await dataService.uploadAvatar(croppedFile);
-            setCurrentUser(prev => ({ ...prev, avatar_url: url }));
-            await dataService.updateProfile({ avatar_url: url });
-            setAvatarPreview(null);
-            setSelectedFile(null);
-          }
-        }, "image/jpeg", 0.9);
+        // تحويل الـ Canvas لـ File ورفعه - باستخدام Promise عشان نستنى
+        // الرفع فعلاً يخلص جوه try/catch، بدل ما finally يقفل اللودينج
+        // فورًا وأي error يضيع من غير ما يبان للمستخدم
+        const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
+        if (blob) {
+          const croppedFile = new File([blob], "avatar.jpg", { type: "image/jpeg" });
+          const url = await dataService.uploadAvatar(croppedFile);
+          setCurrentUser(prev => ({ ...prev, avatar_url: url }));
+          setProfiles(prev => prev.map(p => p.id === currentUser.id ? { ...p, avatar_url: url } : p));
+          await dataService.updateProfile({ avatar_url: url });
+          setAvatarPreview(null);
+          setSelectedFile(null);
+        } else {
+          throw new Error("فشل إنشاء ملف الصورة.");
+        }
       }
     } catch (err) {
-      alert("فشل رفع الصورة.");
+      console.error("Avatar upload error:", err);
+      alert("فشل رفع الصورة، حاول تاني.");
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -226,11 +249,10 @@ export default function ProfilePage({
                 ref={imageRef}
                 src={avatarPreview} 
                 alt="Crop preview" 
+                onLoad={handleCropImageLoad}
                 className="absolute top-1/2 left-1/2 origin-center max-w-none pointer-events-none"
                 style={{
-                  transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${zoom})`,
-                  minWidth: '100%',
-                  minHeight: '100%',
+                  transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${baseScale * zoom})`,
                 }}
               />
             </div>

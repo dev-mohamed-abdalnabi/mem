@@ -132,35 +132,37 @@ export default function CreatePostPage({ currentUser, setActiveTab, onPostCreate
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto animate-fade-in">
-      {/* هيدر بسيط بستايل ثريدز - إلغاء / عنوان / نشر */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-900">
-        <button type="button" onClick={() => setActiveTab("feed")} className="text-gray-500 dark:text-gray-400 text-sm font-bold">إلغاء</button>
-        <h2 className="text-sm font-bold text-gray-900 dark:text-white">منشور جديد</h2>
+    <div className="w-full max-w-xl mx-auto animate-fade-in pb-8">
+      {/* هيدر - إلغاء / عنوان / نشر */}
+      <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-gray-900 sticky top-0 bg-white/90 dark:bg-[#0f1115]/90 backdrop-blur-sm z-10">
+        <button type="button" onClick={() => setActiveTab("feed")} className="text-gray-500 dark:text-gray-400 text-sm font-bold px-2 py-1 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">إلغاء</button>
+        <h2 className="text-[15px] font-bold text-gray-900 dark:text-white">منشور جديد</h2>
         <button
           type="submit"
           form="create-post-form"
           disabled={(newPostCaption.trim() === "" && mediaFiles.length === 0) || loading}
-          className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-1.5 rounded-full text-xs font-bold disabled:opacity-40 transition-opacity min-w-[56px] text-center"
+          className="bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white px-5 py-1.5 rounded-full text-xs font-bold disabled:opacity-40 transition-colors min-w-[64px] text-center shadow-sm shadow-blue-500/20"
         >
-          {loading ? <Clock className="w-3 h-3 animate-spin mx-auto" /> : "نشر"}
+          {loading ? <Clock className="w-3.5 h-3.5 animate-spin mx-auto" /> : "نشر"}
         </button>
       </div>
 
-      <form id="create-post-form" onSubmit={handleQuickPostSubmit} className="px-4 py-4">
-        {/* صف: أفاتار + اسم المستخدم + عمود النص - بستايل ثريدز المسطح من غير كارت */}
-        <div className="flex items-start gap-3">
-          <img src={currentUser.avatar_url || ""} className="w-9 h-9 rounded-full object-cover shrink-0" alt="avatar" />
-          <div className="flex-1 min-w-0">
-            <span className="font-bold text-sm text-gray-900 dark:text-white">{currentUser.username}</span>
+      <form id="create-post-form" onSubmit={handleQuickPostSubmit} className="px-4 pt-5">
+        {/* كارت المنشور */}
+        <div className="bg-white dark:bg-[#16181c] rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4">
+          {/* صف: أفاتار + اسم المستخدم + عمود النص */}
+          <div className="flex items-start gap-3">
+            <img src={currentUser.avatar_url || ""} className="w-11 h-11 rounded-full object-cover shrink-0 ring-2 ring-gray-100 dark:ring-gray-800" alt="avatar" />
+            <div className="flex-1 min-w-0">
+              <span className="font-bold text-sm text-gray-900 dark:text-white">{currentUser.username}</span>
 
-            <textarea
-              placeholder="بماذا تفكر يا غالي؟"
-              value={newPostCaption}
-              onChange={(e) => setNewPostCaption(e.target.value)}
-              className="w-full bg-transparent border-none focus:ring-0 p-0 mt-1 text-sm text-gray-800 dark:text-gray-100 resize-none min-h-[70px] outline-none text-right placeholder-gray-400 dark:placeholder-gray-600"
-              autoFocus
-            />
+              <textarea
+                placeholder="بماذا تفكر يا غالي؟"
+                value={newPostCaption}
+                onChange={(e) => setNewPostCaption(e.target.value)}
+                className="w-full bg-transparent border-none focus:ring-0 p-0 mt-1.5 text-[15px] leading-relaxed text-gray-800 dark:text-gray-100 resize-none min-h-[90px] outline-none text-right placeholder-gray-400 dark:placeholder-gray-600"
+                autoFocus
+              />
 
             {mediaFiles.length > 0 && (
               <div className="mt-2 rounded-2xl overflow-hidden bg-gray-50 dark:bg-gray-900">
@@ -244,30 +246,36 @@ export default function CreatePostPage({ currentUser, setActiveTab, onPostCreate
               </div>
             )}
 
-            {/* أيقونات إضافة الميديا - شكل بسيط بدون بوردر زي ثريدز */}
-            <div className="flex items-center gap-4 mt-3">
-              <label className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white cursor-pointer transition-colors" title="إضافة صور">
-                <Camera className="w-5 h-5" />
-                <input type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden"/>
-              </label>
-              <label className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white cursor-pointer transition-colors" title="إضافة فيديو">
-                <Video className="w-5 h-5" />
-                <input type="file" accept="video/*" onChange={handleFileChange} className="hidden"/>
-              </label>
+              {/* أزرار إضافة الميديا - شكل واضح بستايل الكاردز في باقي الأبليكيشن */}
+              <div className="flex items-center gap-2 mt-4">
+                <label className="flex items-center gap-2 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-950/70 text-[#1d9bf0] px-3.5 py-2 rounded-full cursor-pointer transition-colors text-xs font-bold">
+                  <Camera className="w-4 h-4" />
+                  صورة
+                  <input type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden"/>
+                </label>
+                <label className="flex items-center gap-2 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-950/70 text-purple-600 dark:text-purple-400 px-3.5 py-2 rounded-full cursor-pointer transition-colors text-xs font-bold">
+                  <Video className="w-4 h-4" />
+                  فيديو
+                  <input type="file" accept="video/*" onChange={handleFileChange} className="hidden"/>
+                </label>
+              </div>
+
+              {/* هاشتاج */}
+              <div className="flex items-center gap-2 border-t border-gray-100 dark:border-gray-800 mt-4 pt-3.5">
+                <span className="text-gray-400 dark:text-gray-500 text-sm font-bold shrink-0">#</span>
+                <input
+                  type="text"
+                  placeholder="أضف هاشتاج (اختياري)، افصل بينهم بفاصلة"
+                  value={newPostTags}
+                  onChange={(e) => setNewPostTags(e.target.value)}
+                  className="w-full bg-transparent border-none text-xs text-right outline-none text-gray-600 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-600"
+                />
+              </div>
             </div>
-
-            {/* هاشتاج بسيط تحت زي ثريدز */}
-            <input
-              type="text"
-              placeholder="أضف هاشتاج (اختياري)"
-              value={newPostTags}
-              onChange={(e) => setNewPostTags(e.target.value)}
-              className="w-full bg-transparent border-t border-gray-100 dark:border-gray-900 mt-3 pt-3 text-xs text-right outline-none text-gray-500 dark:text-gray-400 placeholder-gray-400 dark:placeholder-gray-600"
-            />
           </div>
-        </div>
 
-        {postError && <p className="text-red-500 text-xs mt-3 text-center font-bold bg-red-50 dark:bg-red-950/30 p-2.5 rounded-xl">{postError}</p>}
+          {postError && <p className="text-red-500 text-xs mt-3.5 text-center font-bold bg-red-50 dark:bg-red-950/30 p-2.5 rounded-xl">{postError}</p>}
+        </div>
       </form>
     </div>
   );

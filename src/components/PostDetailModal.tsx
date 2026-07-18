@@ -68,16 +68,9 @@ export default function PostDetailModal({
   const creator = meme.profiles || { id: meme.user_id, username: "ميمر_مجهول", avatar_url: null };
 
   return (
-    <div className="fixed inset-0 z-[10000] bg-white flex flex-col md:flex-row animate-slide-up" dir="rtl">
-      {/* Header for Mobile */}
-      <div className="md:hidden flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
-        <button onClick={onClose} className="p-1"><X className="w-6 h-6" /></button>
-        <span className="font-bold">التعليقات</span>
-        <div className="w-6" />
-      </div>
-
-      {/* Media Section */}
-      <div className="flex-1 bg-black flex items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 z-[10000] bg-black md:bg-white flex flex-col md:flex-row" dir="rtl">
+      {/* Media Section: full-screen behind the sheet on mobile, side-by-side on desktop */}
+      <div className="absolute inset-0 md:static md:flex-1 bg-black flex items-center justify-center overflow-hidden">
         {meme.post_type === 'video' && meme.video_url ? (
           <CustomVideoPlayer src={meme.video_url} className="max-h-full" />
         ) : (
@@ -89,8 +82,21 @@ export default function PostDetailModal({
         )}
       </div>
 
-      {/* Comments Section */}
-      <div className="w-full md:w-[400px] flex flex-col bg-white border-r">
+      {/* Close button floating over the video, mobile only */}
+      <button
+        onClick={onClose}
+        className="md:hidden absolute top-4 left-4 z-30 bg-black/40 text-white p-2 rounded-full backdrop-blur-sm"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
+      {/* Comments Section: bottom sheet over the video on mobile (TikTok style), side panel on desktop */}
+      <div className="fixed md:static inset-x-0 bottom-0 md:inset-auto z-20 md:z-auto w-full md:w-[400px] h-[68vh] md:h-full flex flex-col bg-white border-r rounded-t-3xl md:rounded-none animate-slide-up overflow-hidden">
+        {/* Drag handle + header, mobile only */}
+        <div className="md:hidden flex flex-col items-center pt-2.5 pb-1 shrink-0 border-b">
+          <div className="w-10 h-1.5 bg-gray-300 rounded-full mb-2" />
+          <span className="font-bold text-sm pb-2">التعليقات</span>
+        </div>
         {/* Creator Info - Desktop only header */}
         <div className="hidden md:flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-3">
