@@ -518,7 +518,6 @@ export default function Stories({ currentUser }: StoriesProps) {
               ))}
             </div>
           </div>
-          </div>
 
           {/* هيدر الحالة بستايل واتساب: أفاتار + اسم + وقت حقيقي + خيارات + إغلاق */}
           <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/70 via-black/30 to-transparent pt-7 pb-6 px-3 flex items-center gap-3">
