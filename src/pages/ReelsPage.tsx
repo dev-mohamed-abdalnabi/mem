@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Heart, MessageCircle, Bookmark, Share2, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Share2, Loader2, Volume2, VolumeX } from "lucide-react";
 import { Meme, Profile } from "../types";
 import { dataService } from "../services/dataService";
 
@@ -18,6 +18,12 @@ interface ReelsPageProps {
  * صفحة الريلز: فيد فيديوهات رأسي (سكرول من فوق لتحت، كل فيديو ياخد الشاشة كلها)
  * بدل تبويب "الحفظ" اللي اتنقل جوه قائمة الإعدادات. بتشغل الفيديو اللي في المنتصف
  * تلقائياً وتوقف الباقي (زي التيك توك/الريلز).
+ *
+ * ملحوظة مهمة عن الحاوية: بدل ما نحسب الارتفاع بـ "100vh - كذا" (اللي كان بيغلط
+ * لأنه ما كانش مطابق للارتفاع الحقيقي للهيدر + الشريط السفلي، فكان بيخلي جزء من
+ * أسفل الفيديو "بياكل" ومش ظاهر) دلوقتي بنثبت الحاوية بـ top/bottom مباشرة على
+ * ارتفاع الهيدر (4rem) والشريط السفلي (4rem)، وده بيتأقلم صح مع اختفاء/ظهور شريط
+ * عنوان المتصفح في الموبايل بشكل تلقائي بخلاف حسابات الـ vh.
  */
 export default function ReelsPage({
   currentUser,
@@ -31,6 +37,7 @@ export default function ReelsPage({
 }: ReelsPageProps) {
   const [reels, setReels] = useState<Meme[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
 
@@ -51,7 +58,14 @@ export default function ReelsPage({
         entries.forEach((entry) => {
           const video = entry.target as HTMLVideoElement;
           if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
-            video.play().catch(() => {});
+            // بنحاول نشغل بالصوت الأول؛ لو المتصفح رفض (سياسة autoplay) بنكتم تلقائياً
+            // كحل بديل بس بنسيب زرار الصوت شغال عشان المستخدم يفعله بنفسه بضغطة واحدة
+            video.muted = isMuted;
+            video.play().catch(() => {
+              video.muted = true;
+              setIsMuted(true);
+              video.play().catch(() => {});
+            });
           } else {
             video.pause();
           }
@@ -62,7 +76,13 @@ export default function ReelsPage({
 
     Object.values(videoRefs.current).forEach((v) => v && observer.observe(v));
     return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reels]);
+
+  // تطبيق حالة الكتم على كل الفيديوهات مرة واحدة (زرار صوت واحد للكل زي التيك توك)
+  useEffect(() => {
+    Object.values(videoRefs.current).forEach((v) => { if (v) v.muted = isMuted; });
+  }, [isMuted]);
 
   const requireAuth = (action: () => void) => {
     if (!isRealUser) {
@@ -74,7 +94,7 @@ export default function ReelsPage({
 
   if (loading) {
     return (
-      <div className="w-full h-[calc(100vh-8rem)] flex items-center justify-center">
+      <div className="fixed top-16 bottom-16 md:static md:h-[75vh] inset-x-0 md:inset-auto flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-gray-300 animate-spin" />
       </div>
     );
@@ -82,7 +102,7 @@ export default function ReelsPage({
 
   if (reels.length === 0) {
     return (
-      <div className="w-full h-[calc(100vh-8rem)] flex flex-col items-center justify-center gap-2 text-center px-6">
+      <div className="fixed top-16 bottom-16 md:static md:h-[75vh] inset-x-0 md:inset-auto flex flex-col items-center justify-center gap-2 text-center px-6">
         <p className="font-bold text-gray-500 dark:text-gray-400">مفيش فيديوهات ريلز دلوقتي</p>
         <p className="text-xs text-gray-400 dark:text-gray-600">أول فيديو ينشر هنا هيظهر في الريلز تلقائي</p>
       </div>
@@ -92,7 +112,7 @@ export default function ReelsPage({
   return (
     <div
       ref={containerRef}
-      className="w-full h-[calc(100vh-8rem)] md:h-[calc(100vh-6rem)] overflow-y-scroll snap-y snap-mandatory rounded-2xl bg-black no-scrollbar"
+      className="fixed top-16 bottom-16 md:bottom-4 inset-x-0 md:static md:h-[80vh] md:rounded-2xl overflow-y-scroll snap-y snap-mandatory bg-black no-scrollbar z-30"
     >
       {reels.map((meme) => (
         <div key={meme.id} className="relative w-full h-full snap-start snap-always flex items-center justify-center bg-black">
@@ -100,8 +120,8 @@ export default function ReelsPage({
             ref={(el) => { videoRefs.current[meme.id] = el; }}
             src={meme.video_url || ""}
             loop
-            muted
             playsInline
+            muted={isMuted}
             className="w-full h-full object-contain"
             onClick={(e) => {
               const v = e.currentTarget;
@@ -109,8 +129,16 @@ export default function ReelsPage({
             }}
           />
 
+          {/* زرار كتم/تشغيل الصوت زي التيك توك والريلز */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setIsMuted(prev => !prev); }}
+            className="absolute top-3 left-3 z-10 bg-black/40 text-white p-2 rounded-full"
+          >
+            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+
           {/* معلومات صاحب المنشور والنص */}
-          <div className="absolute bottom-4 right-4 left-20 text-white">
+          <div className="absolute bottom-6 right-4 left-20 text-white z-10">
             <button
               onClick={() => onUserProfileClick(meme.user_id)}
               className="flex items-center gap-2 mb-2"
@@ -124,7 +152,7 @@ export default function ReelsPage({
           </div>
 
           {/* أزرار التفاعل الجانبية */}
-          <div className="absolute bottom-4 left-3 flex flex-col items-center gap-5 text-white">
+          <div className="absolute bottom-6 left-3 flex flex-col items-center gap-5 text-white z-10">
             <button
               onClick={() => requireAuth(() => handleLikeToggle(meme.id))}
               className="flex flex-col items-center gap-1"

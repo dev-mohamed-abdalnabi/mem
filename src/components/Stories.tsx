@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Plus, X, ChevronLeft, ChevronRight, Type, Video } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { Plus, X, ChevronLeft, ChevronRight, Type, Video, Eye } from "lucide-react";
 import { Story, Profile } from "../types";
 import { dataService } from "../services/dataService";
 import { socialService } from "../services/socialService";
@@ -48,6 +49,9 @@ export default function Stories({ currentUser }: StoriesProps) {
   const [textFontSize, setTextFontSize] = useState(32);
   const [myReactions, setMyReactions] = useState<Record<string, string>>({});
   const [reactionFeedback, setReactionFeedback] = useState<string | null>(null);
+  const [showViewers, setShowViewers] = useState(false);
+  const [viewersList, setViewersList] = useState<{ viewer: Profile; emoji: string | null; viewedAt: string }[]>([]);
+  const [loadingViewers, setLoadingViewers] = useState(false);
 
   const isRealUser = currentUser?.id && currentUser.id !== "guest-user-temp";
 
@@ -258,6 +262,23 @@ export default function Stories({ currentUser }: StoriesProps) {
     }
   };
 
+  // إغلاق قائمة المشاهدين تلقائياً لما تتنقل بين الحالات
+  useEffect(() => { setShowViewers(false); }, [selectedStory?.id]);
+
+  const openViewersPanel = async () => {
+    if (!selectedStory) return;
+    setShowViewers(true);
+    setLoadingViewers(true);
+    try {
+      const list = await socialService.getStoryViewersWithReactions(selectedStory.id);
+      setViewersList(list);
+    } catch (e) {
+      console.error("Error loading story viewers:", e);
+    } finally {
+      setLoadingViewers(false);
+    }
+  };
+
   return (
     <>
       <div className="flex gap-3 overflow-x-auto p-4 bg-white border border-gray-100 rounded-3xl shadow-sm m-3 no-scrollbar">
@@ -290,14 +311,20 @@ export default function Stories({ currentUser }: StoriesProps) {
             >
               <div className={
                 isFullyViewed
-                  ? "p-0.5 rounded-full border-2 border-gray-300 group-hover:border-gray-400 transition-colors"
-                  : "p-[3px] rounded-full bg-gradient-to-tr from-amber-400 via-pink-500 to-blue-500 group-hover:opacity-90 transition-opacity"
+                  ? "p-0.5 rounded-full border-2 border-gray-300 group-hover:border-gray-400 transition-colors relative"
+                  : "p-[3px] rounded-full bg-gradient-to-tr from-amber-400 via-pink-500 to-blue-500 group-hover:opacity-90 transition-opacity relative"
               }>
                 <img
                   src={uStories[0]?.profiles?.avatar_url || ""}
                   className="w-14 h-14 rounded-full border-2 border-white object-cover group-hover:scale-105 transition-transform"
                   alt={uStories[0]?.profiles?.username || "مستخدم"}
                 />
+                {/* شارة عدد الحالات لما يكون عند الشخص أكتر من حالة واحدة */}
+                {uStories.length > 1 && (
+                  <span className="absolute -bottom-0.5 -left-0.5 bg-blue-500 text-white text-[9px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center border-2 border-white px-1">
+                    {uStories.length}
+                  </span>
+                )}
               </div>
               <span className="text-[10px] text-gray-900 truncate w-14 text-center group-hover:text-blue-600 transition-colors">
                 {uStories[0]?.profiles?.username || "مستخدم"}
@@ -346,24 +373,34 @@ export default function Stories({ currentUser }: StoriesProps) {
           </div>
 
           {/* منطقة عرض الميديا - شاشة كاملة فعلياً */}
-          <div className="relative flex-1 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-            {selectedStory?.media_type === 'video' ? (
-              <video
-                key={selectedStory.id}
-                src={selectedStory?.media_url}
-                autoPlay
-                className="w-full h-full object-contain"
-                controls
-                onEnded={() => goToIndex(selectedStoryIndex + 1)}
-              />
-            ) : (
-              <img
-                key={selectedStory.id}
-                src={selectedStory?.media_url}
-                className="w-full h-full object-contain"
-                alt="قصة"
-              />
-            )}
+          <div className="relative flex-1 flex items-center justify-center overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <AnimatePresence mode="wait">
+              {selectedStory?.media_type === 'video' ? (
+                <motion.video
+                  key={selectedStory.id}
+                  src={selectedStory?.media_url}
+                  autoPlay
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="w-full h-full object-contain"
+                  controls
+                  onEnded={() => goToIndex(selectedStoryIndex + 1)}
+                />
+              ) : (
+                <motion.img
+                  key={selectedStory.id}
+                  src={selectedStory?.media_url}
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="w-full h-full object-contain"
+                  alt="قصة"
+                />
+              )}
+            </AnimatePresence>
 
             {/* منطقة لمس شفافة للتنقل - يمين/شمال زي واتساب وفيسبوك */}
             <button
@@ -393,6 +430,17 @@ export default function Stories({ currentUser }: StoriesProps) {
             )}
           </div>
 
+          {/* لصاحب الحالة بس: زرار يشوف بيه مين شافها ومين تفاعل معاها */}
+          {selectedStory.user_id === currentUser.id && (
+            <button
+              onClick={(e) => { e.stopPropagation(); openViewersPanel(); }}
+              className="relative z-20 flex items-center justify-center gap-2 text-white/90 text-xs font-bold px-4 pb-2 pt-3 bg-gradient-to-t from-black/70 to-transparent"
+            >
+              <Eye className="w-4 h-4" />
+              <span>مين شاف الحالة دي</span>
+            </button>
+          )}
+
           {/* شريط التفاعلات السريعة بستايل واتساب في الأسفل */}
           <div
             className="relative z-20 flex items-center justify-center gap-3 px-4 pb-6 pt-3 bg-gradient-to-t from-black/70 via-black/30 to-transparent"
@@ -410,6 +458,43 @@ export default function Stories({ currentUser }: StoriesProps) {
               </button>
             ))}
           </div>
+
+          {/* قائمة مين شاف الحالة وتفاعل معاها - لصاحب الحالة بس */}
+          {showViewers && (
+            <div
+              className="absolute inset-0 z-30 bg-black/70 flex items-end"
+              onClick={(e) => { e.stopPropagation(); setShowViewers(false); }}
+            >
+              <div
+                className="w-full bg-white dark:bg-gray-900 rounded-t-3xl max-h-[70vh] flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
+                  <h3 className="font-bold text-gray-900 dark:text-white">مشاهدات الحالة ({viewersList.length})</h3>
+                  <button onClick={() => setShowViewers(false)} className="text-gray-500 p-1">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="overflow-y-auto flex-1">
+                  {loadingViewers ? (
+                    <div className="p-8 flex justify-center">
+                      <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+                    </div>
+                  ) : viewersList.length === 0 ? (
+                    <p className="text-center text-sm text-gray-500 p-8">لسه محدش شاف الحالة دي</p>
+                  ) : (
+                    viewersList.map((v, i) => (
+                      <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                        <img src={v.viewer?.avatar_url || ""} className="w-10 h-10 rounded-full object-cover" alt="" />
+                        <span className="flex-1 font-bold text-sm text-gray-900 dark:text-white">{v.viewer?.username || "مستخدم"}</span>
+                        {v.emoji && <span className="text-xl">{v.emoji}</span>}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -478,7 +563,7 @@ export default function Stories({ currentUser }: StoriesProps) {
                   </div>
                   <div>
                     <p className="font-bold text-gray-900 dark:text-white">نص</p>
-                    <p className="text-xs text-gray-500">اكتب نص ملون زي واتساب</p>
+                    <p className="text-xs text-gray-500">اكتب نص ملون بخلفية من اختيارك</p>
                   </div>
                 </button>
               </div>

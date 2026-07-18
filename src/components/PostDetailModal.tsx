@@ -161,7 +161,6 @@ export default function PostDetailModal({
               <button onClick={() => onLikeToggle(meme.id)} className={meme.liked_by_me ? "text-red-500" : "text-gray-700"}>
                 <Heart className={`w-6 h-6 ${meme.liked_by_me ? "fill-current" : ""}`} />
               </button>
-              <button className="text-gray-700"><MessageCircle className="w-6 h-6" /></button>
               <button onClick={() => onShare(meme.id)} className="text-gray-700"><Share2 className="w-6 h-6" /></button>
             </div>
             <button onClick={() => onSaveToggle(meme.id)} className={meme.saved_by_me ? "text-orange-500" : "text-gray-700"}>

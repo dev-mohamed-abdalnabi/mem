@@ -70,8 +70,26 @@ export const socialService = {
   },
 
   /**
-   * إرسال/تحديث تفاعل (إيموجي) على حالة، بستايل واتساب (تفاعل واحد لكل مستخدم لكل حالة).
+   * لصاحب الحالة بس: قائمة مين شافها ومين تفاعل معاها وبإيه إيموجي.
+   * الصلاحيات في الداتابيز أصلاً بتسمح لصاحب الحالة يشوف كل الـ views/reactions
+   * بتاعة حالته (وممنوع أي حد تاني يشوفهم غير حالته الشخصية).
    */
+  async getStoryViewersWithReactions(storyId: string): Promise<{ viewer: Profile; emoji: string | null; viewedAt: string }[]> {
+    const [{ data: views, error: viewsErr }, { data: reactions, error: reactErr }] = await Promise.all([
+      supabase.from("story_views").select("viewer_id, viewed_at, profiles!viewer_id(*)").eq("story_id", storyId).order("viewed_at", { ascending: false }),
+      supabase.from("story_reactions").select("user_id, emoji").eq("story_id", storyId),
+    ]);
+    if (viewsErr) { console.error(viewsErr); return []; }
+    const reactionMap = (reactions || []).reduce((acc: Record<string, string>, r: any) => {
+      acc[r.user_id] = r.emoji;
+      return acc;
+    }, {});
+    return (views || []).map((v: any) => ({
+      viewer: v.profiles,
+      emoji: reactionMap[v.viewer_id] || null,
+      viewedAt: v.viewed_at,
+    }));
+  },
   async reactToStory(storyId: string, userId: string, emoji: string): Promise<void> {
     if (!userId || userId === "guest-user-temp") {
       throw new Error("سجل دخول الأول عشان تتفاعل مع الحالة!");

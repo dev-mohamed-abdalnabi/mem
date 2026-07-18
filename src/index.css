@@ -50,6 +50,31 @@ body {
   color: var(--foreground);
   direction: rtl;
   transition: background-color 0.3s ease, color 0.3s ease;
+  /* منع سحب الصفحة لتحديث (pull-to-refresh) وتحسس الموقع كأبليكيشن حقيقي */
+  overscroll-behavior-y: contain;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* منع قائمة اللمس الطويل الافتراضية للمتصفح (Open image/Copy/Share/Search with Lens)
+   ومنع تحديد النص وسحب الصور، عشان الموقع يحس زي أبليكيشن موبايل مش صفحة ويب */
+img, video {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+* {
+  -webkit-touch-callout: none;
+}
+
+/* بس نسمح بتحديد النص جوه حقول الكتابة الفعلية عشان المستخدم يقدر يعدل كلامه بشكل طبيعي */
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 
 /* ===== TEXT COLORS ===== */
