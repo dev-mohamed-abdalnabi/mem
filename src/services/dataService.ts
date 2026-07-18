@@ -316,42 +316,27 @@ export const dataService = {
   },
 
   /**
-   * الريلز: فيديوهات المنشورات المعتمدة بس (post_type='video')، بترتيب الأحدث أولاً،
-   * لعرضها في فيد رأسي زي التيك توك/الريلز بدل التبويب القديم "الحفظ".
+   * الريلز: فيديوهات المنشورات المعتمدة بس (post_type='video'). كانت بترتيب
+   * الأحدث بس من غير أي خوارزمية خالص، فكانت بتبدأ دايماً بنفس آخر فيديو نزل
+   * مهما عملت ريفريش. دلوقتي بتستخدم نفس فانكشن الترتيب اللي بتستخدمها الفيد
+   * العادي (get_ranked_feed مع p_post_type='video') واللي بقت فيها عشوائية
+   * خفيفة حقيقية من جوه الداتابيز، فكل ريفريش بيدّي ترتيب متنوع شوية.
    */
   getVideoMemes: async (page: number = 0, limit: number = 10): Promise<Meme[]> => {
-    const { data, error } = await supabase
-      .from("memes")
-      .select("*, profiles!user_id(*)")
-      .eq("status", "approved")
-      .eq("post_type", "video")
-      .order("created_at", { ascending: false })
-      .range(page * limit, page * limit + limit - 1);
+    const { data, error } = await supabase.rpc("get_ranked_feed", {
+      p_limit: limit,
+      p_offset: page * limit,
+      p_tag: null,
+      p_search: null,
+      p_post_type: "video",
+    });
     if (error) throw error;
-    const memes = (data as Meme[]) || [];
 
-    // كانت liked_by_me/saved_by_me مش بتتحسب هنا خالص (بعكس get_ranked_feed
-    // للفيد العادي)، فكل فيديو كان بيظهر دايماً "مش معجب/محفوظ" حتى لو المستخدم
-    // فعلياً معجب بيه، وده كان بيخلي زرار اللايك يحس إنه "مش شغال" بصرياً.
-    const { data: { user } } = await supabase.auth.getUser();
-    let likedIds = new Set<string>();
-    let savedIds = new Set<string>();
-    if (user && memes.length > 0) {
-      const ids = memes.map(m => m.id);
-      const [{ data: likes }, { data: saves }] = await Promise.all([
-        supabase.from("likes").select("meme_id").eq("user_id", user.id).in("meme_id", ids),
-        supabase.from("saved_memes").select("meme_id").eq("user_id", user.id).in("meme_id", ids),
-      ]);
-      likedIds = new Set((likes || []).map((l: any) => l.meme_id));
-      savedIds = new Set((saves || []).map((s: any) => s.meme_id));
-    }
-
-    return memes.map(m => ({
+    return (data || []).map((m: any) => ({
       ...m,
-      tags: Array.isArray(m.tags) ? m.tags : [],
-      liked_by_me: likedIds.has(m.id),
-      saved_by_me: savedIds.has(m.id),
-    }));
+      profiles: m.profile,
+      tags: Array.isArray(m.tags) ? m.tags : []
+    })) as Meme[];
   },
 
   /**
@@ -381,7 +366,9 @@ export const dataService = {
       return (data as Meme[]).map(m => ({ ...m, tags: Array.isArray(m.tags) ? m.tags : [] }));
     }
 
-    // الفيد الرئيسي -> بيستخدم الخوارزمية الحقيقية في الداتابيز
+    // الفيد الرئيسي -> بيستخدم الخوارزمية الحقيقية في الداتابيز، واللي بقت
+    // فيها عشوائية خفيفة حقيقية (exploration) عشان الفيد ما يفضلش يبدأ دايماً
+    // بنفس آخر بوست نزل مهما عملت ريفريش - بالظبط زي فيد انستجرام الحقيقي.
     const { data, error } = await supabase.rpc("get_ranked_feed", {
       p_limit: limit,
       p_offset: page * limit,

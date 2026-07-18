@@ -499,24 +499,26 @@ export default function Stories({ currentUser }: StoriesProps) {
           {/* dir="ltr" ثابتة: الصفحة كلها rtl، فمن غيرها ترتيب القطاعات وحركة
               التعبئة كانوا بيتقلبوا (يمشوا من اليمين للشمال). شريط الحالات
               لازم يفضل يمشي شمال-لليمين زي واتساب/انستجرام أياً كانت لغة الجهاز */}
-          {/* بدل ما نعتمد على box-shadow فوق عنصر متغيّر العرض جوه overflow-hidden
-              (ده كان بيسبب "مسح" بصري غريب في القطاعة وهي بتتعبى)، دلوقتي في خلفية
-              غامقة صريحة وثابتة (bg-black/30) تحت الشريط كله، مستقلة تماماً عن لون
-              خلفية الحالة نفسها (فاتحة كانت أو غامقة) - فيبقى التباين مضمون دايماً */}
-          <div dir="ltr" className="absolute top-0 left-0 right-0 z-30 px-2 pt-3">
-            <div className="flex gap-1 bg-black/30 rounded-full p-[3px]">
-              {currentUserStories.map((_, i) => (
-                <div key={i} className="h-1 flex-1 bg-white/30 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-white rounded-full"
-                    style={{
-                      width: i < selectedStoryIndex ? "100%" : i === selectedStoryIndex ? `${progress}%` : "0%",
-                      transition: i === selectedStoryIndex ? "width 0.1s linear" : undefined,
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
+          {/* شكل أخف وأحدث: خط رفيع (3px) بحواف مدورة تماماً، مع ظل خفيف على
+              الصف الخارجي الثابت نفسه (مش على العنصر المتغيّر العرض جوه
+              overflow-hidden - ده كان سبب "المسح" البصري القديم) عشان يفضل
+              باين على أي خلفية من غير ما يبان تقيل/بلوكي */}
+          <div
+            dir="ltr"
+            className="absolute top-0 left-0 right-0 z-30 flex gap-1.5 px-3 pt-2.5"
+            style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.6))" }}
+          >
+            {currentUserStories.map((_, i) => (
+              <div key={i} className="h-[3px] flex-1 bg-white/35 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-white rounded-full"
+                  style={{
+                    width: i < selectedStoryIndex ? "100%" : i === selectedStoryIndex ? `${progress}%` : "0%",
+                    transition: i === selectedStoryIndex ? "width 0.1s linear" : undefined,
+                  }}
+                />
+              </div>
+            ))}
           </div>
 
           {/* هيدر الحالة بستايل واتساب: أفاتار + اسم + وقت حقيقي + خيارات + إغلاق */}
