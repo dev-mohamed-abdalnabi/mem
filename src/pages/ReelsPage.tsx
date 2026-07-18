@@ -40,6 +40,10 @@ export default function ReelsPage({
   const [isMuted, setIsMuted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
+  // بنمنع التحديث المتفائل لعداد المشاركات لو المستخدم دوس زرار المشاركة
+  // كذا مرة ورا بعض بسرعة لنفس الريل (نفس مدة التهدئة الموجودة في App.tsx)
+  const lastShareAtRef = useRef<Map<string, number>>(new Map());
+  const SHARE_COOLDOWN_MS = 10000;
 
   useEffect(() => {
     dataService.getVideoMemes(0, 20)
@@ -128,6 +132,11 @@ export default function ReelsPage({
 
   const handleShare = (meme: Meme) => {
     requireAuth(async () => {
+      const now = Date.now();
+      const lastSharedAt = lastShareAtRef.current.get(meme.id) || 0;
+      if (now - lastSharedAt < SHARE_COOLDOWN_MS) return; // نفس فترة التهدئة في App.tsx، مش هتتحسب مشاركة جديدة أصلاً
+      lastShareAtRef.current.set(meme.id, now);
+
       // تحديث متفائل فوري للعداد، وبعدين استدعاء الدالة الحقيقية اللي بتسجل
       // المشاركة وتحدث state بتاع App.tsx (من غير ما نستدعي recordShare مرتين)
       setReels(prev => prev.map(m => m.id === meme.id ? { ...m, shares_count: m.shares_count + 1 } : m));

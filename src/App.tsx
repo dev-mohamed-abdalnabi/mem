@@ -43,6 +43,9 @@ export default function App() {
   const [notifications, setNotifications] = useState<Notification[]>([]); // الإشعارات
   const [loading, setLoading] = useState(true); // حالة التحميل الأولية
   const [loadingMore, setLoadingMore] = useState(false); // حالة تحميل المزيد من البيانات
+  // بنتتبع آخر وقت اتسجلت فيه مشاركة لكل بوست، عشان نمنع تكرار العداد لو
+  // المستخدم دوس زرار المشاركة كذا مرة ورا بعض بسرعة
+  const lastShareAtRef = useRef<Map<string, number>>(new Map());
   const [hasMore, setHasMore] = useState(true); // هل توجد بيانات إضافية للتحميل
   const [page, setPage] = useState(0); // رقم الصفحة الحالية للتحميل التدريجي
   
@@ -104,6 +107,18 @@ export default function App() {
         if (dbCurrentUser && dbCurrentUser.id !== "guest-user-temp") {
           const dbNotifications = await dataService.getNotifications();
           setNotifications(dbNotifications);
+        }
+
+        // فتح البوست مباشرة لو الرابط جاي من مشاركة (?meme=<id>). كان اللينك
+        // بيوديك للصفحة الرئيسية بس من غير ما يفتح البوست المقصود خالص.
+        const sharedMemeId = new URLSearchParams(window.location.search).get("meme");
+        if (sharedMemeId) {
+          const sharedMeme = await dataService.getMemeById(sharedMemeId);
+          if (sharedMeme) setSelectedMemeForComments(sharedMeme);
+          // بننضف الرابط من الـ query param بعد ما فتحنا البوست عشان لو المستخدم
+          // عمل ريفريش أو رجع، الرابط يفضل نضيف ومايعيدش يفتح نفس المودال تاني
+          const cleanUrl = window.location.pathname + window.location.hash;
+          window.history.replaceState({ tab: startTab }, "", cleanUrl);
         }
       } catch (e) { 
         console.warn("خطأ في تحميل البيانات:", e); 
@@ -298,7 +313,14 @@ export default function App() {
       handleReportSubmit: (memeId: string, reason: string) => console.log("Report:", { memeId, reason }),
       // كانت دي بس console.log ومفيش أي تسجيل حقيقي للمشاركة في الداتابيز رغم وجود
       // عمود shares_count وRPC جاهزة (increment_share_count). دلوقتي بتتسجل فعلياً.
+      // كمان بنمنع تكرار التسجيل لو المستخدم ضغط زرار المشاركة كذا مرة ورا بعض
+      // بسرعة لنفس البوست (زي فيسبوك بالظبط: مش كل ضغطة بتتحسب مشاركة جديدة).
       handleShareCompleted: async (memeId: string) => {
+        const now = Date.now();
+        const lastSharedAt = lastShareAtRef.current.get(memeId) || 0;
+        const SHARE_COOLDOWN_MS = 10000; // 10 ثواني كحد أدنى بين مشاركتين لنفس البوست
+        if (now - lastSharedAt < SHARE_COOLDOWN_MS) return;
+        lastShareAtRef.current.set(memeId, now);
         try {
           const newCount = await dataService.recordShare(memeId);
           setMemes(prev => prev.map(m => m.id === memeId ? { ...m, shares_count: newCount } : m));

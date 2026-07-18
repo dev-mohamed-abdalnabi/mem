@@ -282,6 +282,40 @@ export const dataService = {
   },
 
   /**
+   * جلب بوست واحد بالـ id بتاعه - مستخدمة لما حد يفتح لينك مشاركة
+   * (اللينك بيبقى شكله `?meme=<id>`) عشان نفتحله البوست نفسه مباشرة
+   * بدل ما يوديه للصفحة الرئيسية بس من غير ما يبان له البوست المقصود.
+   */
+  getMemeById: async (memeId: string): Promise<Meme | null> => {
+    const { data, error } = await supabase
+      .from("memes")
+      .select("*, profiles!user_id(*)")
+      .eq("id", ensureUUID(memeId))
+      .maybeSingle();
+    if (error || !data) return null;
+
+    const meme = data as Meme;
+    const { data: { user } } = await supabase.auth.getUser();
+    let liked = false;
+    let saved = false;
+    if (user) {
+      const [{ data: like }, { data: save }] = await Promise.all([
+        supabase.from("likes").select("meme_id").eq("user_id", user.id).eq("meme_id", meme.id).maybeSingle(),
+        supabase.from("saved_memes").select("meme_id").eq("user_id", user.id).eq("meme_id", meme.id).maybeSingle(),
+      ]);
+      liked = !!like;
+      saved = !!save;
+    }
+
+    return {
+      ...meme,
+      tags: Array.isArray(meme.tags) ? meme.tags : [],
+      liked_by_me: liked,
+      saved_by_me: saved,
+    };
+  },
+
+  /**
    * الريلز: فيديوهات المنشورات المعتمدة بس (post_type='video')، بترتيب الأحدث أولاً،
    * لعرضها في فيد رأسي زي التيك توك/الريلز بدل التبويب القديم "الحفظ".
    */

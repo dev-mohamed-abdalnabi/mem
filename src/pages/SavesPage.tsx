@@ -38,7 +38,7 @@ export default function SavesPage({
 
   return (
     // تم إضافة max-w-2xl mx-auto لتظبيط العرض على الكمبيوتر
-    <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto animate-fade-in pb-20 md:pb-8 px-4 md:px-0">  
+    <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto animate-fade-in pb-20 lg:pb-8 px-4 md:px-0">  
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl md:rounded-3xl p-5 shadow-sm text-right">  
         <h2 className="font-bold text-xl flex items-center gap-2 text-gray-900 dark:text-white">
           <Bookmark className="w-5 h-5 text-blue-500 fill-blue-500" />

@@ -55,7 +55,7 @@ export default function TrendingPage({
   }, []);
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto animate-fade-in pb-20 md:pb-8 px-4 md:px-0">  
+    <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto animate-fade-in pb-20 lg:pb-8 px-4 md:px-0">  
 
       {loading ? (
         <FeedLoadingSkeleton />

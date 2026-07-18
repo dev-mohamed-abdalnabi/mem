@@ -22,12 +22,28 @@ export default function CreatePostPage({ currentUser, setActiveTab, onPostCreate
     if (!files) return;
 
     const newFiles = Array.from(files) as File[];
-    
+    // بنحسب الميديا الموجودة فعلاً + اللي هتتضاف في نفس الدفعة دي، عشان
+    // نمنع فيديوهين مع بعض أو فيديو مع صورة (البوست بيدعم بس: فيديو واحد
+    // لوحده، أو صورة واحدة، أو أكتر من صورة مع بعض)
+    const existingHasVideo = mediaFiles.some(m => m.type === 'video');
+    const existingHasImage = mediaFiles.some(m => m.type === 'image');
+    let batchHasVideo = existingHasVideo;
+    let batchHasImage = existingHasImage;
+
     for (const file of newFiles) {
       const isVideo = file.type.startsWith('video/');
       const isImage = file.type.startsWith('image/');
       
       if (!isImage && !isVideo) continue;
+
+      if (isVideo && (batchHasVideo || batchHasImage)) {
+        setPostError("الفيديو لازم يتنشر لوحده، مينفعش تضيفه مع فيديو أو صورة تانية.");
+        continue;
+      }
+      if (isImage && batchHasVideo) {
+        setPostError("مينفعش تضيف صور مع فيديو في نفس البوست.");
+        continue;
+      }
 
       // Video duration check (approximate via metadata) - بيتحقق قبل ما يضيف الملف فعلياً
       if (isVideo) {
@@ -47,6 +63,9 @@ export default function CreatePostPage({ currentUser, setActiveTab, onPostCreate
           continue; // متضافش الملف ده للقائمة
         }
       }
+
+      if (isVideo) batchHasVideo = true;
+      if (isImage) batchHasImage = true;
 
       const reader = new FileReader();
       reader.onload = (event) => {

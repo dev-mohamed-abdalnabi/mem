@@ -500,17 +500,20 @@ export default function Stories({ currentUser }: StoriesProps) {
               التعبئة كانوا بيتقلبوا (يمشوا من اليمين للشمال). شريط الحالات
               لازم يفضل يمشي شمال-لليمين زي واتساب/انستجرام أياً كانت لغة الجهاز */}
           <div dir="ltr" className="absolute top-0 left-0 right-0 z-30 flex gap-1 p-2 pt-3">
+            {/* كل قطاعة بحافة غامقة خفيفة ثابتة (مش متوقفة على تدرج الهيدر بس)
+                عشان تفضل باينة حتى لو خلفية الحالة نفسها بيضا/فاتحة */}
             {currentUserStories.map((_, i) => (
               <div
                 key={i}
                 className="h-1 flex-1 bg-white/40 rounded-full overflow-hidden"
-                style={{ boxShadow: "0 0 2px rgba(0,0,0,0.5)" }}
+                style={{ boxShadow: "0 0 0 1px rgba(0,0,0,0.45)" }}
               >
                 <div
                   className="h-full bg-white rounded-full"
                   style={{
                     width: i < selectedStoryIndex ? "100%" : i === selectedStoryIndex ? `${progress}%` : "0%",
                     transition: i === selectedStoryIndex ? "width 0.1s linear" : undefined,
+                    boxShadow: "0 0 0 0.5px rgba(0,0,0,0.35)",
                   }}
                 />
               </div>
