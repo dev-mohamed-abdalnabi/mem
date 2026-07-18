@@ -109,6 +109,7 @@ export default function Stories({ currentUser }: StoriesProps) {
   const [busyAction, setBusyAction] = useState(false);
   const progressStartRef = useRef<number>(0);
   const progressElapsedRef = useRef<number>(0);
+  const isPausedRef = useRef<boolean>(false);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
   const rafRef = useRef<number | null>(null);
 
@@ -196,6 +197,15 @@ export default function Stories({ currentUser }: StoriesProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStory, selectedStoryIndex, currentUserStories]);
 
+  // بنحدّث الـ ref بس لما isPaused يتغيّر، من غير ما نعيد تشغيل عداد
+  // التقدم؛ لو سبناه dependency في الـ effect اللي تحت، كل دوسة/تطة
+  // كانت بترجّع الشريط لصفر وتبوّظ التقدم (المشكلة الأصلية).
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+    // لو المستخدم مسك (pause)، نثبّت لحظة البداية عشان لما يسيب يكمل من نفس النقطة
+    progressStartRef.current = performance.now() - progressElapsedRef.current;
+  }, [isPaused]);
+
   // شريط التقدم بستايل واتساب/انستجرام: بيتعبى تلقائي مع الوقت وبيتنقل
   // للحالة اللي بعدها لوحده. للصور بنستخدم مدة ثابتة (5 ثواني)، وللفيديو
   // بنتبع تقدم الفيديو نفسه (currentTime/duration) عشان يتزامنوا مع بعض.
@@ -208,7 +218,7 @@ export default function Stories({ currentUser }: StoriesProps) {
     const isVideo = selectedStory.media_type === "video";
 
     const tick = (now: number) => {
-      if (isPaused) {
+      if (isPausedRef.current) {
         progressStartRef.current = now - progressElapsedRef.current;
         rafRef.current = requestAnimationFrame(tick);
         return;
@@ -233,7 +243,7 @@ export default function Stories({ currentUser }: StoriesProps) {
     rafRef.current = requestAnimationFrame(tick);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedStory?.id, isPaused]);
+  }, [selectedStory?.id]);
 
   // الفيديو بيوصل لآخره: ننتقل للحالة اللي بعدها
   const handleVideoEnded = () => goToIndex(selectedStoryIndex + 1);
