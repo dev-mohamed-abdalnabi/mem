@@ -1,0 +1,401 @@
+import { supabase } from "../supabaseClient";
+import { Profile, Meme, Comment, Notification, Report } from "../types";
+import DOMPurify from "dompurify";
+
+// Removed mock data entirely
+export const MOCK_PROFILES: Profile[] = [];
+export const MOCK_MEMES: Meme[] = [];
+export const MOCK_COMMENTS: Comment[] = [];
+export const MOCK_NOTIFICATIONS: Notification[] = [];
+
+export function calculateMemeLevel(points: number): string {
+  if (points <= 50) return "مبتدئ";
+  if (points <= 150) return "صانع متفاعل";
+  if (points <= 350) return "ناشر متميز";
+  if (points <= 700) return "أسطورة الكوميديا";
+  if (points <= 1500) return "خبير ميمز";
+  return "إمبراطور الكوميديا والميمز";
+}
+
+export function ensureUUID(id: string): string {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(id)) return id;
+  return "00000000-0000-0000-0000-000000000000"; 
+}
+
+export function extractTagsFromCaption(caption: string | null): string[] {
+  if (!caption) return [];
+  const matches = caption.match(/#[\w\u0600-\u06FF]+/g);
+  return matches ? matches.map(m => m.replace("#", "")) : [];
+}
+
+/**
+ * دالة مساعدة للحصول على هوية المستخدم الموثقة من Supabase
+ * تمنع ثغرات IDOR عبر التأكد من أن العملية تتم بواسطة صاحب الحساب الحقيقي
+ */
+async function getAuthenticatedUserId(): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("يجب تسجيل الدخول للقيام بهذه العملية.");
+  return user.id;
+}
+
+export const dataService = {
+  extractTagsFromCaption,
+
+  signUp: async (email: string, password: string, username: string, avatarUrl?: string): Promise<Profile> => {
+    const defaultAvatar = avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
+    const { data: authData, error: signupError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { username, avatar_url: defaultAvatar } }
+    });
+
+    if (signupError) throw signupError;
+    if (!authData.user) throw new Error("تعذّر إنشاء حساب.");
+
+    const { data: profData, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", authData.user.id)
+      .single();
+
+    if (error || !profData) throw new Error("خطأ في إنشاء ملف المستخدم.");
+    return profData as Profile;
+  },
+
+  signIn: async (email: string, password: string): Promise<Profile> => {
+    const { data: authData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+    if (loginError) throw loginError;
+    if (!authData.user) throw new Error("بيانات الاعتماد غير صالحة.");
+
+    const { data: profData, error: profileError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", authData.user.id)
+      .single();
+
+    if (profileError || !profData) throw new Error("تعذر العثور على ملف المستخدم.");
+    return profData as Profile;
+  },
+
+  signOut: async (): Promise<void> => {
+    await supabase.auth.signOut();
+  },
+
+  getCurrentUser: async (): Promise<Profile> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+      if (!error && data) return data as Profile;
+    }
+
+    return {
+      id: "guest-user-temp",
+      username: "زائر_مجهول",
+      avatar_url: "https://api.dicebear.com/7.x/bottts/svg?seed=guest",
+      bio: "يتصفح كزائر.",
+      website: "",
+      role: "user",
+      meme_level: "زائر متصفح 👀",
+      total_points: 0,
+      followers_count: 0,
+      following_count: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+  },
+
+  updateProfile: async (profile: Partial<Profile>): Promise<Profile> => {
+    const userId = await getAuthenticatedUserId();
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .update(profile)
+      .eq("id", userId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data as Profile;
+  },
+
+  getProfilesList: async (): Promise<Profile[]> => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .order("total_points", { ascending: false });
+    if (error) throw error;
+    return data as Profile[];
+  },
+
+  getFollowingList: async (userId: string): Promise<string[]> => {
+    if (userId === "guest-user-temp") return [];
+    const { data, error } = await supabase
+      .from("follows")
+      .select("following_id")
+      .eq("follower_id", ensureUUID(userId));
+    if (error) return [];
+    return (data || []).map(f => f.following_id);
+  },
+
+  followUser: async (_unusedFollowerId: string, followingId: string): Promise<boolean> => {
+    const userId = await getAuthenticatedUserId();
+    if (userId === ensureUUID(followingId)) {
+      throw new Error("مينفعش تتابع نفسك يا بطل!");
+    }
+
+    const { data: existing } = await supabase
+      .from("follows")
+      .select("*")
+      .eq("follower_id", userId)
+      .eq("following_id", ensureUUID(followingId))
+      .maybeSingle();
+    
+    if (existing) {
+        await supabase.from("follows").delete().eq("follower_id", userId).eq("following_id", ensureUUID(followingId));
+        return false;
+    }
+    
+    const { error } = await supabase.from("follows").insert({ follower_id: userId, following_id: ensureUUID(followingId) });
+    if (error) throw error;
+    return true;
+  },
+
+  uploadMemeFile: async (file: File, bucket: string = "memes"): Promise<string> => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4'];
+    if (!allowedTypes.includes(file.type)) throw new Error("نوع الملف غير مدعوم.");
+    if (file.size > 10 * 1024 * 1024) throw new Error("حجم الملف كبير جداً.");
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage.from(bucket).upload(fileName, file);
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(fileName);
+    return publicUrl;
+  },
+
+  /**
+   * رفع صورة البروفايل. كانت ProfilePage.tsx بتستدعي الدالة دي وهي مش موجودة أصلاً
+   * (كان فيه uploadMemeFile بس مفيش uploadAvatar)، فكل رفع لصورة شخصية كان بيفشل فوراً
+   * بـ TypeError. مفيش bucket منفصل للـ avatars في Supabase، فبنستخدم نفس bucket الميمز
+   * الموجود فعلاً وبنحط الملفات في مجلد فرعي avatars/ جواه عشان التنظيم.
+   */
+  uploadAvatar: async (file: File): Promise<string> => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) throw new Error("نوع الملف غير مدعوم.");
+    if (file.size > 5 * 1024 * 1024) throw new Error("حجم الصورة كبير جداً.");
+
+    const userId = await getAuthenticatedUserId();
+
+    // بنجيب رابط الأفتار القديم قبل الرفع عشان نمسحه بعدين ونوفر مساحة/تكلفة storage
+    // (كانت كل صورة قديمة بتفضل متخزنة للأبد من غير مسح، وده بيكلّف فلوس مع الوقت)
+    const { data: oldProfile } = await supabase.from("profiles").select("avatar_url").eq("id", userId).single();
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `avatars/${userId}-${Date.now()}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage.from("memes").upload(fileName, file, { upsert: true });
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage.from("memes").getPublicUrl(fileName);
+
+    // مسح الملف القديم (لو كان فعلاً مرفوع في نفس الـ bucket، مش صورة دايسبير الافتراضية)
+    if (oldProfile?.avatar_url && oldProfile.avatar_url.includes("/storage/v1/object/public/memes/")) {
+      const oldPath = oldProfile.avatar_url.split("/storage/v1/object/public/memes/")[1];
+      if (oldPath) await supabase.storage.from("memes").remove([oldPath]);
+    }
+
+    return publicUrl;
+  },
+
+  /**
+   * جلب الفيد المُرتَّب بخوارزمية زي انستجرام (get_ranked_feed في Supabase).
+   * الفانكشن دي كانت موجودة وجاهزة في الـ DB من الأول وماكنش حد بيناديها؛ الكود القديم
+   * كان بيعمل SELECT عادي مرتب بالتاريخ بس، فمكنش فيه أي "خوارزمية" فعلياً.
+   * السكور بيتحسب في الداتابيز نفسها: engagement (لايكات/كومنتات/شير/فيوز)
+   * ناقص منه decay بالوقت، زائد بونص لو انت متابع صاحب البوست - بالظبط زي فيد انستجرام.
+   *
+   * ملحوظة: لو userId اتبعت (يعني بروفايل معين) بنرجع لاستعلام مباشر عادي
+   * لأن get_ranked_feed مبنية لفيد الصفحة الرئيسية فقط (مفيش فلتر user_id فيها).
+   */
+  getMemes: async (
+    status: string = "approved",
+    userId?: string,
+    _currentUserId?: string,
+    page: number = 0,
+    limit: number = 10,
+    tag?: string | null,
+    search?: string | null
+  ): Promise<Meme[]> => {
+    // فيد بروفايل مستخدم معين -> استعلام مباشر (RPC مش مخصصة لده)
+    if (userId) {
+      let query = supabase.from("memes").select("*, profiles!user_id(*)").eq("status", status).eq("user_id", ensureUUID(userId));
+      const { data, error } = await query.order("created_at", { ascending: false }).range(page * limit, page * limit + limit - 1);
+      if (error) throw error;
+      return (data as Meme[]).map(m => ({ ...m, tags: Array.isArray(m.tags) ? m.tags : [] }));
+    }
+
+    // الفيد الرئيسي -> بيستخدم الخوارزمية الحقيقية في الداتابيز
+    const { data, error } = await supabase.rpc("get_ranked_feed", {
+      p_limit: limit,
+      p_offset: page * limit,
+      p_tag: tag || null,
+      p_search: search || null
+    });
+    if (error) throw error;
+
+    return (data || []).map((m: any) => ({
+      ...m,
+      profiles: m.profile,
+      tags: Array.isArray(m.tags) ? m.tags : []
+    })) as Meme[];
+  },
+
+  /**
+   * الترند الحقيقي: بيجيب من trending_memes (materialized view بتتحدث كل 15 دقيقة
+   * تلقائياً عن طريق cron job في Supabase). الفورمولا بتاعتها hot_score بتاخد في الاعتبار
+   * اللايكات/الكومنتات/الشير/الحفظ منسوبين لعمر البوست، بالظبط زي "Hot" في Reddit/انستجرام.
+   * الكود القديم كان بس بياخد الـ 10 بوستات المحملة في الفيد ويعيد ترتيبهم محلياً!
+   */
+  getTrendingMemes: async (limit: number = 30): Promise<Meme[]> => {
+    const { data, error } = await supabase
+      .from("trending_memes")
+      .select("*, profiles:user_id(*)")
+      .limit(limit);
+    if (error) throw error;
+    return (data as Meme[]).map(m => ({ ...m, tags: [] }));
+  },
+
+  toggleLike: async (memeId: string, _unusedUserId: string): Promise<{ liked: boolean; likesCount: number }> => {
+    const userId = await getAuthenticatedUserId();
+    const dbMemeId = ensureUUID(memeId);
+    
+    const { data: existing } = await supabase.from("likes").select("*").eq("meme_id", dbMemeId).eq("user_id", userId).maybeSingle();
+    
+    if (existing) {
+      await supabase.from("likes").delete().eq("meme_id", dbMemeId).eq("user_id", userId);
+    } else {
+      await supabase.from("likes").insert({ meme_id: dbMemeId, user_id: userId });
+    }
+
+    const { data: meme } = await supabase.from("memes").select("likes_count").eq("id", dbMemeId).single();
+    return { liked: !existing, likesCount: meme?.likes_count || 0 };
+  },
+
+  toggleSave: async (memeId: string, _unusedUserId: string): Promise<boolean> => {
+    const userId = await getAuthenticatedUserId();
+    const dbMemeId = ensureUUID(memeId);
+    
+    const { data: existing } = await supabase.from("saved_memes").select("*").eq("meme_id", dbMemeId).eq("user_id", userId).maybeSingle();
+    
+    if (existing) {
+      await supabase.from("saved_memes").delete().eq("meme_id", dbMemeId).eq("user_id", userId);
+      return false;
+    } else {
+      await supabase.from("saved_memes").insert({ meme_id: dbMemeId, user_id: userId });
+      return true;
+    }
+  },
+
+  deleteMeme: async (memeId: string, _unusedUserId: string): Promise<void> => {
+    const userId = await getAuthenticatedUserId();
+    // Soft delete: بنغيّر الحالة لـ 'deleted' بدل ما نمسح الصف فعلياً
+    // (مسح حقيقي كان بيمسح معاه الكومنتات/اللايكات/البلاغات المرتبطة بسبب ON DELETE CASCADE)
+    const { error } = await supabase
+      .from("memes")
+      .update({ status: "deleted" })
+      .eq("id", ensureUUID(memeId))
+      .eq("user_id", userId);
+    if (error) throw error;
+  },
+
+  getComments: async (memeId: string): Promise<Comment[]> => {
+    const { data, error } = await supabase
+      .from("comments")
+      .select("*, profiles!user_id(*)")
+      .eq("meme_id", ensureUUID(memeId))
+      .order("created_at", { ascending: true });
+    
+    if (error) throw error;
+    return data as Comment[];
+  },
+
+  addComment: async (memeId: string, _unusedUserId: string, content: string): Promise<Comment> => {
+    const userId = await getAuthenticatedUserId();
+    
+    const { data, error } = await supabase
+      .from("comments")
+      .insert({
+        meme_id: ensureUUID(memeId),
+        user_id: userId,
+        content: DOMPurify.sanitize(content.trim())
+      })
+      .select("*, profiles!user_id(*)")
+      .single();
+    
+    if (error) throw error;
+    return data as Comment;
+  },
+
+  submitReport: async (memeId: string, _unusedUserId: string, reason: string): Promise<void> => {
+    const userId = await getAuthenticatedUserId();
+    
+    const { error } = await supabase
+      .from("reports")
+      .insert({
+        meme_id: ensureUUID(memeId),
+        reporter_id: userId,
+        reason: reason.trim(),
+        status: "open"
+      });
+    
+    if (error) throw error;
+  },
+
+  /**
+   * تسجيل مشاهدة لبوست (مرة واحدة لكل مستخدم لكل بوست، الـ DB بتتكفل بمنع التكرار).
+   * كانت موجودة كـ RPC جاهزة (record_meme_view) ومحدش بينادها، فـ views_count فاضل صفر دايماً.
+   */
+  recordView: async (memeId: string): Promise<void> => {
+    try {
+      await supabase.rpc("record_meme_view", { p_meme_id: ensureUUID(memeId) });
+    } catch {
+      // فشل بسيط في تسجيل مشاهدة مش لازم يكسر تجربة المستخدم
+    }
+  },
+
+  /**
+   * تسجيل مشاركة فعلي في قاعدة البيانات (كانت بس console.log في الكود القديم).
+   */
+  recordShare: async (memeId: string): Promise<number> => {
+    const { data, error } = await supabase.rpc("increment_share_count", { p_meme_id: ensureUUID(memeId) });
+    if (error) throw error;
+    return data as number;
+  },
+
+  /**
+   * جلب إشعارات المستخدم (لايك/كومنت/متابعة). كانت الـ triggers شغالة في الداتابيز
+   * وبتضيف صفوف فعلية في جدول notifications، بس الفرونت مكنش بيجيبهم خالص.
+   */
+  getNotifications: async (): Promise<Notification[]> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*, actor:actor_id(*)")
+      .eq("recipient_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(30);
+    if (error) return [];
+    return data as Notification[];
+  },
+
+  /** تعليم كل الإشعارات كمقروءة - عن طريق RPC جاهزة (mark_all_notifications_read) */
+  markAllNotificationsRead: async (): Promise<void> => {
+    await supabase.rpc("mark_all_notifications_read");
+  }
+};

@@ -1,0 +1,327 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;500;700;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Cairo", "Tajawal", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+/* ===== LIGHT MODE (DEFAULT) ===== */
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --border: #e2e8f0;
+  --primary: #3b82f6;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+}
+
+/* ===== DARK MODE (EXPLICIT .dark CLASS) ===== */
+:root.dark {
+  --background: #0f1419;
+  --foreground: #ffffff;
+  --card: #1a1f2e;
+  --card-foreground: #ffffff;
+  --border: #2d3748;
+  --primary: #60a5fa;
+  --muted: #0a0e17;
+  --muted-foreground: #e2e8f0;
+}
+
+/* ===== DARK MODE (SYSTEM PREFERENCE - ONLY IF NO .light CLASS) ===== */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: #0f1419;
+    --foreground: #ffffff;
+    --card: #1a1f2e;
+    --card-foreground: #ffffff;
+    --border: #2d3748;
+    --primary: #60a5fa;
+    --muted: #0a0e17;
+    --muted-foreground: #e2e8f0;
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--background);
+  color: var(--foreground);
+  direction: rtl;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ===== TEXT COLORS ===== */
+.text-gray-900,
+.text-slate-900,
+.text-gray-800,
+.text-slate-700,
+.text-gray-700,
+.text-black { 
+  color: var(--foreground) !important; 
+}
+
+.text-gray-600,
+.text-gray-500,
+.text-gray-400,
+.text-slate-600,
+.text-gray-300 {
+  color: var(--muted-foreground) !important;
+}
+
+/* Remove glow effects and unnecessary transitions */
+* {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.shadow-sm {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.shadow-md {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07) !important;
+}
+
+.shadow-lg, .shadow-xl, .shadow-2xl {
+  box-shadow: none !important;
+}
+
+.dark .shadow-md, .dark .shadow-lg, .dark .shadow-xl {
+  box-shadow: none !important;
+}
+
+/* ===== BACKGROUND COLORS ===== */
+.bg-white { 
+  background-color: var(--card) !important;
+}
+
+.bg-slate-50,
+.bg-gray-50 { 
+  background-color: var(--muted) !important; 
+}
+
+.bg-gray-100 {
+  background-color: var(--muted) !important;
+}
+
+.bg-gray-200 {
+  background-color: #e5e7eb !important;
+}
+
+/* ===== BORDER COLORS ===== */
+.border-slate-100, 
+.border-slate-200,
+.border-gray-100,
+.border-gray-200 { 
+  border-color: var(--border) !important; 
+}
+
+/* ===== INPUTS & TEXTAREAS ===== */
+input, 
+textarea {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted-foreground) !important;
+}
+
+input:focus,
+textarea:focus {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+}
+
+/* ===== BUTTONS ===== */
+button {
+  color: var(--foreground) !important;
+}
+
+.hover\:bg-gray-50:hover,
+.hover\:bg-gray-100:hover {
+  background-color: var(--muted) !important;
+}
+
+/* ===== LINKS ===== */
+a {
+  color: var(--primary) !important;
+}
+
+.text-blue-600 {
+  color: var(--primary) !important;
+}
+
+.text-blue-700 {
+  color: #93c5fd !important;
+}
+
+/* ===== HEADER ===== */
+header {
+  background-color: var(--card) !important;
+  border-bottom-color: var(--border) !important;
+  color: var(--foreground) !important;
+  backdrop-filter: none !important;
+}
+
+/* ===== BOTTOM NAVIGATION ===== */
+nav {
+  background-color: var(--card) !important;
+  border-top-color: var(--border) !important;
+  backdrop-filter: none !important;
+  color: var(--foreground) !important;
+}
+
+nav button {
+  color: var(--muted-foreground) !important;
+}
+
+/* ===== DROPDOWN MENUS ===== */
+.absolute.left-0,
+.absolute.right-0 {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
+
+/* ===== CARDS ===== */
+.rounded-2xl,
+.rounded-3xl {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+}
+
+article {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
+
+/* ===== MODALS & OVERLAYS ===== */
+/* Only apply background to actual modal backdrops, not all fixed inset-0 elements */
+.modal-backdrop,
+[role="dialog"].fixed.inset-0 {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+/* Specific fix for potential freezing */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* ===== COLOR SCHEME ===== */
+:root {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+  }
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-shake {
+  animation: shake 0.2s ease-in-out 0s 2;
+}
+
+/* Loading and animation styles */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Smooth transitions */
+.transition-all {
+  transition: all 0.2s ease-out;
+}
+
+/* No scrollbar for hidden scrollbars */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Loading spinner */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Pulse animation for skeleton loaders */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ===== CUSTOM SLIDE UP ANIMATION ===== */
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out forwards;
+}
