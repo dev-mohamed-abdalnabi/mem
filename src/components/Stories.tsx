@@ -495,7 +495,8 @@ export default function Stories({ currentUser }: StoriesProps) {
           onClick={() => setSelectedStory(null)}
         >
           {/* شريط التقدم المقسّم بستايل واتساب/انستجرام - بيتعبى تلقائي مع الوقت */}
-          <div className="absolute top-0 left-0 right-0 z-20 flex gap-1 p-2 pt-3">
+          {/* z-30 عشان يبان فوق خلفية الهيدر المتدرجة (z-20)، لأنها كانت بتغطيه بالكامل */}
+          <div className="absolute top-0 left-0 right-0 z-30 flex gap-1 p-2 pt-3">
             {currentUserStories.map((_, i) => (
               <div key={i} className="h-1 flex-1 bg-white/30 rounded-full overflow-hidden">
                 <div
