@@ -499,25 +499,25 @@ export default function Stories({ currentUser }: StoriesProps) {
           {/* dir="ltr" ثابتة: الصفحة كلها rtl، فمن غيرها ترتيب القطاعات وحركة
               التعبئة كانوا بيتقلبوا (يمشوا من اليمين للشمال). شريط الحالات
               لازم يفضل يمشي شمال-لليمين زي واتساب/انستجرام أياً كانت لغة الجهاز */}
-          <div dir="ltr" className="absolute top-0 left-0 right-0 z-30 flex gap-1 p-2 pt-3">
-            {/* كل قطاعة بحافة غامقة خفيفة ثابتة (مش متوقفة على تدرج الهيدر بس)
-                عشان تفضل باينة حتى لو خلفية الحالة نفسها بيضا/فاتحة */}
-            {currentUserStories.map((_, i) => (
-              <div
-                key={i}
-                className="h-1 flex-1 bg-white/40 rounded-full overflow-hidden"
-                style={{ boxShadow: "0 0 0 1px rgba(0,0,0,0.45)" }}
-              >
-                <div
-                  className="h-full bg-white rounded-full"
-                  style={{
-                    width: i < selectedStoryIndex ? "100%" : i === selectedStoryIndex ? `${progress}%` : "0%",
-                    transition: i === selectedStoryIndex ? "width 0.1s linear" : undefined,
-                    boxShadow: "0 0 0 0.5px rgba(0,0,0,0.35)",
-                  }}
-                />
-              </div>
-            ))}
+          {/* بدل ما نعتمد على box-shadow فوق عنصر متغيّر العرض جوه overflow-hidden
+              (ده كان بيسبب "مسح" بصري غريب في القطاعة وهي بتتعبى)، دلوقتي في خلفية
+              غامقة صريحة وثابتة (bg-black/30) تحت الشريط كله، مستقلة تماماً عن لون
+              خلفية الحالة نفسها (فاتحة كانت أو غامقة) - فيبقى التباين مضمون دايماً */}
+          <div dir="ltr" className="absolute top-0 left-0 right-0 z-30 px-2 pt-3">
+            <div className="flex gap-1 bg-black/30 rounded-full p-[3px]">
+              {currentUserStories.map((_, i) => (
+                <div key={i} className="h-1 flex-1 bg-white/30 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-white rounded-full"
+                    style={{
+                      width: i < selectedStoryIndex ? "100%" : i === selectedStoryIndex ? `${progress}%` : "0%",
+                      transition: i === selectedStoryIndex ? "width 0.1s linear" : undefined,
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
           </div>
 
           {/* هيدر الحالة بستايل واتساب: أفاتار + اسم + وقت حقيقي + خيارات + إغلاق */}

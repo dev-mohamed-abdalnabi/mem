@@ -6,6 +6,12 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
+/* بنمنع قائمة "حفظ الصورة/الفيديو" اللي بتظهر مع الضغطة المطولة في iOS Safari
+   (مش بتطلق حدث contextmenu زي أندرويد، فمحتاجة القاعدة دي في الـCSS كمان) */
+img, video {
+  -webkit-touch-callout: none;
+}
+
 /* ===== LIGHT MODE (DEFAULT) ===== */
 :root {
   --background: #f8fafc;

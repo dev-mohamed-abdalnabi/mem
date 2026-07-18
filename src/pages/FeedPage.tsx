@@ -32,6 +32,8 @@ interface FeedPageProps {
   setActiveTab: (tab: string) => void;
   setLightboxImage: (url: string | null) => void;
   onOpenComments?: (meme: Meme) => void;
+  highlightedMemeId?: string | null; // بوست جاي من لينك مشاركة، بنوصله له وننده عليه بالضوء
+  onHighlightConsumed?: () => void; // بتتنادى بعد ما التظليل يخلص عشان الحالة تتصفر
 }
 
 /**
@@ -62,9 +64,23 @@ export default function FeedPage({
   setActiveTab,
   setLightboxImage,
   onOpenComments,
+  highlightedMemeId,
+  onHighlightConsumed,
 }: FeedPageProps) {
   
   const loaderRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * لو فيه بوست جاي من لينك مشاركة، بنوصله له بالسكرول وننده عليه بالضوء
+   * لفترة قصيرة بدل ما نفتحله مودال التعليقات على طول.
+   */
+  useEffect(() => {
+    if (!highlightedMemeId) return;
+    const el = document.getElementById(`meme-${highlightedMemeId}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    const t = setTimeout(() => onHighlightConsumed?.(), 2500);
+    return () => clearTimeout(t);
+  }, [highlightedMemeId, filteredMemes.length]);
 
   /**
    * إعداد Intersection Observer لمراقبة نهاية الصفحة وتحميل المزيد
@@ -129,7 +145,12 @@ export default function FeedPage({
           {filteredMemes.map((meme) => (
             <div 
               key={meme.id} 
-              className="post-wrapper w-full bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-800 transition-all hover:shadow-md"
+              id={`meme-${meme.id}`}
+              className={`post-wrapper w-full bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border transition-all hover:shadow-md ${
+                highlightedMemeId === meme.id
+                  ? "border-blue-500 ring-2 ring-blue-500/60"
+                  : "border-gray-200 dark:border-gray-800"
+              }`}
             >
               <MemeCard
                 meme={meme}

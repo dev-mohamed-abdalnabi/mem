@@ -55,6 +55,7 @@ export default function App() {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null); // صورة اللايت بوكس
   const [lightboxMediaType, setLightboxMediaType] = useState<'image' | 'video' | null>(null); // نوع ميديا اللايت بوكس
   const [selectedMemeForComments, setSelectedMemeForComments] = useState<Meme | null>(null); // المنشور المختار لعرض التعليقات
+  const [highlightedMemeId, setHighlightedMemeId] = useState<string | null>(null); // البوست اللي جاي من لينك مشاركة، عشان نوصله له وننده عليه بالضوء
   const [searchQuery, setSearchQuery] = useState(""); // نص البحث
   const [selectedTag, setSelectedTag] = useState<string | null>(null); // التاج المختار
   const [followingIds, setFollowingIds] = useState<string[]>([]); // قائمة المعرفات التي يتابعها المستخدم
@@ -111,14 +112,20 @@ export default function App() {
 
         // فتح البوست مباشرة لو الرابط جاي من مشاركة (?meme=<id>). كان اللينك
         // بيوديك للصفحة الرئيسية بس من غير ما يفتح البوست المقصود خالص.
+        // ملحوظة: بنوديه للبوست نفسه جوه الفيد (وننده عليه بالضوء) من غير
+        // ما نفتح قسم التعليقات تلقائي - المستخدم مش عايز البوست يتفتح بتعليقاته.
         const sharedMemeId = new URLSearchParams(window.location.search).get("meme");
         if (sharedMemeId) {
           const sharedMeme = await dataService.getMemeById(sharedMemeId);
-          if (sharedMeme) setSelectedMemeForComments(sharedMeme);
+          if (sharedMeme) {
+            setMemes(prev => prev.some(m => m.id === sharedMeme.id) ? prev : [sharedMeme, ...prev]);
+            setActiveTab("feed");
+            setHighlightedMemeId(sharedMeme.id);
+          }
           // بننضف الرابط من الـ query param بعد ما فتحنا البوست عشان لو المستخدم
-          // عمل ريفريش أو رجع، الرابط يفضل نضيف ومايعيدش يفتح نفس المودال تاني
+          // عمل ريفريش أو رجع، الرابط يفضل نضيف ومايعيدش يفتح نفس البوست تاني
           const cleanUrl = window.location.pathname + window.location.hash;
-          window.history.replaceState({ tab: startTab }, "", cleanUrl);
+          window.history.replaceState({ tab: "feed" }, "", cleanUrl);
         }
       } catch (e) { 
         console.warn("خطأ في تحميل البيانات:", e); 
@@ -351,6 +358,8 @@ export default function App() {
             setAuthTab={setAuthTab} 
             setSearchQuery={setSearchQuery}
             onOpenComments={(meme) => setSelectedMemeForComments(meme)}
+            highlightedMemeId={highlightedMemeId}
+            onHighlightConsumed={() => setHighlightedMemeId(null)}
           />
         );
       case "trending":
