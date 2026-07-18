@@ -100,6 +100,8 @@ export interface Story {
   media_type: 'image' | 'video';
   created_at: string;
   expires_at: string;
+  hidden_until?: string | null;
+  hide_count?: number;
   profiles?: Profile;
 }
 

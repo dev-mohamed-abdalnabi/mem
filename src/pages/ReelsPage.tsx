@@ -92,6 +92,54 @@ export default function ReelsPage({
     action();
   };
 
+  /**
+   * باگ كانت الأزرار (لايك/حفظ/مشاركة) "مش شغالة" فعلياً: كانت العملية بتتسجل
+   * صح في الداتابيز، بس ReelsPage عندها state محلية خاصة بيها (reels) منفصلة
+   * تماماً عن state الميمز في App.tsx، والدوال الممررة من فوق (handleLikeToggle
+   * إلخ) كانت بتحدث state بتاع App.tsx بس، مش الـ reels المحلية هنا. فالنتيجة إن
+   * الضغطة كانت بتتسجل من غير ما يظهر أي تغيير بصري للمستخدم (القلب مش بيتلون،
+   * العداد مش بيتغير)، فكانت بتحس إنها "مش شغالة". دلوقتي بنحدّث الـ state
+   * المحلية فوراً (تحديث متفائل) وبعدين بننده الدالة الحقيقية.
+   */
+  const handleLike = (meme: Meme) => {
+    requireAuth(() => {
+      setReels(prev => prev.map(m => m.id === meme.id
+        ? { ...m, liked_by_me: !m.liked_by_me, likes_count: m.likes_count + (m.liked_by_me ? -1 : 1) }
+        : m
+      ));
+      handleLikeToggle(meme.id).catch(() => {
+        // ارجاع الحالة زي ما كانت لو العملية فشلت فعلياً في السيرفر
+        setReels(prev => prev.map(m => m.id === meme.id
+          ? { ...m, liked_by_me: meme.liked_by_me, likes_count: meme.likes_count }
+          : m
+        ));
+      });
+    });
+  };
+
+  const handleSave = (meme: Meme) => {
+    requireAuth(() => {
+      setReels(prev => prev.map(m => m.id === meme.id ? { ...m, saved_by_me: !m.saved_by_me } : m));
+      handleSaveToggle(meme.id).catch(() => {
+        setReels(prev => prev.map(m => m.id === meme.id ? { ...m, saved_by_me: meme.saved_by_me } : m));
+      });
+    });
+  };
+
+  const handleShare = (meme: Meme) => {
+    requireAuth(async () => {
+      // تحديث متفائل فوري للعداد، وبعدين استدعاء الدالة الحقيقية اللي بتسجل
+      // المشاركة وتحدث state بتاع App.tsx (من غير ما نستدعي recordShare مرتين)
+      setReels(prev => prev.map(m => m.id === meme.id ? { ...m, shares_count: m.shares_count + 1 } : m));
+      try {
+        await handleShareCompleted(meme.id);
+      } catch (e) {
+        console.error("Error sharing reel:", e);
+        setReels(prev => prev.map(m => m.id === meme.id ? { ...m, shares_count: meme.shares_count } : m));
+      }
+    });
+  };
+
   if (loading) {
     return (
       <div className="fixed top-16 bottom-16 md:static md:h-[75vh] inset-x-0 md:inset-auto flex items-center justify-center">
@@ -154,7 +202,7 @@ export default function ReelsPage({
           {/* أزرار التفاعل الجانبية */}
           <div className="absolute bottom-6 left-3 flex flex-col items-center gap-5 text-white z-10">
             <button
-              onClick={() => requireAuth(() => handleLikeToggle(meme.id))}
+              onClick={() => handleLike(meme)}
               className="flex flex-col items-center gap-1"
             >
               <Heart className={`w-7 h-7 ${meme.liked_by_me ? "fill-red-500 text-red-500" : ""}`} />
@@ -168,13 +216,13 @@ export default function ReelsPage({
               <span className="text-xs font-bold">{meme.comments_count}</span>
             </button>
             <button
-              onClick={() => requireAuth(() => handleSaveToggle(meme.id))}
+              onClick={() => handleSave(meme)}
               className="flex flex-col items-center gap-1"
             >
               <Bookmark className={`w-7 h-7 ${meme.saved_by_me ? "fill-white" : ""}`} />
             </button>
             <button
-              onClick={() => requireAuth(() => handleShareCompleted(meme.id))}
+              onClick={() => handleShare(meme)}
               className="flex flex-col items-center gap-1"
             >
               <Share2 className="w-7 h-7" />

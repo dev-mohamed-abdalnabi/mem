@@ -91,7 +91,7 @@ export default function PostDetailModal({
       </button>
 
       {/* Comments Section: bottom sheet over the video on mobile (TikTok style), side panel on desktop */}
-      <div className="fixed md:static inset-x-0 bottom-0 md:inset-auto z-20 md:z-auto w-full md:w-[400px] h-[68vh] md:h-full flex flex-col bg-white border-r rounded-t-3xl md:rounded-none animate-slide-up overflow-hidden">
+      <div className="fixed md:static inset-x-0 bottom-0 md:inset-auto z-20 md:z-auto w-full md:w-[400px] h-[68vh] md:h-full flex flex-col bg-white md:border-r rounded-t-3xl md:rounded-none animate-slide-up overflow-hidden">
         {/* Drag handle + header, mobile only */}
         <div className="md:hidden flex flex-col items-center pt-2.5 pb-1 shrink-0 border-b">
           <div className="w-10 h-1.5 bg-gray-300 rounded-full mb-2" />

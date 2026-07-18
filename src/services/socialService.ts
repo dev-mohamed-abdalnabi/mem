@@ -196,6 +196,13 @@ export const socialService = {
       throw new Error("سجل دخول الأول عشان تنشر!");
     }
 
+    // مهم: جدول memes مفيهوش عمود "tags" أصلاً (الهاشتاجات ليها جدولين منفصلين
+    // tags وmeme_tags)، فكان الكود القديم بيحاول يبعت tags جوه insert المنشور
+    // نفسه وده كان بيفشل فوراً بخطأ "Could not find the 'tags' column of 'memes'
+    // in the schema cache". دلوقتي بنشيلها من هنا وبنتعامل معاها بعد إنشاء
+    // المنشور عن طريق ensureTagsAndLink.
+    const tagsToLink = (post.tags || []).map(t => t.trim().toLowerCase()).filter(t => t.length >= 2);
+
     const insertData: Partial<Meme> = {
       user_id: post.user_id,
       caption: post.caption || "",
@@ -204,7 +211,6 @@ export const socialService = {
       image_url: post.image_url || null,
       video_url: post.video_url || null,
       images: post.images || [],
-      tags: post.tags || [] // كانت الهاشتاجات بتتحسب في الواجهة وميتبعتش خالص للداتابيز
     };
 
     const { data, error } = await supabase
@@ -214,6 +220,59 @@ export const socialService = {
       .single();
     
     if (error) throw error;
-    return data as Meme;
+
+    if (tagsToLink.length > 0) {
+      await this.ensureTagsAndLink(data.id, tagsToLink);
+    }
+
+    return { ...(data as Meme), tags: tagsToLink };
+  },
+
+  /**
+   * بتضمن إن كل هاشتاج موجود في جدول tags (بتنشئه لو مش موجود)، وبعدين بتربطه
+   * بالمنشور في جدول meme_tags. لو فشل ربط الهاشتاجات، مش بنفشل العملية كلها
+   * (المنشور اتنشر بنجاح خلاص)، بس بنسجل الخطأ في الكونسول.
+   */
+  async ensureTagsAndLink(memeId: string, tagNames: string[]): Promise<void> {
+    try {
+      const { data: existingTags } = await supabase
+        .from("tags")
+        .select("id, name")
+        .in("name", tagNames);
+
+      const existingNames = new Set((existingTags || []).map((t: any) => t.name));
+      const newNames = tagNames.filter(n => !existingNames.has(n));
+
+      let allTags = existingTags || [];
+      if (newNames.length > 0) {
+        const { data: inserted, error: insertErr } = await supabase
+          .from("tags")
+          .insert(newNames.map(name => ({ name })))
+          .select("id, name");
+        if (insertErr) throw insertErr;
+        allTags = [...allTags, ...(inserted || [])];
+      }
+
+      const links = allTags.map((t: any) => ({ meme_id: memeId, tag_id: t.id }));
+      if (links.length > 0) {
+        const { error: linkErr } = await supabase.from("meme_tags").insert(links);
+        if (linkErr) throw linkErr;
+      }
+    } catch (e) {
+      console.error("Error linking tags:", e);
+    }
+  },
+
+  // إخفاء الحالة لمدة ساعة (بحد أقصى مرتين لكل حالة) - عن طريق دالة آمنة في الداتابيز
+  async hideStoryForHour(storyId: string): Promise<Story> {
+    const { data, error } = await supabase.rpc("hide_story", { p_story_id: storyId });
+    if (error) throw error;
+    return data as Story;
+  },
+
+  // حذف حالة نهائياً - صاحب الحالة بس يقدر يعمل كده (نفس ما هو متحقق في RLS)
+  async deleteStory(storyId: string): Promise<void> {
+    const { error } = await supabase.from("stories").delete().eq("id", storyId);
+    if (error) throw error;
   }
 };

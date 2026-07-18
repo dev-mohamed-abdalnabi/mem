@@ -265,7 +265,30 @@ export const dataService = {
       .order("created_at", { ascending: false })
       .range(page * limit, page * limit + limit - 1);
     if (error) throw error;
-    return (data as Meme[]).map(m => ({ ...m, tags: Array.isArray(m.tags) ? m.tags : [] }));
+    const memes = (data as Meme[]) || [];
+
+    // كانت liked_by_me/saved_by_me مش بتتحسب هنا خالص (بعكس get_ranked_feed
+    // للفيد العادي)، فكل فيديو كان بيظهر دايماً "مش معجب/محفوظ" حتى لو المستخدم
+    // فعلياً معجب بيه، وده كان بيخلي زرار اللايك يحس إنه "مش شغال" بصرياً.
+    const { data: { user } } = await supabase.auth.getUser();
+    let likedIds = new Set<string>();
+    let savedIds = new Set<string>();
+    if (user && memes.length > 0) {
+      const ids = memes.map(m => m.id);
+      const [{ data: likes }, { data: saves }] = await Promise.all([
+        supabase.from("likes").select("meme_id").eq("user_id", user.id).in("meme_id", ids),
+        supabase.from("saved_memes").select("meme_id").eq("user_id", user.id).in("meme_id", ids),
+      ]);
+      likedIds = new Set((likes || []).map((l: any) => l.meme_id));
+      savedIds = new Set((saves || []).map((s: any) => s.meme_id));
+    }
+
+    return memes.map(m => ({
+      ...m,
+      tags: Array.isArray(m.tags) ? m.tags : [],
+      liked_by_me: likedIds.has(m.id),
+      saved_by_me: savedIds.has(m.id),
+    }));
   },
 
   /**

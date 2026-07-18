@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, X, ChevronLeft, ChevronRight, Type, Video, Eye } from "lucide-react";
+import { Plus, X, ChevronLeft, ChevronRight, Type, Video, Eye, MoreVertical, Trash2, EyeOff } from "lucide-react";
 import { Story, Profile } from "../types";
 import { dataService } from "../services/dataService";
 import { socialService } from "../services/socialService";
@@ -11,6 +11,12 @@ interface StoriesProps {
 
 // أقصى مدة مسموحة لفيديو الحالة (بالثواني)
 const MAX_STORY_VIDEO_SECONDS = 60;
+
+// مدة عرض حالة الصورة/النص الواحدة بستايل واتساب (بالميلي ثانية) قبل ما تتقدم تلقائي
+const STORY_IMAGE_DURATION_MS = 5000;
+
+// أقصى عدد مرات مسموح تخفي فيها الحالة الواحدة
+const MAX_STORY_HIDES = 2;
 
 // إيموجيهات التفاعل السريع بستايل واتساب
 const QUICK_REACTIONS = ["❤️", "😂", "😮", "😢", "👏", "🔥"];
@@ -96,6 +102,15 @@ export default function Stories({ currentUser }: StoriesProps) {
   const [showViewers, setShowViewers] = useState(false);
   const [viewersList, setViewersList] = useState<{ viewer: Profile; emoji: string | null; viewedAt: string }[]>([]);
   const [loadingViewers, setLoadingViewers] = useState(false);
+  // شريط التقدم بستايل واتساب: نسبة التقدم (0-100) للحالة الحالية + هل الوقت متوقف مؤقتاً
+  const [progress, setProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [busyAction, setBusyAction] = useState(false);
+  const progressStartRef = useRef<number>(0);
+  const progressElapsedRef = useRef<number>(0);
+  const videoElRef = useRef<HTMLVideoElement | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   const isRealUser = currentUser?.id && currentUser.id !== "guest-user-temp";
 
@@ -150,14 +165,21 @@ export default function Stories({ currentUser }: StoriesProps) {
   const openStory = (story: Story, index: number) => {
     setSelectedStory(story);
     setSelectedStoryIndex(index);
+    setProgress(0);
     markViewed(story);
   };
 
   const goToIndex = (nextIndex: number) => {
-    if (nextIndex < 0 || nextIndex >= currentUserStories.length) return;
+    if (nextIndex < 0) return;
+    if (nextIndex >= currentUserStories.length) {
+      // خلصت حالات الشخص ده، نقفل العارض زي واتساب
+      setSelectedStory(null);
+      return;
+    }
     const next = currentUserStories[nextIndex];
     setSelectedStory(next);
     setSelectedStoryIndex(nextIndex);
+    setProgress(0);
     markViewed(next);
   };
 
@@ -173,6 +195,81 @@ export default function Stories({ currentUser }: StoriesProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStory, selectedStoryIndex, currentUserStories]);
+
+  // شريط التقدم بستايل واتساب/انستجرام: بيتعبى تلقائي مع الوقت وبيتنقل
+  // للحالة اللي بعدها لوحده. للصور بنستخدم مدة ثابتة (5 ثواني)، وللفيديو
+  // بنتبع تقدم الفيديو نفسه (currentTime/duration) عشان يتزامنوا مع بعض.
+  useEffect(() => {
+    if (!selectedStory) return;
+    setProgress(0);
+    progressElapsedRef.current = 0;
+    progressStartRef.current = performance.now();
+
+    const isVideo = selectedStory.media_type === "video";
+
+    const tick = (now: number) => {
+      if (isPaused) {
+        progressStartRef.current = now - progressElapsedRef.current;
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+      if (isVideo) {
+        const v = videoElRef.current;
+        if (v && v.duration) {
+          setProgress(Math.min(100, (v.currentTime / v.duration) * 100));
+        }
+      } else {
+        const elapsed = now - progressStartRef.current;
+        progressElapsedRef.current = elapsed;
+        const pct = Math.min(100, (elapsed / STORY_IMAGE_DURATION_MS) * 100);
+        setProgress(pct);
+        if (pct >= 100) {
+          goToIndex(selectedStoryIndex + 1);
+          return;
+        }
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStory?.id, isPaused]);
+
+  // الفيديو بيوصل لآخره: ننتقل للحالة اللي بعدها
+  const handleVideoEnded = () => goToIndex(selectedStoryIndex + 1);
+
+  // زرار الإخفاء لمدة ساعة (بحد أقصى مرتين للحالة الواحدة)
+  const handleHideStory = async () => {
+    if (!selectedStory || busyAction) return;
+    setBusyAction(true);
+    try {
+      await socialService.hideStoryForHour(selectedStory.id);
+      setShowOptionsMenu(false);
+      setSelectedStory(null);
+      await loadStories();
+    } catch (e: any) {
+      alert(e?.message || "مقدرناش نخفي الحالة، حاول تاني.");
+    } finally {
+      setBusyAction(false);
+    }
+  };
+
+  // زرار الحذف النهائي للحالة
+  const handleDeleteStory = async () => {
+    if (!selectedStory || busyAction) return;
+    if (!confirm("متأكد إنك عايز تمسح الحالة دي نهائياً؟")) return;
+    setBusyAction(true);
+    try {
+      await socialService.deleteStory(selectedStory.id);
+      setShowOptionsMenu(false);
+      setSelectedStory(null);
+      await loadStories();
+    } catch (e: any) {
+      alert(e?.message || "مقدرناش نمسح الحالة، حاول تاني.");
+    } finally {
+      setBusyAction(false);
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -306,8 +403,8 @@ export default function Stories({ currentUser }: StoriesProps) {
     }
   };
 
-  // إغلاق قائمة المشاهدين تلقائياً لما تتنقل بين الحالات
-  useEffect(() => { setShowViewers(false); }, [selectedStory?.id]);
+  // إغلاق قائمة المشاهدين وقائمة الخيارات تلقائياً لما تتنقل بين الحالات
+  useEffect(() => { setShowViewers(false); setShowOptionsMenu(false); }, [selectedStory?.id]);
 
   const openViewersPanel = async () => {
     if (!selectedStory) return;
@@ -387,19 +484,22 @@ export default function Stories({ currentUser }: StoriesProps) {
           className="fixed inset-0 z-[100] bg-black flex flex-col select-none"
           onClick={() => setSelectedStory(null)}
         >
-          {/* شريط التقدم المقسّم بستايل واتساب/انستجرام */}
+          {/* شريط التقدم المقسّم بستايل واتساب/انستجرام - بيتعبى تلقائي مع الوقت */}
           <div className="absolute top-0 left-0 right-0 z-20 flex gap-1 p-2 pt-3">
             {currentUserStories.map((_, i) => (
               <div key={i} className="h-1 flex-1 bg-white/30 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-white transition-all duration-300 rounded-full"
-                  style={{ width: i < selectedStoryIndex ? "100%" : i === selectedStoryIndex ? "100%" : "0%" }}
+                  className="h-full bg-white rounded-full"
+                  style={{
+                    width: i < selectedStoryIndex ? "100%" : i === selectedStoryIndex ? `${progress}%` : "0%",
+                    transition: i === selectedStoryIndex ? "width 0.1s linear" : undefined,
+                  }}
                 />
               </div>
             ))}
           </div>
 
-          {/* هيدر الحالة بستايل واتساب: أفاتار + اسم + وقت حقيقي + إغلاق */}
+          {/* هيدر الحالة بستايل واتساب: أفاتار + اسم + وقت حقيقي + خيارات + إغلاق */}
           <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/70 via-black/30 to-transparent pt-7 pb-6 px-3 flex items-center gap-3">
             <img
               src={selectedStory?.profiles?.avatar_url || ""}
@@ -410,6 +510,46 @@ export default function Stories({ currentUser }: StoriesProps) {
               <p className="text-white text-sm font-bold truncate">{selectedStory?.profiles?.username || "مستخدم"}</p>
               <p className="text-white/70 text-xs">{relativeTimeAr(selectedStory.created_at)}</p>
             </div>
+
+            {/* لصاحب الحالة بس: قائمة الثلاث نقط (حذف / إخفاء لمدة ساعة) */}
+            {selectedStory.user_id === currentUser.id && (
+              <div className="relative">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowOptionsMenu(v => !v); }}
+                  className="text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition-all"
+                  title="خيارات الحالة"
+                >
+                  <MoreVertical className="w-5 h-5" />
+                </button>
+                {showOptionsMenu && (
+                  <div
+                    className="absolute top-12 left-0 z-30 bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden w-56 text-sm"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={handleDeleteStory}
+                      disabled={busyAction}
+                      className="w-full flex items-center gap-2 px-4 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>حذف الحالة</span>
+                    </button>
+                    <button
+                      onClick={handleHideStory}
+                      disabled={busyAction || (selectedStory.hide_count || 0) >= MAX_STORY_HIDES}
+                      className="w-full flex items-center gap-2 px-4 py-3 text-gray-800 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 border-t border-gray-100 dark:border-gray-800"
+                    >
+                      <EyeOff className="w-4 h-4" />
+                      <span>
+                        إخفاء لمدة ساعة
+                        {" "}({MAX_STORY_HIDES - (selectedStory.hide_count || 0)} متبقية)
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <button
               onClick={(e) => { e.stopPropagation(); setSelectedStory(null); }}
               className="text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition-all"
@@ -420,11 +560,18 @@ export default function Stories({ currentUser }: StoriesProps) {
           </div>
 
           {/* منطقة عرض الميديا - شاشة كاملة فعلياً */}
-          <div className="relative flex-1 flex items-center justify-center overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="relative flex-1 flex items-center justify-center overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={() => setIsPaused(true)}
+            onPointerUp={() => setIsPaused(false)}
+            onPointerLeave={() => setIsPaused(false)}
+          >
             <AnimatePresence mode="wait">
               {selectedStory?.media_type === 'video' ? (
                 <motion.video
                   key={selectedStory.id}
+                  ref={(el) => { videoElRef.current = el; }}
                   src={selectedStory?.media_url}
                   autoPlay
                   initial={{ opacity: 0, scale: 0.96 }}
@@ -432,8 +579,8 @@ export default function Stories({ currentUser }: StoriesProps) {
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.18 }}
                   className="w-full h-full object-contain"
-                  controls
-                  onEnded={() => goToIndex(selectedStoryIndex + 1)}
+                  playsInline
+                  onEnded={handleVideoEnded}
                 />
               ) : (
                 <motion.img
@@ -462,11 +609,8 @@ export default function Stories({ currentUser }: StoriesProps) {
             <button
               onClick={(e) => { e.stopPropagation(); goToIndex(selectedStoryIndex + 1); }}
               className="absolute right-0 top-0 bottom-0 w-1/3 flex items-center justify-end pr-2 opacity-0 hover:opacity-100 transition-opacity"
-              disabled={selectedStoryIndex === currentUserStories.length - 1}
             >
-              {selectedStoryIndex < currentUserStories.length - 1 && (
-                <span className="bg-white/20 text-white p-2 rounded-full"><ChevronRight className="w-5 h-5" /></span>
-              )}
+              <span className="bg-white/20 text-white p-2 rounded-full"><ChevronRight className="w-5 h-5" /></span>
             </button>
 
             {/* تفاعل طائر بستايل واتساب لما تدوس على إيموجي */}
