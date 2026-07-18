@@ -233,20 +233,49 @@ export const dataService = {
     const userId = await getAuthenticatedUserId();
 
     // بنجيب رابط الأفتار القديم قبل الرفع عشان نمسحه بعدين ونوفر مساحة/تكلفة storage
-    // (كانت كل صورة قديمة بتفضل متخزنة للأبد من غير مسح، وده بيكلّف فلوس مع الوقت)
-    const { data: oldProfile } = await supabase.from("profiles").select("avatar_url").eq("id", userId).single();
+    // ملحوظة: ده ملفوف في try/catch منفصل عشان أي فشل في جيب الرابط القديم
+    // (زي .single() لو البروفايل مش موجود) ميوقفش رفع الصورة الجديدة خالص.
+    let oldAvatarUrl: string | null = null;
+    try {
+      const { data: oldProfile } = await supabase.from("profiles").select("avatar_url").eq("id", userId).maybeSingle();
+      oldAvatarUrl = oldProfile?.avatar_url || null;
+    } catch (e) {
+      console.warn("Could not fetch old avatar (continuing with upload):", e);
+    }
 
-    const fileExt = file.name.split('.').pop();
-    const fileName = `avatars/${userId}-${Date.now()}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage.from("memes").upload(fileName, file, { upsert: true });
-    if (uploadError) throw uploadError;
+    // كان اسم الملف بيتبني بمسار avatars/... جوه bucket اسمه memes، ولو سياسات
+    // RLS بتاعت الـ storage محتاجة إن أول مجلد يكون uid المستخدم بالظبط (نمط
+    // شائع جداً في قوالب Supabase)، فالرفع تحت مجلد "avatars" كان بيترفض فوراً
+    // بصلاحيات (RLS violation) وده اللي كان بيظهر كـ"فشل رفع الصورة" من غير
+    // أي تفاصيل. دلوقتي بنحط uid المستخدم هو أول جزء من المسار عشان يتطابق
+    // مع النمط ده لو موجود.
+    const fileExt = file.name.split('.').pop() || 'jpg';
+    const fileName = `${userId}/avatar-${Date.now()}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage.from("memes").upload(fileName, file, {
+      upsert: true,
+      contentType: file.type,
+      cacheControl: '3600',
+    });
+    if (uploadError) {
+      console.error("Avatar storage upload error:", uploadError);
+      // بنطلع رسالة الخطأ الحقيقية بدل رسالة عامة، عشان السبب الفعلي (صلاحيات
+      // RLS، حجم، نوع ملف، إلخ) يبقى واضح وممكن تشخيصه.
+      throw new Error(`فشل رفع الصورة: ${uploadError.message}`);
+    }
 
     const { data: { publicUrl } } = supabase.storage.from("memes").getPublicUrl(fileName);
+    if (!publicUrl) throw new Error("تم الرفع لكن تعذّر الحصول على رابط الصورة.");
 
     // مسح الملف القديم (لو كان فعلاً مرفوع في نفس الـ bucket، مش صورة دايسبير الافتراضية)
-    if (oldProfile?.avatar_url && oldProfile.avatar_url.includes("/storage/v1/object/public/memes/")) {
-      const oldPath = oldProfile.avatar_url.split("/storage/v1/object/public/memes/")[1];
-      if (oldPath) await supabase.storage.from("memes").remove([oldPath]);
+    // ده بعد نجاح رفع الصورة الجديدة، وملفوف في try/catch عشان لو فشل المسح
+    // ميفشلش العملية كلها والصورة الجديدة اتحفظت فعلاً.
+    try {
+      if (oldAvatarUrl && oldAvatarUrl.includes("/storage/v1/object/public/memes/")) {
+        const oldPath = oldAvatarUrl.split("/storage/v1/object/public/memes/")[1];
+        if (oldPath) await supabase.storage.from("memes").remove([oldPath]);
+      }
+    } catch (e) {
+      console.warn("Could not delete old avatar file (non-fatal):", e);
     }
 
     return publicUrl;

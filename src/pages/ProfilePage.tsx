@@ -200,7 +200,21 @@ export default function ProfilePage({
         // تحويل الـ Canvas لـ File ورفعه - باستخدام Promise عشان نستنى
         // الرفع فعلاً يخلص جوه try/catch، بدل ما finally يقفل اللودينج
         // فورًا وأي error يضيع من غير ما يبان للمستخدم
-        const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
+        let blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
+
+        // بعض متصفحات الموبايل القديمة (خصوصاً WebView بتاعة تطبيقات زي
+        // فيسبوك/إنستجرام) بترجع null من canvas.toBlob من غير أي سبب واضح.
+        // في الحالة دي بنستخدم toDataURL كبديل (أوسع دعم) ونحولها بايدنا لـ Blob.
+        if (!blob) {
+          try {
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+            const res = await fetch(dataUrl);
+            blob = await res.blob();
+          } catch (fallbackErr) {
+            console.error("toDataURL fallback failed:", fallbackErr);
+          }
+        }
+
         if (blob) {
           const croppedFile = new File([blob], "avatar.jpg", { type: "image/jpeg" });
           const url = await dataService.uploadAvatar(croppedFile);
@@ -213,9 +227,12 @@ export default function ProfilePage({
           throw new Error("فشل إنشاء ملف الصورة.");
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Avatar upload error:", err);
-      alert("فشل رفع الصورة، حاول تاني.");
+      // كانت رسالة التنبيه ثابتة دايماً "فشل رفع الصورة، حاول تاني" مهما كان
+      // سبب الخطأ الحقيقي (صلاحيات، حجم، نوع ملف...)، فالمستخدم ما كانش يعرف
+      // يشخّص المشكلة. دلوقتي بنعرض رسالة الخطأ الفعلية لو موجودة.
+      alert(err?.message || "فشل رفع الصورة، حاول تاني.");
     } finally {
       setIsUploadingAvatar(false);
     }
