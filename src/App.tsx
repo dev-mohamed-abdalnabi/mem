@@ -9,6 +9,7 @@ import MainLayout from "./components/layout/MainLayout";
 import FeedPage from "./pages/FeedPage";
 import CreatePostPage from "./pages/CreatePostPage";
 import SavesPage from "./pages/SavesPage";
+import ReelsPage from "./pages/ReelsPage";
 import TrendingPage from "./pages/TrendingPage";
 import ProfilePage from "./pages/ProfilePage";
 import Leaderboard from "./components/Leaderboard";
@@ -346,6 +347,19 @@ export default function App() {
         );
       case "saves":
         return <SavesPage {...commonProps} memes={memes} />;
+      case "reels":
+        return (
+          <ReelsPage
+            currentUser={currentUser}
+            isRealUser={isRealUser}
+            handleLikeToggle={handleLikeToggle}
+            handleSaveToggle={handleSaveToggle}
+            handleShareCompleted={commonProps.handleShareCompleted}
+            onOpenComments={(meme) => setSelectedMemeForComments(meme)}
+            setShowAuthModal={setShowAuthModal}
+            onUserProfileClick={(userId) => { setSelectedProfileId(userId); setActiveTab("user-profile"); }}
+          />
+        );
       case "leaderboard":
         return (
           <Leaderboard 

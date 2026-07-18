@@ -39,6 +39,65 @@ export const socialService = {
     return data as Story;
   },
 
+  /**
+   * تسجيل مشاهدة حالة فعلياً في الداتابيز (جدول story_views كان موجود
+   * جاهز في الداتابيز بس محدش كان بينادي عليه، فالحالات المشاهدة كانت
+   * بترجع "مش متشافة" تاني بمجرد ما تعمل ريفريش للصفحة).
+   */
+  async markStoryViewed(storyId: string, viewerId: string): Promise<void> {
+    if (!viewerId || viewerId === "guest-user-temp") return;
+    const { error } = await supabase
+      .from("story_views")
+      .upsert({ story_id: storyId, viewer_id: viewerId }, { onConflict: "story_id,viewer_id", ignoreDuplicates: true });
+    if (error) console.error("Error marking story viewed:", error);
+  },
+
+  /**
+   * جلب كل الحالات اللي المستخدم الحالي شافها بالفعل (عشان نعرض الحلقة الرمادية
+   * بستايل واتساب بشكل دائم مش بس لحد ما تعمل ريفريش).
+   */
+  async getViewedStoryIds(viewerId: string): Promise<string[]> {
+    if (!viewerId || viewerId === "guest-user-temp") return [];
+    const { data, error } = await supabase
+      .from("story_views")
+      .select("story_id")
+      .eq("viewer_id", viewerId);
+    if (error) {
+      console.error("Error fetching viewed stories:", error);
+      return [];
+    }
+    return (data || []).map((r: any) => r.story_id);
+  },
+
+  /**
+   * إرسال/تحديث تفاعل (إيموجي) على حالة، بستايل واتساب (تفاعل واحد لكل مستخدم لكل حالة).
+   */
+  async reactToStory(storyId: string, userId: string, emoji: string): Promise<void> {
+    if (!userId || userId === "guest-user-temp") {
+      throw new Error("سجل دخول الأول عشان تتفاعل مع الحالة!");
+    }
+    const { error } = await supabase
+      .from("story_reactions")
+      .upsert({ story_id: storyId, user_id: userId, emoji }, { onConflict: "story_id,user_id" });
+    if (error) throw error;
+  },
+
+  /**
+   * جلب تفاعل المستخدم الحالي على مجموعة حالات (عشان نلون الإيموجي اللي اختاره قبل كده).
+   */
+  async getMyStoryReactions(userId: string): Promise<Record<string, string>> {
+    if (!userId || userId === "guest-user-temp") return {};
+    const { data, error } = await supabase
+      .from("story_reactions")
+      .select("story_id, emoji")
+      .eq("user_id", userId);
+    if (error) return {};
+    return (data || []).reduce((acc: Record<string, string>, r: any) => {
+      acc[r.story_id] = r.emoji;
+      return acc;
+    }, {});
+  },
+
   // Banner / Cover upload logic
   async uploadCover(userId: string, file: File): Promise<string> {
     const { data: { user } } = await supabase.auth.getUser();

@@ -30,6 +30,43 @@ export function extractTagsFromCaption(caption: string | null): string[] {
 }
 
 /**
+ * ضغط الصور قبل الرفع (كانت الصور بترفع بحجمها الأصلي زي ما هي من الموبايل،
+ * أحياناً 3-4 ميجا للصورة الواحدة، وده كان بيستهلك مساحة/باندويدث الـ storage
+ * بسرعة رهيبة). بنعمل resize لأقصى بعد 1600px وضغط JPEG جودة 0.82،
+ * وده بيقلل حجم أغلب صور الموبايل بنسبة 70-90% من غير فرق ملحوظ في الجودة
+ * على الشاشة. الفيديو مش بيتضغط هنا (محتاج ffmpeg حقيقي) بس بنفرض حد أقصى
+ * على مدته من صفحة إنشاء البوست.
+ */
+async function compressImage(file: File, maxDimension = 1600, quality = 0.82): Promise<File> {
+  // ملفات GIF بنسيبها زي ما هي عشان الضغط بيكسر الحركة (canvas بياخد فريم واحد بس)
+  if (file.type === "image/gif") return file;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close?.();
+
+    const blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", quality));
+    if (!blob || blob.size >= file.size) return file; // لو الضغط زوّد الحجم، سيب الأصلي
+
+    const newName = file.name.replace(/\.\w+$/, "") + ".jpg";
+    return new File([blob], newName, { type: "image/jpeg" });
+  } catch (e) {
+    console.warn("Image compression failed, uploading original:", e);
+    return file;
+  }
+}
+
+/**
  * دالة مساعدة للحصول على هوية المستخدم الموثقة من Supabase
  * تمنع ثغرات IDOR عبر التأكد من أن العملية تتم بواسطة صاحب الحساب الحقيقي
  */
@@ -170,9 +207,12 @@ export const dataService = {
     if (!allowedTypes.includes(file.type)) throw new Error("نوع الملف غير مدعوم.");
     if (file.size > 10 * 1024 * 1024) throw new Error("حجم الملف كبير جداً.");
 
-    const fileExt = file.name.split('.').pop();
+    // ضغط الصور فقط قبل الرفع (الفيديو بيتفحص/يتحدد مدته من صفحة النشر نفسها)
+    const fileToUpload = file.type.startsWith("image/") ? await compressImage(file) : file;
+
+    const fileExt = fileToUpload.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(fileName, file);
+    const { error: uploadError } = await supabase.storage.from(bucket).upload(fileName, fileToUpload);
     if (uploadError) throw uploadError;
 
     const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(fileName);
@@ -210,6 +250,22 @@ export const dataService = {
     }
 
     return publicUrl;
+  },
+
+  /**
+   * الريلز: فيديوهات المنشورات المعتمدة بس (post_type='video')، بترتيب الأحدث أولاً،
+   * لعرضها في فيد رأسي زي التيك توك/الريلز بدل التبويب القديم "الحفظ".
+   */
+  getVideoMemes: async (page: number = 0, limit: number = 10): Promise<Meme[]> => {
+    const { data, error } = await supabase
+      .from("memes")
+      .select("*, profiles!user_id(*)")
+      .eq("status", "approved")
+      .eq("post_type", "video")
+      .order("created_at", { ascending: false })
+      .range(page * limit, page * limit + limit - 1);
+    if (error) throw error;
+    return (data as Meme[]).map(m => ({ ...m, tags: Array.isArray(m.tags) ? m.tags : [] }));
   },
 
   /**

@@ -66,6 +66,7 @@ export default function ProfilePage({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const imageRef = useRef<HTMLImageElement>(null);
+  const cropContainerRef = useRef<HTMLDivElement>(null);
 
   // منع السكرول عند فتح شاشة الصورة
   useEffect(() => {
@@ -151,24 +152,32 @@ export default function ProfilePage({
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       const size = 300; // حجم الصورة النهائي
+
+      /**
+       * باگ القص القديم: كان بيحسب position.x/position.y ودي إحداثيات
+       * بمقياس حاوية العرض الفعلية (256px، w-64)، لكن بعدين كان بيرسمهم
+       * على canvas مقاسه 300px من غير أي تحويل بين المقياسين. النتيجة إن
+       * الصورة كانت بترتسم في مكان تاني خالص عن اللي المستخدم شافه وحركه،
+       * فبتطلع مقصوصة غلط ("بتفص من نص الصورة"). دلوقتي بنجيب حجم الحاوية
+       * الفعلي بالـ ref ونحول بيه كل الإحداثيات لمقياس الـ canvas.
+       */
+      const containerSize = cropContainerRef.current?.getBoundingClientRect().width || 256;
+      const scaleFactor = size / containerSize;
       canvas.width = size;
       canvas.height = size;
 
       if (ctx) {
-        // حساب الأبعاد
+        // حساب الأبعاد بنفس مقياس الحاوية اللي المستخدم شاف الصورة جواها
         const img = imageRef.current;
-        const scale = zoom;
-        const width = img.naturalWidth * scale;
-        const height = img.naturalHeight * scale;
-        
-        // رسم الصورة مع تطبيق التحريك
-        ctx.drawImage(
-          img,
-          (size - width) / 2 + position.x,
-          (size - height) / 2 + position.y,
-          width,
-          height
-        );
+        const displayWidth = img.naturalWidth * zoom;
+        const displayHeight = img.naturalHeight * zoom;
+        const width = displayWidth * scaleFactor;
+        const height = displayHeight * scaleFactor;
+        const drawX = (size - width) / 2 + position.x * scaleFactor;
+        const drawY = (size - height) / 2 + position.y * scaleFactor;
+
+        // رسم الصورة مع تطبيق التحريك بنفس ما هو ظاهر على الشاشة بالظبط
+        ctx.drawImage(img, drawX, drawY, width, height);
 
         // تحويل الـ Canvas لـ File ورفعه
         canvas.toBlob(async (blob) => {
@@ -206,6 +215,7 @@ export default function ProfilePage({
             
             {/* حاوية القص الدائرية */}
             <div 
+              ref={cropContainerRef}
               className="w-64 h-64 rounded-full overflow-hidden border-4 border-white dark:border-gray-700 bg-black relative touch-none cursor-move shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}

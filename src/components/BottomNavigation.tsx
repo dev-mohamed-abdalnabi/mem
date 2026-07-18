@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, Flame, PlusCircle, Bookmark, User } from "lucide-react";
+import { Home, Flame, PlusCircle, Clapperboard, User } from "lucide-react";
 import { Profile } from "../types";
 
 /**
@@ -24,12 +24,13 @@ export default function BottomNavigation({
   isRealUser,
   onShowAuthModal,
 }: BottomNavigationProps) {
-  // عناصر الشريط السفلي
+  // عناصر الشريط السفلي - تبويب "الحفظ" اتنقل جوه قائمة الإعدادات في الهيدر،
+  // ومكانه هنا بقى "الريلز"
   const navItems = [
     { id: "feed", label: "الرئيسية", icon: Home },
     { id: "trending", label: "الترند", icon: Flame },
     { id: "create-post", label: "إنشاء", icon: PlusCircle },
-    { id: "saves", label: "الحفظ", icon: Bookmark },
+    { id: "reels", label: "الريلز", icon: Clapperboard },
     { id: "profile", label: "الملف", icon: User },
   ];
 

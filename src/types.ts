@@ -103,6 +103,14 @@ export interface Story {
   profiles?: Profile;
 }
 
+export interface StoryReaction {
+  id: string;
+  story_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+}
+
 // Preset popular Arabic meme templates for the Meme Maker
 export interface MemeTemplate {
   id: string;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search, Bell, Trophy, User, Flame, LogOut, PlusCircle, Settings, LogIn, Sun, Moon } from "lucide-react";
+import { Search, Bell, Trophy, User, Flame, LogOut, PlusCircle, Settings, LogIn, Sun, Moon, Bookmark } from "lucide-react";
 import { Profile, Notification } from "../types";
 
 /**
@@ -312,6 +312,11 @@ export default function Header({
                           </button>
                         </div>
                       </div>
+
+                      <button onClick={() => { onNavigate("saves"); closeUserDropdown(); }} className="w-full text-right px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 font-bold flex items-center justify-between transition-colors">
+                        <span>المحفوظات</span>
+                        <Bookmark className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                      </button>
 
                       <button onClick={() => { onNavigate("profile"); closeUserDropdown(); }} className="w-full text-right px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 font-bold flex items-center justify-between transition-colors">
                         <span>المرجع والإعدادات</span>
