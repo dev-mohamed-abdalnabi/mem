@@ -234,7 +234,17 @@ export default function Stories({ currentUser }: StoriesProps) {
     isPausedRef.current = isPaused;
     // لو المستخدم مسك (pause)، نثبّت لحظة البداية عشان لما يسيب يكمل من نفس النقطة
     progressStartRef.current = performance.now() - progressElapsedRef.current;
-  }, [isPaused]);
+
+    // لما تكون الحالة فيديو، مسك الشاشة كان بيوقف حساب شريط التقدم بس، من غير
+    // ما يوقف الفيديو الفعلي نفسه - فالفيديو كان فاضل شغال (بصوت وصورة) في
+    // الخلفية وكأن حد ماسكش حاجة أصلاً. دلوقتي بنوقف/نشغّل عنصر الـ<video>
+    // نفسه مع نفس حركة الإمساك، بالظبط زي واتساب/انستجرام.
+    const v = videoElRef.current;
+    if (v && selectedStory?.media_type === "video") {
+      if (isPaused) v.pause();
+      else v.play().catch(() => {});
+    }
+  }, [isPaused, selectedStory]);
 
   // شريط التقدم بستايل واتساب/انستجرام: بيتعبى تلقائي مع الوقت وبيتنقل
   // للحالة اللي بعدها لوحده. للصور بنستخدم مدة ثابتة (5 ثواني)، وللفيديو

@@ -59,6 +59,7 @@ export default function Header({
   const toggleTheme = (mode: 'light' | 'dark') => {
     const isDark = mode === 'dark';
     setIsDarkMode(isDark);
+    localStorage.setItem('theme', mode);
     if (isDark) {
       document.documentElement.classList.add('dark');
       document.documentElement.classList.remove('light');

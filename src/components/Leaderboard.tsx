@@ -83,7 +83,7 @@ export default function Leaderboard({
                 key={prof.id}
                 className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
                   isMe
-                    ? "bg-blue-50 border-blue-300 shadow-sm"
+                    ? "bg-blue-50 dark:bg-blue-500/10 border-blue-300 dark:border-blue-500/30 shadow-sm"
                     : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
                 }`}
               >

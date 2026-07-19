@@ -11,8 +11,14 @@ import './index.css';
 if (typeof document !== "undefined") {
   const root = document.documentElement;
   if (!root.classList.contains("dark") && !root.classList.contains("light")) {
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    root.classList.add(prefersDark ? "dark" : "light");
+    const savedTheme = localStorage.getItem("theme"); // "dark" | "light" | null (لسه ماخترش)
+    const theme =
+      savedTheme === "dark" || savedTheme === "light"
+        ? savedTheme
+        : window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+    root.classList.add(theme);
   }
 }
 

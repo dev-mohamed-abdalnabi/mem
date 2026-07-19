@@ -1,6 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Play, Pause, Volume2, VolumeX } from "lucide-react";
 
+// بنتتبع آخر فيديو شغال في كل الصفحة (مش بس جوه الكومبوننت ده) عشان لو
+// المستخدم شغّل فيديو تاني (سواء بالسكرول أو أي حتة تانية)، الفيديو القديم
+// يتوقف تلقائي - قبل كده كل CustomVideoPlayer كان عنده حالة تشغيل منفصلة
+// عن باقي الفيديوهات، فيقدر أكتر من فيديو يشتغلوا مع بعض في نفس الوقت.
+let currentlyPlayingVideo: HTMLVideoElement | null = null;
+
 interface CustomVideoPlayerProps {
   src: string;
   poster?: string;
@@ -33,8 +39,20 @@ export default function CustomVideoPlayer({
     const video = videoRef.current;
     if (!video) return;
 
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
+    const handlePlay = () => {
+      setIsPlaying(true);
+      // أي فيديو تاني كان شغال (في بوست تاني) لازم يتوقف دلوقتي
+      if (currentlyPlayingVideo && currentlyPlayingVideo !== video) {
+        currentlyPlayingVideo.pause();
+      }
+      currentlyPlayingVideo = video;
+    };
+    const handlePause = () => {
+      setIsPlaying(false);
+      if (currentlyPlayingVideo === video) {
+        currentlyPlayingVideo = null;
+      }
+    };
     const handleTimeUpdate = () => setCurrentTime(video.currentTime);
     const handleLoadedMetadata = () => {
       setDuration(video.duration);
@@ -61,6 +79,9 @@ export default function CustomVideoPlayer({
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
       video.removeEventListener("progress", handleProgress);
       video.removeEventListener("loadstart", handleLoadStart);
+      if (currentlyPlayingVideo === video) {
+        currentlyPlayingVideo = null;
+      }
     };
   }, []);
 
@@ -80,6 +101,27 @@ export default function CustomVideoPlayer({
       videoRef.current.volume = isMuted ? 0 : volume;
     }
   }, [volume, isMuted]);
+
+  // لو الفيديو خرج بره الشاشة وهو شغال (بالسكرول لأسفل أو لأعلى)، بنوقفه
+  // تلقائي - بنفس فكرة صفحة الريلز. مش بنشغّله تاني لوحده لما يرجع يبان،
+  // لأن الفيد (على عكس الريلز) مش أوتوبلاي من الأساس؛ المستخدم هو اللي
+  // يدوس تشغيل تاني لو عايز.
+  useEffect(() => {
+    const container = containerRef.current;
+    const video = videoRef.current;
+    if (!container || !video) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0].isIntersecting && !video.paused) {
+          video.pause();
+        }
+      },
+      { threshold: 0.25 } // أقل من ربع الفيديو ظاهر = يتوقف
+    );
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   const handleInteraction = () => {
     setShowControls(true);
