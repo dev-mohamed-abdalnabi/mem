@@ -1,10 +1,13 @@
-// Service Worker بسيط - غرضه الأساسي إنه يخلي التطبيق "قابل للتثبيت"
-// (installable) على أندرويد/كروم، لأن المتصفح مايعرضش زرار "تثبيت التطبيق"
-// غير لو فيه service worker مسجّل وبيتعامل مع حدث fetch.
-// مش بنعمل caching معقد دلوقتي عشان مانضمنش نعرض نسخة قديمة من الموقع؛
-// الأولوية إن أي تحديث جديد يوصل للمستخدم على طول.
+// Service Worker: تركيب "قابل للتثبيت" + كاش حقيقي بستايل
+// Network First مع رجوع للكاش لو مفيش نت.
+// - أونلاين: بيجيب كل حاجة من النت على طول (عشان أي تحديث يوصل فوراً)
+//   وبيحفظ نسخة منها في الكاش أول أول.
+// - أوفلاين: لما fetch للنت يفشل، بيرجع آخر نسخة محفوظة في الكاش (لو
+//   الصفحة/الملف ده كان اتفتح قبل كده وهو أونلاين).
+// - تنقل بين الصفحات (SPA) أوفلاين: لو مفيش نسخة مطابقة بالظبط، بنرجع
+//   /index.html المحفوظة عشان الـ SPA تفتح وتكمل من الكاش المحلي.
 
-const CACHE_NAME = "mem-shell-v1";
+const CACHE_NAME = "mem-shell-v2";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -20,10 +23,36 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// شبكة أولاً (Network First) من غير أي كاش فعلي للمحتوى الديناميكي -
-// بس الاستماع لـfetch لازم يكون موجود عشان معيار الـinstallability
 self.addEventListener("fetch", (event) => {
+  const { request } = event;
+
+  // بس GET بيتخزن في الكاش - أي حاجة تانية (POST/PUT..) لازم تعدي على النت زي ما هي
+  if (request.method !== "GET") return;
+
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    (async () => {
+      try {
+        const response = await fetch(request);
+        // بنحفظ نسخة من أي رد ناجح (200) عشان تبقى متاحة أوفلاين بعد كده
+        if (response && response.status === 200) {
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(request, response.clone());
+        }
+        return response;
+      } catch (err) {
+        const cache = await caches.open(CACHE_NAME);
+        const cached = await cache.match(request);
+        if (cached) return cached;
+
+        // تنقل صفحة (SPA navigation) أوفلاين من غير نسخة مطابقة بالظبط:
+        // نرجّع شل التطبيق المحفوظ (index.html) بدل شاشة خطأ المتصفح
+        if (request.mode === "navigate") {
+          const shell = await cache.match("/index.html");
+          if (shell) return shell;
+        }
+
+        throw err;
+      }
+    })()
   );
 });

@@ -3,6 +3,19 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
+// أول ما الصفحة تفتح، ولسه محدش دوس على زرار "فاتح/داكن" (يعني مفيش
+// كلاس .dark ولا .light على <html>)، بنحدد الثيم الأولي حسب ثيم
+// النظام/المتصفح ونثبته كـ كلاس فعلي - عشان كل كلاسات "dark:" في
+// Tailwind (اللي بقت مربوطة بالكلاس بعد إضافة @custom-variant) تشتغل
+// صح من أول تحميل، مش بس بعد أول دوسة يدوية على الزرار.
+if (typeof document !== "undefined") {
+  const root = document.documentElement;
+  if (!root.classList.contains("dark") && !root.classList.contains("light")) {
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    root.classList.add(prefersDark ? "dark" : "light");
+  }
+}
+
 // بنمنع قائمة المتصفح (تحميل الصورة/الفيديو، فتح في تاب جديد، إلخ) اللي
 // بتظهر مع الضغطة المطولة (لمس) أو الرايت كليك على أي صورة أو فيديو في
 // التطبيق كله. حط الاستماع هنا مرة واحدة بدل ما نكرره في كل مكون بيعرض ميديا.

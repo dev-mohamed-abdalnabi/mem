@@ -522,6 +522,7 @@ export default function Stories({ currentUser }: StoriesProps) {
       {/* عارض الحالات - شاشة كاملة زي فيسبوك/واتساب */}
       {selectedStory && (
         <div
+          data-story-viewer
           className="fixed inset-0 z-[100] bg-black flex flex-col select-none"
           onClick={() => setSelectedStory(null)}
         >
@@ -540,12 +541,21 @@ export default function Stories({ currentUser }: StoriesProps) {
             style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.6))" }}
           >
             {currentUserStories.map((_, i) => (
-              <div key={i} className="h-[3px] flex-1 bg-white/35 rounded-full overflow-hidden">
+              <div
+                key={i}
+                className="h-[3px] flex-1 rounded-full overflow-hidden"
+                style={{ backgroundColor: "rgba(255,255,255,0.35)" }}
+              >
                 <div
-                  className="h-full bg-white rounded-full"
+                  className="h-full rounded-full"
                   style={{
                     width: i < selectedStoryIndex ? "100%" : i === selectedStoryIndex ? `${progress}%` : "0%",
                     transition: i === selectedStoryIndex ? "width 0.1s linear" : undefined,
+                    // لازم لون ثابت أبيض صريح جوه inline style، مش كلاس "bg-white" -
+                    // عندنا قاعدة CSS عامة في index.css بتحول أي حاجة كلاسها
+                    // "bg-white" للون --card (اللي بيبقى غامق في الوضع الداكن)،
+                    // وده كان سبب اختفاء شريط التقدم فوق خلفية الحالة السودة.
+                    backgroundColor: "#ffffff",
                   }}
                 />
               </div>
