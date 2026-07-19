@@ -37,6 +37,28 @@ const initialGuestProfile: Profile = {
 export default function App() {
   // --- حالات التطبيق (States) ---
   const [activeTab, setActiveTab] = useState("feed"); // التبويب النشط
+
+  /**
+   * كل تنقل بين التبويبات لازم يعدي من هنا، مش نداء مباشر لـ setActiveTab.
+   * كان فيه أماكن كتير (لينك البروفايل جوه بوست، صفحة المتصدرين، بعد نشر
+   * بوست جديد، بروفايل من الريلز، لوحة الأدمن) بتنادي setActiveTab مباشرة
+   * من غير ما تسجل خطوة في الـ browser history؛ فلما تدوس زرار الرجوع في
+   * أندرويد من واحدة من الشاشات دي، كان بيتخطى خطوات أو يقفل التطبيق على
+   * طول بدل ما يرجعك للشاشة اللي قبلها جوا التطبيق نفسه.
+   */
+  const navigateToTab = useCallback((tab: string, options?: { profileId?: string }) => {
+    if (tab !== activeTab) {
+      window.history.pushState({ tab }, "", window.location.href);
+    }
+    if (options?.profileId) setSelectedProfileId(options.profileId);
+    setActiveTab(tab);
+    setSelectedTag(null);
+    if (tab === "feed") {
+      setPage(1);
+      setHasMore(true);
+    }
+  }, [activeTab]);
+
   const [currentUser, setCurrentUser] = useState<Profile>(initialGuestProfile); // المستخدم الحالي
   const [memes, setMemes] = useState<Meme[]>([]); // قائمة الميمز المعروضة
   const [profiles, setProfiles] = useState<Profile[]>([]); // قائمة البروفايلات
@@ -337,7 +359,7 @@ export default function App() {
       },
       handleDeleteMeme,
       setSelectedProfileId,
-      setActiveTab,
+      setActiveTab: navigateToTab,
       setLightboxImage
     };
 
@@ -368,7 +390,7 @@ export default function App() {
         return (
           <CreatePostPage
             currentUser={currentUser}
-            setActiveTab={setActiveTab}
+            setActiveTab={navigateToTab}
             onPostCreated={(meme) => {
               // بنضيف المنشور الجديد فوراً لأول الفيد (حالته pending لحد ما الـ AI يوافق عليه)
               // بدل ما المستخدم يحتاج يعمل ريفريش يدوي للصفحة عشان يشوفه
@@ -388,7 +410,7 @@ export default function App() {
             handleShareCompleted={commonProps.handleShareCompleted}
             onOpenComments={(meme) => setSelectedMemeForComments(meme)}
             setShowAuthModal={setShowAuthModal}
-            onUserProfileClick={(userId) => { setSelectedProfileId(userId); setActiveTab("user-profile"); }}
+            onUserProfileClick={(userId) => navigateToTab("user-profile", { profileId: userId })}
           />
         );
       case "leaderboard":
@@ -396,7 +418,7 @@ export default function App() {
           <Leaderboard 
             profiles={profiles} 
             currentUser={currentUser} 
-            onNavigate={setActiveTab} 
+            onNavigate={navigateToTab} 
             onFollowToggle={handleFollowToggle}
             followingIds={followingIds} 
           />
@@ -420,7 +442,7 @@ export default function App() {
         );
       case "admin":
         // لوحة تحكم المشرف - محمية بكلمة مرور
-        return <AdminPanel currentUser={currentUser} setActiveTab={setActiveTab} />;
+        return <AdminPanel currentUser={currentUser} setActiveTab={navigateToTab} />;
       default:
         return null;
     }
@@ -437,19 +459,7 @@ export default function App() {
       authTab={authTab}
       lightboxImage={lightboxImage}
       lightboxMediaType={lightboxMediaType}
-      onNavigate={(tab) => { 
-        if (tab !== activeTab) {
-          // نسجل خطوة جديدة في الـ history عشان زرار الرجوع يشتغل صح بين التبويبات
-          window.history.pushState({ tab }, "", window.location.href);
-        }
-        setActiveTab(tab); 
-        setSelectedTag(null);
-        // إعادة تعيين الصفحة عند تغيير التبويب إذا لزم الأمر
-        if (tab === "feed") {
-          setPage(1);
-          setHasMore(true);
-        }
-      }}
+      onNavigate={navigateToTab}
       onSearch={setSearchQuery}
       onUserSwitch={setCurrentUser}
       onMarkNotificationsRead={async () => {
@@ -492,8 +502,7 @@ export default function App() {
             navigator.clipboard.writeText(shareLink);
           }}
           onUserProfileClick={(id) => {
-            setSelectedProfileId(id);
-            setActiveTab("user-profile");
+            navigateToTab("user-profile", { profileId: id });
             setSelectedMemeForComments(null);
           }}
         />

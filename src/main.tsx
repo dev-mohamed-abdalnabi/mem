@@ -13,6 +13,16 @@ document.addEventListener("contextmenu", (e) => {
   }
 });
 
+// تسجيل الـService Worker عشان المتصفح (خصوصاً كروم/أندرويد) يعتبر
+// الموقع "قابل للتثبيت" كتطبيق (Add to Home Screen / Install App)
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch((err) => {
+      console.warn("Service worker registration failed:", err);
+    });
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
