@@ -5,7 +5,7 @@ import { Profile } from "../types";
 interface LeaderboardProps {
   profiles: Profile[];
   currentUser: Profile;
-  onNavigate: (tab: string) => void;
+  onNavigate: (tab: string, options?: { profileId?: string }) => void;
   onFollowToggle: (followerId: string, followingId: string) => void;
   followingIds: string[];
 }
@@ -98,18 +98,25 @@ export default function Leaderboard({
                     <img
                       src={prof.avatar_url}
                       alt={prof.username}
-                      className="w-10 h-10 rounded-xl object-cover border border-gray-200 shrink-0"
+                      onClick={() => onNavigate(isMe ? "profile" : "user-profile", { profileId: prof.id })}
+                      className="w-10 h-10 rounded-xl object-cover border border-gray-200 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 font-extrabold flex items-center justify-center text-xs shrink-0">
+                    <div
+                      onClick={() => onNavigate(isMe ? "profile" : "user-profile", { profileId: prof.id })}
+                      className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 font-extrabold flex items-center justify-center text-xs shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                    >
                       U
                     </div>
                   )}
 
                   <div className="text-right">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-extrabold text-sm text-gray-900 truncate max-w-[120px]">
+                      <span
+                        onClick={() => onNavigate(isMe ? "profile" : "user-profile", { profileId: prof.id })}
+                        className="font-extrabold text-sm text-gray-900 truncate max-w-[120px] cursor-pointer hover:underline"
+                      >
                         {prof.username}
                       </span>
                       {isMe && (

@@ -115,7 +115,13 @@ export default function FeedPage({
     <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto pb-20 lg:pb-8 px-4 md:px-0">
       
       {/* قصص المستخدمين (Stories) */}
-      {isRealUser && <Stories currentUser={currentUser} onStoryViewerChange={onStoryViewerChange} />}
+      {isRealUser && (
+        <Stories
+          currentUser={currentUser}
+          onStoryViewerChange={onStoryViewerChange}
+          onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }}
+        />
+      )}
 
       {/* رسالة ترحيب للزوار (للجوال فقط) */}
       {!isRealUser && (

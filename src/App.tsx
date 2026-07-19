@@ -139,6 +139,36 @@ export default function App() {
     setSelectedMemeForComments(meme);
   }, []);
 
+  /**
+   * لما المستخدم يدوس على إشعار من قايمة الإشعارات، بنوديه للمكان اللي
+   * حصل فيه الحدث نفسه: إشعار متابعة -> بروفايل اللي عمل المتابعة،
+   * إشعار لايك/كومنت -> البوست نفسه في الفيد (ولو كومنت بنفتحله
+   * قسم التعليقات على طول بدل ما يدور عليه).
+   */
+  const handleNotificationClick = useCallback(async (notif: Notification) => {
+    if (notif.type === "follow") {
+      if (notif.actor_id) {
+        navigateToTab("user-profile", { profileId: notif.actor_id });
+      }
+      return;
+    }
+    if (notif.meme_id) {
+      try {
+        const meme = notif.meme || memes.find(m => m.id === notif.meme_id) || await dataService.getMemeById(notif.meme_id);
+        if (meme) {
+          setMemes(prev => prev.some(m => m.id === meme.id) ? prev : [meme, ...prev]);
+          navigateToTab("feed");
+          setHighlightedMemeId(meme.id);
+          if (notif.type === "comment") {
+            openCommentsGuarded(meme);
+          }
+        }
+      } catch (e) {
+        console.error("خطأ في فتح البوست بتاع الإشعار:", e);
+      }
+    }
+  }, [navigateToTab, openCommentsGuarded, memes]);
+
   // مرجع للكاش لمنع إعادة التحميل غير الضرورية
   const cacheRef = useRef({
     feed: [] as Meme[],
@@ -197,7 +227,11 @@ export default function App() {
         // بيوديك للصفحة الرئيسية بس من غير ما يفتح البوست المقصود خالص.
         // ملحوظة: بنوديه للبوست نفسه جوه الفيد (وننده عليه بالضوء) من غير
         // ما نفتح قسم التعليقات تلقائي - المستخدم مش عايز البوست يتفتح بتعليقاته.
-        const sharedMemeId = new URLSearchParams(window.location.search).get("meme");
+        const urlParams = new URLSearchParams(window.location.search);
+        const sharedMemeId = urlParams.get("meme");
+        const chatUserId = urlParams.get("chat");
+        const profileId = urlParams.get("profile");
+
         if (sharedMemeId) {
           const sharedMeme = await dataService.getMemeById(sharedMemeId);
           if (sharedMeme) {
@@ -205,10 +239,21 @@ export default function App() {
             setActiveTab("feed");
             setHighlightedMemeId(sharedMeme.id);
           }
-          // بننضف الرابط من الـ query param بعد ما فتحنا البوست عشان لو المستخدم
-          // عمل ريفريش أو رجع، الرابط يفضل نضيف ومايعيدش يفتح نفس البوست تاني
+        } else if (chatUserId && dbCurrentUser && dbCurrentUser.id !== "guest-user-temp") {
+          // جاي من إشعار رسالة جديدة (send-push) - نفتحله المحادثة مع اللي بعتله على طول
+          setPendingMessageTargetId(chatUserId);
+          setActiveTab("messages");
+        } else if (profileId) {
+          // جاي من إشعار فولو - نفتحله بروفايل اللي عمل فولو
+          setSelectedProfileId(profileId);
+          setActiveTab("user-profile");
+        }
+
+        // بننضف الرابط من الـ query params بعد ما فتحنا الوجهة المقصودة عشان لو
+        // المستخدم عمل ريفريش أو رجع، الرابط يفضل نضيف ومايعيدش يفتح نفس الحاجة تاني
+        if (sharedMemeId || chatUserId || profileId) {
           const cleanUrl = window.location.pathname + window.location.hash;
-          window.history.replaceState({ tab: "feed" }, "", cleanUrl);
+          window.history.replaceState({ tab: activeTab }, "", cleanUrl);
         }
       } catch (e) { 
         console.warn("خطأ في تحميل البيانات:", e); 
@@ -610,6 +655,7 @@ export default function App() {
           console.error("Error marking notifications read:", error);
         }
       }}
+      onNotificationClick={handleNotificationClick}
       onShowAuthModal={() => { openAuthModalGuarded(true); setAuthTab("signin"); }}
       onCloseAuthModal={() => setShowAuthModal(false)}
       setAuthTab={setAuthTab}

@@ -310,7 +310,12 @@ export default function MemeCard({
         <div className="bg-gray-50/50 p-4 border-t border-gray-100 flex flex-col gap-3">
           {commentsList.map((c) => (
             <div key={c.id} className="flex items-start gap-2 text-right">
-              <img src={c.profiles?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${c.profiles?.username}`} className="w-8 h-8 rounded-lg object-cover" />
+              <img
+                src={c.profiles?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${c.profiles?.username}`}
+                className="w-8 h-8 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => c.profiles?.id && onUserProfileClick(c.profiles.id)}
+                alt=""
+              />
               <div className="flex-1 bg-gray-100 p-2.5 rounded-2xl">
                 <div className="font-extrabold text-xs text-gray-900">{c.profiles?.username}</div>
                 <div className="text-sm text-gray-800">{DOMPurify.sanitize(c.content)}</div>

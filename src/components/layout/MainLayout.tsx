@@ -20,10 +20,11 @@ interface MainLayoutProps {
   authTab: "signin" | "signup"; // التبويب النشط في مودال الدخول
   lightboxImage: string | null; // رابط الصورة في اللايت بوكس
   lightboxMediaType: 'image' | 'video' | null; // نوع الوسائط في اللايت بوكس
-  onNavigate: (tab: string) => void; // وظيفة التنقل بين التبويبات
+  onNavigate: (tab: string, options?: { profileId?: string }) => void; // وظيفة التنقل بين التبويبات
   onSearch: (query: string) => void; // وظيفة البحث
   onUserSwitch: (profile: Profile) => void; // وظيفة تبديل المستخدم
   onMarkNotificationsRead: () => void; // وظيفة وضع علامة مقروء على الإشعارات
+  onNotificationClick?: (notif: Notification) => void; // وظيفة الانتقال لمكان الإشعار (البوست أو البروفايل)
   onShowAuthModal: () => void; // وظيفة إظهار مودال الدخول
   onCloseAuthModal: () => void; // وظيفة إغلاق مودال الدخول
   setAuthTab: (tab: "signin" | "signup") => void; // وظيفة تغيير تبويب الدخول
@@ -53,6 +54,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   onSearch,
   onUserSwitch,
   onMarkNotificationsRead,
+  onNotificationClick,
   onShowAuthModal,
   onCloseAuthModal,
   setAuthTab,
@@ -106,6 +108,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         onSearch={onSearch}
         onUserSwitch={onUserSwitch} 
         onMarkNotificationsRead={onMarkNotificationsRead}
+        onNotificationClick={onNotificationClick}
         onShowAuthModal={onShowAuthModal} 
         onSignOutReal={onSignOutReal}
         unreadMessagesCount={unreadMessagesCount}

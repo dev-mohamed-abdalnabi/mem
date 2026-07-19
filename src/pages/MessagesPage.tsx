@@ -285,9 +285,18 @@ export default function MessagesPage({
               className="w-full flex items-center gap-3 px-4 py-3 text-right transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60 border-b border-gray-50 dark:border-gray-800/60 last:border-b-0"
             >
                 {conv.otherUser.avatar_url ? (
-                  <img src={conv.otherUser.avatar_url} alt="" className="w-[52px] h-[52px] rounded-full object-cover shrink-0" referrerPolicy="no-referrer" />
+                  <img
+                    src={conv.otherUser.avatar_url}
+                    alt=""
+                    onClick={(e) => { e.stopPropagation(); onUserProfileClick(conv.otherUser.id); }}
+                    className="w-[52px] h-[52px] rounded-full object-cover shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                    referrerPolicy="no-referrer"
+                  />
                 ) : (
-                  <div className="w-[52px] h-[52px] rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 font-black flex items-center justify-center shrink-0 text-lg">
+                  <div
+                    onClick={(e) => { e.stopPropagation(); onUserProfileClick(conv.otherUser.id); }}
+                    className="w-[52px] h-[52px] rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 font-black flex items-center justify-center shrink-0 text-lg cursor-pointer hover:opacity-80 transition-opacity"
+                  >
                     {conv.otherUser.username?.[0] || "؟"}
                   </div>
                 )}
@@ -488,9 +497,18 @@ export default function MessagesPage({
                     className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 text-right"
                   >
                     {p.avatar_url ? (
-                      <img src={p.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" referrerPolicy="no-referrer" />
+                      <img
+                        src={p.avatar_url}
+                        alt=""
+                        onClick={(e) => { e.stopPropagation(); onUserProfileClick(p.id); }}
+                        className="w-9 h-9 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                        referrerPolicy="no-referrer"
+                      />
                     ) : (
-                      <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 font-black flex items-center justify-center">
+                      <div
+                        onClick={(e) => { e.stopPropagation(); onUserProfileClick(p.id); }}
+                        className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 font-black flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+                      >
                         {p.username?.[0] || "؟"}
                       </div>
                     )}

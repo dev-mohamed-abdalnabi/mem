@@ -10,6 +10,9 @@ interface StoriesProps {
   // بتتنادى لما عارض الحالة يتفتح/يتقفل، عشان App.tsx يعرف يتحكم في زرار
   // الرجوع في الموبايل صح (يقفل العارض بس، مش يقفز لصفحة تانية)
   onStoryViewerChange?: (isOpen: boolean, closeFn: (() => void) | null) => void;
+  // بتتنادى لما حد يدوس على أفاتار في القايمة (مثلاً في قايمة اللي شافوا الحالة)
+  // عشان نقفل عارض الحالة وننقله لبروفايل صاحب الأفاتار
+  onUserProfileClick?: (userId: string) => void;
 }
 
 // أقصى مدة مسموحة لفيديو الحالة (بالثواني)
@@ -87,7 +90,7 @@ function relativeTimeAr(dateStr: string): string {
   return date.toLocaleDateString("ar-EG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 }
 
-export default function Stories({ currentUser, onStoryViewerChange }: StoriesProps) {
+export default function Stories({ currentUser, onStoryViewerChange, onUserProfileClick }: StoriesProps) {
   const [stories, setStories] = useState<Story[]>([]);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
@@ -870,7 +873,16 @@ export default function Stories({ currentUser, onStoryViewerChange }: StoriesPro
                         return <p className="text-center text-sm text-gray-500 p-8">لسه محدش تفاعل مع الحالة دي</p>;
                       }
                       return filtered.map((v, i) => (
-                        <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                        <div
+                          key={i}
+                          className={`flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0 ${onUserProfileClick && v.viewer?.id ? "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50" : ""}`}
+                          onClick={() => {
+                            if (v.viewer?.id && onUserProfileClick) {
+                              onUserProfileClick(v.viewer.id);
+                              closeStoryViewer();
+                            }
+                          }}
+                        >
                           <img src={v.viewer?.avatar_url || ""} className="w-10 h-10 rounded-full object-cover" alt="" />
                           <span className="flex-1 font-bold text-sm text-gray-900 dark:text-white">{v.viewer?.username || "مستخدم"}</span>
                           {v.emoji && <span className="text-xl">{v.emoji}</span>}

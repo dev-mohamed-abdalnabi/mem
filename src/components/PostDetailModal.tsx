@@ -160,7 +160,9 @@ export default function PostDetailModal({
     <div key={c.id} className={`flex gap-3 ${isReply ? "mr-8 mt-3" : ""}`}>
       <img 
         src={c.profiles?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${c.profiles?.username}`} 
-        className={`rounded-full object-cover shrink-0 ${isReply ? "w-6 h-6" : "w-8 h-8"}`} 
+        className={`rounded-full object-cover shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${isReply ? "w-6 h-6" : "w-8 h-8"}`}
+        onClick={() => c.profiles?.id && onUserProfileClick(c.profiles.id)}
+        alt=""
       />
       <div className="flex-1">
         <div className="bg-gray-100 p-3 rounded-2xl rounded-tr-none">

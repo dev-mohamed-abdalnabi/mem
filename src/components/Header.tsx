@@ -8,12 +8,13 @@ import { Profile, Notification } from "../types";
 interface HeaderProps {
   currentUser: Profile; // المستخدم الحالي
   notifications: Notification[]; // قائمة الإشعارات
-  onNavigate: (tab: string) => void; // وظيفة التنقل
+  onNavigate: (tab: string, options?: { profileId?: string }) => void; // وظيفة التنقل
   onSearch: (query: string) => void; // وظيفة البحث
   activeTab: string; // التبويب النشط
   onUserSwitch: (profile: Profile) => void; // وظيفة تبديل المستخدم
   availableProfiles: Profile[]; // البروفايلات المتاحة
   onMarkNotificationsRead: () => void; // وضع علامة مقروء على الإشعارات
+  onNotificationClick?: (notif: Notification) => void; // وظيفة الانتقال لمكان الإشعار (البوست أو البروفايل)
   onShowAuthModal: () => void; // إظهار مودال الدخول
   onSignOutReal: () => void; // تسجيل الخروج
   isRealUser: boolean; // هل المستخدم حقيقي
@@ -33,6 +34,7 @@ export default function Header({
   onUserSwitch,
   availableProfiles,
   onMarkNotificationsRead,
+  onNotificationClick,
   onShowAuthModal,
   onSignOutReal,
   isRealUser,
@@ -212,18 +214,38 @@ export default function Header({
                       <div
                         key={notif.id}
                         onClick={() => {
-                          if (notif.meme_id) onNavigate("feed");
+                          onNotificationClick?.(notif);
                           setShowNotificationsDropdown(false);
                         }}
                         className={`px-4 py-3 border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 flex items-start gap-3 cursor-pointer transition-colors ${
                           !notif.is_read ? "bg-blue-50/50 dark:bg-blue-900/20" : ""
                         }`}
                       >
-                        {/* صورة صاحب الإشعار */}
+                        {/* صورة صاحب الإشعار - دوس عليها توديك لحسابه مباشرة */}
                         {notif.actor?.avatar_url ? (
-                          <img src={notif.actor.avatar_url} alt="avatar" className="w-8 h-8 rounded-full object-cover bg-gray-100 dark:bg-gray-800" />
+                          <img
+                            src={notif.actor.avatar_url}
+                            alt="avatar"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (notif.actor?.id) {
+                                onNavigate("user-profile", { profileId: notif.actor.id });
+                                setShowNotificationsDropdown(false);
+                              }
+                            }}
+                            className="w-8 h-8 rounded-full object-cover bg-gray-100 dark:bg-gray-800 cursor-pointer hover:opacity-80 transition-opacity"
+                          />
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-black">
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (notif.actor?.id) {
+                                onNavigate("user-profile", { profileId: notif.actor.id });
+                                setShowNotificationsDropdown(false);
+                              }
+                            }}
+                            className={`w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-black ${notif.actor?.id ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
+                          >
                             {notif.actor?.username?.[0]?.toUpperCase() || "M"}
                           </div>
                         )}
