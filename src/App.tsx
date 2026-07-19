@@ -17,6 +17,7 @@ import PostDetailModal from "./components/PostDetailModal";
 import AdminPanel from "./pages/AdminPanel"; // لوحة تحكم المشرف
 import MessagesPage from "./pages/MessagesPage"; // نظام الرسايل الخاصة (زي الماسنجر)
 import { messagesService } from "./services/messagesService";
+import { pushService } from "./services/pushService";
 
 /**
  * البيانات الافتراضية للمستخدم الزائر
@@ -273,6 +274,15 @@ export default function App() {
       }
     });
     return unsubscribe;
+  }, [currentUser.id]);
+
+  /**
+   * تفعيل إشعارات الـ Push للمستخدم الحقيقي عشان يوصله إشعار برسايل/لايكات/
+   * كومنتات جديدة حتى لو قافل المتصفح خالص - مش بس لما التطبيق يكون مفتوح
+   */
+  useEffect(() => {
+    if (currentUser.id === "guest-user-temp") return;
+    pushService.subscribe(currentUser.id);
   }, [currentUser.id]);
 
   /**

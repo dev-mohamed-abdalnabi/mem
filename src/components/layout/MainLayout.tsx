@@ -112,23 +112,31 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       />
 
       {/* جسد التطبيق والمحتوى الرئيسي */}
-      <main className="max-w-7xl mx-auto px-0 md:px-4 py-6 w-full flex-1 flex lg:flex-row flex-col gap-6 items-start">
-        
-        {/* القائمة الجانبية (Sidebar) */}
-        <RightSidebar
-          isRealUser={isRealUser} 
-          profiles={profiles}
-          onShowAuthModal={onShowAuthModal}
-          setSelectedProfileId={setSelectedProfileId} 
-          setActiveTab={onNavigate}
-          activeTab={activeTab} 
-        />
-
-        {/* مساحة عرض الصفحات (Content Area) */}
-        <div className="flex-1 max-w-full lg:max-w-2xl mx-auto w-full">
+      {/* صفحة الرسايل بتاخد المساحة كلها بار-تو-بار من غير الصندوق المتوسط
+          والـ padding والـ sidebar - عشان تحس إنها صفحة قائمة بذاتها مش
+          ودجت جوه صفحة تانية */}
+      {activeTab === "messages" ? (
+        <main className="w-full flex-1 flex flex-col min-h-0">
           {children}
-        </div>
-      </main>
+        </main>
+      ) : (
+        <main className="max-w-7xl mx-auto px-0 md:px-4 py-6 w-full flex-1 flex lg:flex-row flex-col gap-6 items-start">
+          {/* القائمة الجانبية (Sidebar) */}
+          <RightSidebar
+            isRealUser={isRealUser} 
+            profiles={profiles}
+            onShowAuthModal={onShowAuthModal}
+            setSelectedProfileId={setSelectedProfileId} 
+            setActiveTab={onNavigate}
+            activeTab={activeTab} 
+          />
+
+          {/* مساحة عرض الصفحات (Content Area) */}
+          <div className="flex-1 max-w-full lg:max-w-2xl mx-auto w-full">
+            {children}
+          </div>
+        </main>
+      )}
     </div>
   );
 };
