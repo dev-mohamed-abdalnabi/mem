@@ -94,7 +94,14 @@ export default function CustomVideoPlayer({
     if (!video) return;
     
     if (isPlaying) {
-      video.play().catch(err => console.error("Play error:", err));
+      // ده المكان الوحيد اللي بينده فيه على video.play() فعلياً. لو المتصفح
+      // رفض التشغيل بالصوت (سياسة الأوتوبلاي)، بنكتم ونحاول تاني - بالظبط
+      // زي ما كان بيحصل قبل كده جوه الـ IntersectionObserver.
+      video.play().catch(() => {
+        video.muted = true;
+        setIsMuted(true);
+        video.play().catch(err => console.error("Play error:", err));
+      });
     } else {
       video.pause();
     }
@@ -122,16 +129,18 @@ export default function CustomVideoPlayer({
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
+        // بنكتفي بتحديث الـ state بس هنا. اللي بيشغل/يوقف الفيديو فعلياً
+        // (video.play()/pause()) هو الـ effect التاني اللي بيتابع isPlaying -
+        // ده عشان يبقى في مصدر واحد بس بيتحكم في الفيديو فعلياً. قبل كده
+        // الـ observer كان بينده على play()/pause() على الـ DOM مباشرة وبرضو
+        // فيه effect تاني بيعمل نفس الحاجة بناءً على الـ state، فكانوا بيتصادموا
+        // مع بعض لما تسكرول بسرعة (زي ما بيحصل في الفيد): كان ينتج عنه إن
+        // الفيديو فعلياً فاضل شغال (تسمع صوته) بس الـ state فاضل واقف على false،
+        // فزرار الـ Play بيفضل ظاهر فوق الفيديو وكإنه واقف/متجمد مع إنه لسه شغال.
         if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-          if (video.paused) {
-            video.play().catch(() => {
-              video.muted = true;
-              setIsMuted(true);
-              video.play().catch(() => {});
-            });
-          }
-        } else if (!video.paused) {
-          video.pause();
+          setIsPlaying(true);
+        } else {
+          setIsPlaying(false);
         }
       },
       { threshold: [0, 0.5, 1] }
