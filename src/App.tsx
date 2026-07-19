@@ -412,6 +412,20 @@ export default function App() {
   const isRealUser = currentUser.id !== "guest-user-temp";
 
   /**
+   * لو حصل وتاب "الرسايل" اتفتح لزائر مش مسجل دخول (بالرغم إن نقاط الدخول
+   * التانية بتتحقق من isRealUser قبل ما تنقل هنا)، بنرجعه للفيد ونفتحله
+   * مودال تسجيل الدخول. ده بيحصل هنا في useEffect (بعد الرندر) مش أثناء
+   * الرندر نفسه - استدعاء setState وسط رندر كومبوننت تاني كان بيسبب كراش
+   * وشاشة سودا.
+   */
+  useEffect(() => {
+    if (activeTab === "messages" && !isRealUser) {
+      navigateToTab("feed");
+      openAuthModalGuarded(true);
+    }
+  }, [activeTab, isRealUser, navigateToTab, openAuthModalGuarded]);
+
+  /**
    * عرض المحتوى بناءً على التبويب النشط
    */
   const renderContent = () => {
@@ -544,11 +558,8 @@ export default function App() {
           />
         );
       case "messages":
-        // نظام الرسايل الخاصة - محمي، الزائر بيتحول لمودال الدخول قبل ما يوصله
-        if (!isRealUser) {
-          openAuthModalGuarded(true);
-          return null;
-        }
+        // نظام الرسايل الخاصة - محمي أصلاً من مصدر الدخول (زرار الهيدر وزرار
+        // البروفايل بيتحققوا من isRealUser قبل ما ينقلوا هنا خالص)
         return (
           <MessagesPage
             currentUser={currentUser}

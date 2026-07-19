@@ -132,7 +132,7 @@ export const messagesService = {
    */
   subscribeToConversationMessages: (conversationId: string, onInsert: (message: DBMessage) => void) => {
     const channel = supabase
-      .channel(`messages:${conversationId}`)
+      .channel(`messages:${conversationId}:${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
@@ -151,8 +151,12 @@ export const messagesService = {
    * فوراً زي ما بيحصل في تطبيقات الشات الحقيقية.
    */
   subscribeToInbox: (onChange: () => void) => {
+    // بنولّد اسم قناة فريد لكل اشتراك، عشان لو فيه أكتر من مكان في التطبيق
+    // بيعمل subscribeToInbox في نفس الوقت (مثلاً البادج في الهيدر + صفحة
+    // الرسايل نفسها)، ميحصلش تعارض بين قنوات بنفس الاسم.
+    const channelId = `messages-inbox-${Math.random().toString(36).slice(2)}-${Date.now()}`;
     const channel = supabase
-      .channel("messages-inbox")
+      .channel(channelId)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => onChange())
       .subscribe();
 

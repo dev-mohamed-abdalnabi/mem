@@ -89,17 +89,18 @@ export default function MessagesPage({
       if (conv.unread_count > 0) {
         await messagesService.markConversationRead(conv.id);
         setConversations((prev) => prev.map((c) => (c.id === conv.id ? { ...c, unread_count: 0 } : c)));
-        onUnreadCountChange(
-          conversations.reduce((sum, c) => sum + (c.id === conv.id ? 0 : c.unread_count), 0)
-        );
+        // كانت هنا بتستخدم متغير conversations القديم (اللقطة الفاضية وقت أول
+        // تحميل للكومبوننت) بسبب الـ useCallback بمصفوفة deps فاضية، فكان
+        // البادج بيتحسب غلط. refreshConversations() بيجيب الرقم الصح من
+        // الداتابيز على طول بدل ما نحسبه محلياً من بيانات ممكن تكون قديمة.
+        refreshConversations();
       }
     } catch (e) {
       console.error("خطأ في تحميل الرسايل:", e);
     } finally {
       setLoadingMessages(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [refreshConversations]);
 
   // لو جاي من بروفايل حد بضغطة "راسلني"، افتح/أنشئ المحادثة على طول
   useEffect(() => {
