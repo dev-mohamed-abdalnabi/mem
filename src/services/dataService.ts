@@ -23,6 +23,37 @@ export function ensureUUID(id: string): string {
   return "00000000-0000-0000-0000-000000000000"; 
 }
 
+/**
+ * طبقة إعادة الترتيب للتنوع (Diversity Re-ranking Pass)
+ * ================================================================
+ * الـ SQL بيرجع البوستات مرتبة بالسكور الخام بس، وده ممكن يخلي شخص واحد
+ * (لو نزل 4-5 بوستات قوية) يسيطر على الفيد كله. الأنظمة الحقيقية بتحل
+ * المشكلة دي بطبقة منفصلة بعد الـ scoring مباشرة: بتاخد نافذة منزلقة
+ * وتمنع ظهور نفس الشخص (أو نفس التاج) أكتر من مرتين متتاليين، وبتحقن
+ * محتوى اكتشاف (discovery) بشكل دوري. دي أرخص وأبسط بكتير من إعادة حساب
+ * الـ scoring كله، وده بالظبط سبب فصلهم في مرحلتين منفصلتين في الإنتاج.
+ */
+function diversityRerank<T extends { user_id: string }>(items: T[], key: keyof T = "user_id" as keyof T): T[] {
+  const pool = [...items];
+  const result: T[] = [];
+  const recentKeys: string[] = []; // آخر مفتاحين (author) اتحطوا في النتيجة
+  const MAX_CONSECUTIVE = 2;
+
+  while (pool.length > 0) {
+    let pickIndex = pool.findIndex((item) => {
+      const k = String(item[key]);
+      const consecutiveSame = recentKeys.slice(-MAX_CONSECUTIVE).every((rk) => rk === k);
+      return !(consecutiveSame && recentKeys.length >= MAX_CONSECUTIVE);
+    });
+    if (pickIndex === -1) pickIndex = 0; // مفيش اختيار غير التكرار (باقي كله لنفس الشخص)
+
+    const [picked] = pool.splice(pickIndex, 1);
+    result.push(picked);
+    recentKeys.push(String(picked[key]));
+  }
+  return result;
+}
+
 export function extractTagsFromCaption(caption: string | null): string[] {
   if (!caption) return [];
   const matches = caption.match(/#[\w\u0600-\u06FF]+/g);
@@ -475,20 +506,22 @@ export const dataService = {
    * خفيفة حقيقية من جوه الداتابيز، فكل ريفريش بيدّي ترتيب متنوع شوية.
    */
   getVideoMemes: async (page: number = 0, limit: number = 10): Promise<Meme[]> => {
-    const { data, error } = await supabase.rpc("get_ranked_feed", {
-      p_limit: limit,
+    // بيستخدم get_ranked_reels_v2: خوارزمية مخصصة للريلز مبنية على completion
+    // rate / rewatch rate / share rate (مش لايكات خام زي الفيد العادي) - راجع
+    // ملف RANKING_ALGORITHMS.md للتفاصيل.
+    const { data, error } = await supabase.rpc("get_ranked_reels_v2", {
+      p_limit: limit * 2, // نجيب ضعف العدد عشان نقدر نعمل diversity re-rank
       p_offset: page * limit,
-      p_tag: null,
-      p_search: null,
-      p_post_type: "video",
     });
     if (error) throw error;
 
-    return (data || []).map((m: any) => ({
+    const mapped = (data || []).map((m: any) => ({
       ...m,
       profiles: m.profile,
-      tags: Array.isArray(m.tags) ? m.tags : []
+      tags: [],
     })) as Meme[];
+
+    return diversityRerank(mapped, "user_id").slice(0, limit);
   },
 
   /**
@@ -518,22 +551,29 @@ export const dataService = {
       return (data as Meme[]).map(m => ({ ...m, tags: Array.isArray(m.tags) ? m.tags : [] }));
     }
 
-    // الفيد الرئيسي -> بيستخدم الخوارزمية الحقيقية في الداتابيز، واللي بقت
-    // فيها عشوائية خفيفة حقيقية (exploration) عشان الفيد ما يفضلش يبدأ دايماً
-    // بنفس آخر بوست نزل مهما عملت ريفريش - بالظبط زي فيد انستجرام الحقيقي.
-    const { data, error } = await supabase.rpc("get_ranked_feed", {
-      p_limit: limit,
+    // الفيد الرئيسي -> get_ranked_feed_v2: خوارزمية متعددة الإشارات (affinity،
+    // meaningful interactions، video completion، تكرار الظهور، negative
+    // feedback...) راجع RANKING_ALGORITHMS.md للتفاصيل الكاملة. بنجيب مجموعة
+    // أوسع من اللازم عشان طبقة الـ diversity re-ranking تشتغل عليها (منع تكرار
+    // نفس الشخص أكتر من مرتين ورا بعض) قبل ما نقص للحجم المطلوب - بالظبط زي ما
+    // أنظمة الترتيب الحقيقية بتفصل بين مرحلة الـ scoring ومرحلة الـ business
+    // rules re-ranking.
+    const { data, error } = await supabase.rpc("get_ranked_feed_v2", {
+      p_limit: limit * 2,
       p_offset: page * limit,
       p_tag: tag || null,
-      p_search: search || null
+      p_search: search || null,
+      p_post_type: null,
     });
     if (error) throw error;
 
-    return (data || []).map((m: any) => ({
+    const mapped = (data || []).map((m: any) => ({
       ...m,
       profiles: m.profile,
       tags: Array.isArray(m.tags) ? m.tags : []
     })) as Meme[];
+
+    return diversityRerank(mapped, "user_id").slice(0, limit);
   },
 
   /**
@@ -735,5 +775,68 @@ export const dataService = {
   /** تعليم كل الإشعارات كمقروءة - عن طريق RPC جاهزة (mark_all_notifications_read) */
   markAllNotificationsRead: async (): Promise<void> => {
     await supabase.rpc("mark_all_notifications_read");
-  }
+  },
+
+  // ==================================================================
+  // إشارات خوارزمية الترتيب (feedback loop) - راجع RANKING_ALGORITHMS.md
+  // ==================================================================
+
+  /**
+   * الـ feedback السلبي: "مش عايز أشوف البوست ده" / "مش مهتم بمحتوى زي ده"
+   * / "اسكت المستخدم ده مؤقتاً". ده أهم حاجة كانت ناقصة في أي خوارزمية بتعتمد
+   * على engagement بس - من غيره مفيش طريقة تقول للنظام "لا" غير إنك تتجاهل
+   * البوست وتفضل تتفرج على نفس النوع كتير.
+   */
+  submitNegativeFeedback: async (
+    memeId: string,
+    feedbackType: "hide" | "not_interested" | "snooze_author"
+  ): Promise<void> => {
+    const { error } = await supabase.rpc("submit_negative_feedback", {
+      p_meme_id: ensureUUID(memeId),
+      p_feedback_type: feedbackType,
+    });
+    if (error) throw error;
+  },
+
+  /**
+   * تسجيل مدة مشاهدة الريلز (watch time). ده أقوى إشارة تستخدمها خوارزمية
+   * الريلز الحقيقية - completion rate و rewatch rate بيتحسبوا من هنا.
+   * لازم تتنادى من CustomVideoPlayer/ReelsPage لما الفيديو يخلص أو المستخدم يعدي.
+   */
+  logReelWatch: async (
+    memeId: string,
+    watchedSeconds: number,
+    videoDuration: number,
+    isRewatch: boolean = false
+  ): Promise<void> => {
+    try {
+      await supabase.rpc("log_reel_watch", {
+        p_meme_id: ensureUUID(memeId),
+        p_watched_seconds: Math.max(0, watchedSeconds),
+        p_video_duration: Math.max(0, videoDuration),
+        p_is_rewatch: isRewatch,
+      });
+    } catch {
+      // فشل تسجيل watch-time مش لازم يوقف تشغيل الفيديو للمستخدم
+    }
+  },
+
+  /**
+   * الحالات مرتبة بخوارزمية حقيقية (get_ranked_stories_v2): مين ما شافش
+   * حالته لسه بيتقدم الأول، وبعدين حسب قوة العلاقة (affinity) مش مجرد
+   * تاريخ آخر حالة. حالاتك انت شخصياً دايماً أول واحدة.
+   */
+  getRankedStories: async () => {
+    const { data, error } = await supabase.rpc("get_ranked_stories_v2");
+    if (error) throw error;
+    return (data || []) as {
+      author_id: string;
+      profile: Profile;
+      story_count: number;
+      latest_created_at: string;
+      has_unseen: boolean;
+      affinity_score: number;
+      story_ids: string[];
+    }[];
+  },
 };
