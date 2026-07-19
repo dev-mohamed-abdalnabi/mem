@@ -15,6 +15,8 @@ import ProfilePage from "./pages/ProfilePage";
 import Leaderboard from "./components/Leaderboard";
 import PostDetailModal from "./components/PostDetailModal";
 import AdminPanel from "./pages/AdminPanel"; // لوحة تحكم المشرف
+import MessagesPage from "./pages/MessagesPage"; // نظام الرسايل الخاصة (زي الماسنجر)
+import { messagesService } from "./services/messagesService";
 
 /**
  * البيانات الافتراضية للمستخدم الزائر
@@ -60,6 +62,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState(""); // نص البحث
   const [selectedTag, setSelectedTag] = useState<string | null>(null); // التاج المختار
   const [followingIds, setFollowingIds] = useState<string[]>([]); // قائمة المعرفات التي يتابعها المستخدم
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0); // عدد الرسايل الغير مقروءة (بادج زرار الرسايل)
+  const [pendingMessageTargetId, setPendingMessageTargetId] = useState<string | null>(null); // لفتح شات معين مباشرة (مثلاً من زرار "راسلني" في بروفايل)
 
   /**
    * كل تنقل بين التبويبات لازم يعدي من هنا، مش نداء مباشر لـ setActiveTab.
@@ -182,6 +186,10 @@ export default function App() {
         if (dbCurrentUser && dbCurrentUser.id !== "guest-user-temp") {
           const dbNotifications = await dataService.getNotifications();
           setNotifications(dbNotifications);
+
+          // تحميل عدد الرسايل الغير مقروءة عشان البادج جنب زرار الرسايل
+          const totalUnread = await messagesService.getTotalUnreadCount();
+          setUnreadMessagesCount(totalUnread);
         }
 
         // فتح البوست مباشرة لو الرابط جاي من مشاركة (?meme=<id>). كان اللينك
@@ -249,6 +257,23 @@ export default function App() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, [activeTab, lightboxImage, selectedMemeForComments, showAuthModal, storyViewerOpen]);
+
+  /**
+   * اشتراك لايف على مستوى التطبيق كله عشان بادج الرسايل جنب زرار الرسايل
+   * يفضل محدث حتى لو صفحة الرسايل نفسها مش مفتوحة حالياً
+   */
+  useEffect(() => {
+    if (currentUser.id === "guest-user-temp") return;
+    const unsubscribe = messagesService.subscribeToInbox(async () => {
+      try {
+        const totalUnread = await messagesService.getTotalUnreadCount();
+        setUnreadMessagesCount(totalUnread);
+      } catch (error) {
+        console.error("Error refreshing unread messages count:", error);
+      }
+    });
+    return unsubscribe;
+  }, [currentUser.id]);
 
   /**
    * تحميل المزيد من الميمز (Infinite Scroll)
@@ -427,7 +452,17 @@ export default function App() {
       handleDeleteMeme,
       setSelectedProfileId,
       setActiveTab: navigateToTab,
-      setLightboxImage: openLightboxGuarded
+      setLightboxImage: openLightboxGuarded,
+      // زرار الرسايل في البروفايل (كان ديمو من غير أي وظيفة) - دلوقتي بيفتح
+      // محادثة حقيقية مع صاحب البروفايل عن طريق نظام الرسايل الجديد
+      onMessageUser: (userId: string) => {
+        if (!isRealUser) {
+          openAuthModalGuarded(true);
+          return;
+        }
+        setPendingMessageTargetId(userId);
+        navigateToTab("messages");
+      }
     };
 
     switch (activeTab) {
@@ -508,6 +543,22 @@ export default function App() {
             setShowAuthModal={openAuthModalGuarded} 
           />
         );
+      case "messages":
+        // نظام الرسايل الخاصة - محمي، الزائر بيتحول لمودال الدخول قبل ما يوصله
+        if (!isRealUser) {
+          openAuthModalGuarded(true);
+          return null;
+        }
+        return (
+          <MessagesPage
+            currentUser={currentUser}
+            profiles={profiles}
+            onUserProfileClick={(userId) => navigateToTab("user-profile", { profileId: userId })}
+            onUnreadCountChange={setUnreadMessagesCount}
+            initialOtherUserId={pendingMessageTargetId}
+            onInitialConversationConsumed={() => setPendingMessageTargetId(null)}
+          />
+        );
       case "admin":
         // لوحة تحكم المشرف - محمية بكلمة مرور
         return <AdminPanel currentUser={currentUser} setActiveTab={navigateToTab} />;
@@ -555,6 +606,7 @@ export default function App() {
       }}
       setSelectedProfileId={setSelectedProfileId}
       onCloseLightbox={() => { setLightboxImage(null); setLightboxMediaType(null); }}
+      unreadMessagesCount={unreadMessagesCount}
     >
       {renderContent()}
       

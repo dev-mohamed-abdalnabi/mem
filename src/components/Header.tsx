@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search, Bell, Trophy, User, Flame, LogOut, PlusCircle, Settings, LogIn, Sun, Moon, Bookmark } from "lucide-react";
+import { Search, Bell, Trophy, User, Flame, LogOut, PlusCircle, Settings, LogIn, Sun, Moon, Bookmark, MessageCircle } from "lucide-react";
 import { Profile, Notification } from "../types";
 
 /**
@@ -17,6 +17,7 @@ interface HeaderProps {
   onShowAuthModal: () => void; // إظهار مودال الدخول
   onSignOutReal: () => void; // تسجيل الخروج
   isRealUser: boolean; // هل المستخدم حقيقي
+  unreadMessagesCount?: number; // عدد الرسايل الغير مقروءة (بادج زرار الرسايل)
 }
 
 /**
@@ -34,7 +35,8 @@ export default function Header({
   onMarkNotificationsRead,
   onShowAuthModal,
   onSignOutReal,
-  isRealUser
+  isRealUser,
+  unreadMessagesCount = 0
 }: HeaderProps) {
   // --- حالات المكون الداخلية ---
   const [searchQuery, setSearchQuery] = useState(""); // نص البحث الحالي
@@ -317,6 +319,19 @@ export default function Header({
                       <button onClick={() => { onNavigate("saves"); closeUserDropdown(); }} className="w-full text-right px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 font-bold flex items-center justify-between transition-colors">
                         <span>المحفوظات</span>
                         <Bookmark className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                      </button>
+
+                      {/* زرار الدخول لنظام الرسايل - جمب زرار المحفوظات بالظبط */}
+                      <button onClick={() => { onNavigate("messages"); closeUserDropdown(); }} className="w-full text-right px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 font-bold flex items-center justify-between transition-colors">
+                        <span className="flex items-center gap-2">
+                          الرسايل
+                          {unreadMessagesCount > 0 && (
+                            <span className="bg-red-500 text-white text-[9px] font-black min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center">
+                              {unreadMessagesCount > 9 ? "9+" : unreadMessagesCount}
+                            </span>
+                          )}
+                        </span>
+                        <MessageCircle className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                       </button>
 
                       <button onClick={() => { onNavigate("profile"); closeUserDropdown(); }} className="w-full text-right px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 font-bold flex items-center justify-between transition-colors">

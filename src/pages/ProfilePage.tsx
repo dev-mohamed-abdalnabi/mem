@@ -16,6 +16,7 @@ interface ProfilePageProps {
   setProfiles: React.Dispatch<React.SetStateAction<Profile[]>>;
   setShowAuthModal: (show: boolean) => void;
   handleFollowToggle: (followerId: string, followingId: string) => Promise<void>;
+  onMessageUser?: (userId: string) => void;
   handleLikeToggle: (id: string) => Promise<void>;
   handleSaveToggle: (id: string) => Promise<void>;
   setSelectedTag: (tag: string | null) => void;
@@ -38,6 +39,7 @@ export default function ProfilePage({
   setProfiles,
   setShowAuthModal,
   handleFollowToggle,
+  onMessageUser,
   handleLikeToggle,
   handleSaveToggle,
   setSelectedTag,
@@ -342,7 +344,11 @@ export default function ProfilePage({
           <div className="pt-2">
             {!isOwnProfile && isRealUser ? (
               <div className="flex gap-2">
-                <button className="p-1.5 border border-gray-400 dark:border-gray-600 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+                <button
+                  onClick={() => onMessageUser?.(profile.id)}
+                  title="راسله"
+                  className="p-1.5 border border-gray-400 dark:border-gray-600 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                >
                   <MessageCircle className="w-5 h-5 text-gray-900 dark:text-white" />
                 </button>
                 <button

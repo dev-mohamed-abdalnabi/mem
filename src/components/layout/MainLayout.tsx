@@ -31,6 +31,7 @@ interface MainLayoutProps {
   onSignOutReal: () => void; // وظيفة تسجيل الخروج
   setSelectedProfileId: (id: string | null) => void; // وظيفة تحديد بروفايل مستخدم
   onCloseLightbox: () => void; // وظيفة إغلاق اللايت بوكس
+  unreadMessagesCount?: number; // عدد الرسايل الغير مقروءة
 }
 
 /**
@@ -58,7 +59,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   setShowAuthModal,
   onSignOutReal,
   setSelectedProfileId,
-  onCloseLightbox
+  onCloseLightbox,
+  unreadMessagesCount = 0
 }) => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 flex flex-col antialiased" dir="rtl">
@@ -106,6 +108,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         onMarkNotificationsRead={onMarkNotificationsRead}
         onShowAuthModal={onShowAuthModal} 
         onSignOutReal={onSignOutReal}
+        unreadMessagesCount={unreadMessagesCount}
       />
 
       {/* جسد التطبيق والمحتوى الرئيسي */}

@@ -117,6 +117,44 @@ export interface StoryReaction {
   created_at: string;
 }
 
+// ==================== نظام الرسايل (Direct Messages) ====================
+
+/**
+ * محادثة خاصة بين شخصين (زي شات الماسنجر)
+ * user_one و user_two دايماً متخزنين بترتيب ثابت (الأصغر UUID الأول) عشان
+ * تضمن وجود محادثة واحدة بس بين نفس الشخصين مهما مين اللي بدأ بالمراسلة
+ */
+export interface Conversation {
+  id: string;
+  user_one: string;
+  user_two: string;
+  last_message: string | null;
+  last_message_at: string | null;
+  created_at: string;
+}
+
+/** رسالة واحدة جوه محادثة */
+export interface DBMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string | null;
+  image_url: string | null;
+  created_at: string;
+  read_at: string | null;
+  // بيتحسب في الفرونت إند بس، مش عمود حقيقي
+  pending?: boolean;
+}
+
+/** عنصر في قايمة المحادثات على الشمال، بعد ضمه ببروفايل الطرف التاني */
+export interface ConversationListItem {
+  id: string;
+  otherUser: Profile;
+  last_message: string | null;
+  last_message_at: string | null;
+  unread_count: number;
+}
+
 // Preset popular Arabic meme templates for the Meme Maker
 export interface MemeTemplate {
   id: string;
