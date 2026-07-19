@@ -119,6 +119,11 @@ export default function Stories({ currentUser, onStoryViewerChange }: StoriesPro
   const isPausedRef = useRef<boolean>(false);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
   const rafRef = useRef<number | null>(null);
+  // سحب الحالة لتحت لقفلها (زي فيسبوك وواتساب) - بنتابع مكان بداية اللمس
+  // وبنحرك شاشة الحالة كلها مع الإصبع، وبنقفل لو السحب عدى مسافة معينة
+  const [storyDragY, setStoryDragY] = useState(0);
+  const storyDragStateRef = useRef<{ startX: number; startY: number; dragging: boolean } | null>(null);
+  const STORY_CLOSE_DRAG_PX = 120;
 
   const isRealUser = currentUser?.id && currentUser.id !== "guest-user-temp";
 
@@ -232,10 +237,40 @@ export default function Stories({ currentUser, onStoryViewerChange }: StoriesPro
     }
   };
 
+  // بداية سحب الحالة - بنسجل مكان اللمس ومنعتبرهاش سحب لتحت غير لو الحركة
+  // الرأسية اتأكدت (عشان مايتعارضش مع مناطق التنقل يمين/شمال)
+  const handleStoryPointerDown = (e: React.PointerEvent) => {
+    storyDragStateRef.current = { startX: e.clientX, startY: e.clientY, dragging: false };
+  };
+  const handleStoryPointerMove = (e: React.PointerEvent) => {
+    const state = storyDragStateRef.current;
+    if (!state) return;
+    const deltaY = e.clientY - state.startY;
+    const deltaX = e.clientX - state.startX;
+    if (!state.dragging && deltaY > 10 && deltaY > Math.abs(deltaX)) {
+      state.dragging = true;
+      setIsPaused(true);
+    }
+    if (state.dragging) setStoryDragY(Math.max(0, deltaY));
+  };
+  const handleStoryPointerUp = () => {
+    const state = storyDragStateRef.current;
+    if (state?.dragging) {
+      if (storyDragY > STORY_CLOSE_DRAG_PX) {
+        closeStoryViewer();
+      } else {
+        setIsPaused(false);
+      }
+    }
+    storyDragStateRef.current = null;
+    setStoryDragY(0);
+  };
+
   const openStory = (story: Story, index: number) => {
     setSelectedStory(story);
     setSelectedStoryIndex(index);
     setProgress(0);
+    setStoryDragY(0);
     markViewed(story);
   };
 
@@ -574,6 +609,15 @@ export default function Stories({ currentUser, onStoryViewerChange }: StoriesPro
           data-story-viewer
           className="fixed inset-0 z-[100] bg-black flex flex-col select-none"
           onClick={() => closeStoryViewer()}
+          onPointerDown={handleStoryPointerDown}
+          onPointerMove={handleStoryPointerMove}
+          onPointerUp={handleStoryPointerUp}
+          onPointerCancel={handleStoryPointerUp}
+          style={{
+            transform: storyDragY ? `translateY(${storyDragY}px)` : undefined,
+            opacity: storyDragY ? Math.max(1 - storyDragY / 400, 0.4) : 1,
+            transition: storyDragY ? "none" : "transform 0.2s ease-out, opacity 0.2s ease-out",
+          }}
         >
           {/* شريط التقدم المقسّم بستايل واتساب/انستجرام - بيتعبى تلقائي مع الوقت */}
           {/* z-30 عشان يبان فوق خلفية الهيدر المتدرجة (z-20) اللي كانت بتغطيه بالكامل */}

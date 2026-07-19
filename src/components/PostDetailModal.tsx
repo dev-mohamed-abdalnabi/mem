@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X, Heart, MessageCircle, Share2, Bookmark, Send, Loader2 } from "lucide-react";
 import DOMPurify from "dompurify";
 import { Meme, Comment, Profile } from "../types";
@@ -15,6 +15,10 @@ interface PostDetailModalProps {
   onUserProfileClick: (id: string) => void;
 }
 
+// أقل مسافة سحب لتحت (بكسل) عشان نعتبرها "قفل" فعلاً بدل ما نرجع الشيت
+// لمكانه - زي فيسبوك/واتساب، مش أي سحبة بسيطة تقفل الشيت
+const CLOSE_DRAG_THRESHOLD_PX = 120;
+
 export default function PostDetailModal({
   meme,
   currentUser,
@@ -25,6 +29,12 @@ export default function PostDetailModal({
   onUserProfileClick
 }: PostDetailModalProps) {
   const [comments, setComments] = useState<Comment[]>([]);
+  // سحب شيت التعليقات لتحت لقفله (زي فيسبوك/واتساب) - بنسجل مسافة السحب
+  // الحالية عشان نحرك الشيت بصرياً وهو بيتسحب، وبنقرر نقفل أو نرجعه لمكانه
+  // على حسب المسافة اللي وصلها لما المستخدم يسيب إصبعه
+  const [dragY, setDragY] = useState(0);
+  const isDraggingRef = useRef(false);
+  const dragStartYRef = useRef(0);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -122,6 +132,27 @@ export default function PostDetailModal({
     }
   };
 
+  // بداية السحب - بنسجل مكان لمس الإصبع الأول بس على مقبض السحب/الهيدر
+  const handleSheetTouchStart = (e: React.TouchEvent) => {
+    isDraggingRef.current = true;
+    dragStartYRef.current = e.touches[0].clientY;
+  };
+  const handleSheetTouchMove = (e: React.TouchEvent) => {
+    if (!isDraggingRef.current) return;
+    const delta = e.touches[0].clientY - dragStartYRef.current;
+    // بنسمح بالسحب لتحت بس (مش لفوق) زي الشيتات في فيسبوك وواتساب
+    if (delta > 0) setDragY(delta);
+  };
+  const handleSheetTouchEnd = () => {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    if (dragY > CLOSE_DRAG_THRESHOLD_PX) {
+      onClose();
+    } else {
+      setDragY(0); // ما وصلش لحد القفل - نرجع الشيت لمكانه بانيميشن
+    }
+  };
+
   const creator = meme.profiles || { id: meme.user_id, username: "ميمر_مجهول", avatar_url: null };
 
   /** عرض تعليق واحد (أساسي أو رد) - نفس الشكل لكن الردود بتتعرض أصغر ومزحزحة لجنب */
@@ -207,9 +238,21 @@ export default function PostDetailModal({
       />
 
       {/* Comments Section: bottom sheet over the video on mobile (TikTok style), side panel on desktop */}
-      <div className="fixed md:static inset-x-0 bottom-0 md:inset-auto z-20 md:z-auto w-full md:w-[400px] h-[68vh] md:h-full flex flex-col bg-white md:border-r rounded-t-3xl md:rounded-none animate-slide-up overflow-hidden">
-        {/* Drag handle + header, mobile only */}
-        <div className="md:hidden flex flex-col items-center pt-2.5 pb-1 shrink-0 border-b">
+      <div
+        className="fixed md:static inset-x-0 bottom-0 md:inset-auto z-20 md:z-auto w-full md:w-[400px] h-[68vh] md:h-full flex flex-col bg-white md:border-r rounded-t-3xl md:rounded-none overflow-hidden"
+        style={{
+          transform: dragY ? `translateY(${dragY}px)` : undefined,
+          transition: isDraggingRef.current ? "none" : "transform 0.25s ease-out",
+        }}
+      >
+        {/* Drag handle + header, mobile only - السحب لتحت من هنا بيقفل شيت التعليقات زي فيسبوك وواتساب */}
+        <div
+          className="md:hidden flex flex-col items-center pt-2.5 pb-1 shrink-0 border-b touch-none"
+          onTouchStart={handleSheetTouchStart}
+          onTouchMove={handleSheetTouchMove}
+          onTouchEnd={handleSheetTouchEnd}
+          onTouchCancel={handleSheetTouchEnd}
+        >
           <div className="w-10 h-1.5 bg-gray-300 rounded-full mb-2" />
           <span className="font-bold text-sm pb-2">التعليقات</span>
         </div>

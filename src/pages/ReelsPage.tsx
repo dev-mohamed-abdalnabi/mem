@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Heart, MessageCircle, Bookmark, Share2, Loader2, Volume2, VolumeX } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Share2, Loader2, Volume2, VolumeX, FastForward, Rewind } from "lucide-react";
 import { Meme, Profile } from "../types";
 import { dataService } from "../services/dataService";
 
@@ -14,6 +14,29 @@ interface ReelsPageProps {
   onUserProfileClick: (userId: string) => void;
 }
 
+// إعدادات اللمس: كام مللي ثانية بين ضغطتين عشان تتحسب "دبل تاب"، وقد إيه
+// الزمن اللي لازم تستناه عشان الضغطة تتحول لـ "ضغط مطول" (2x)، وكام ثانية
+// نتقدم/نرجع بيها في كل دبل تاب.
+const DOUBLE_TAP_MS = 280;
+const LONG_PRESS_MS = 350;
+const SEEK_SECONDS = 10;
+// لو الإصبع اتحرك أكتر من كذا بكسل، بنعتبرها سحب (سكرول) مش ضغطة -
+// عشان مايحصلش تشغيل/إيقاف أو 2x غلط وانت بس بتسكرول بين الريلز
+const DRAG_CANCEL_PX = 10;
+
+type GestureFeedback = { id: string; type: "back" | "forward" | "speed" } | null;
+
+interface TapState {
+  startX: number;
+  startY: number;
+  isDragging: boolean;
+  isLongPress: boolean;
+  lastTapTime: number;
+  lastTapSide: "left" | "right" | null;
+  longPressTimer: ReturnType<typeof setTimeout> | null;
+  singleTapTimer: ReturnType<typeof setTimeout> | null;
+}
+
 /**
  * صفحة الريلز: فيد فيديوهات رأسي (سكرول من فوق لتحت، كل فيديو ياخد الشاشة كلها)
  * بدل تبويب "الحفظ" اللي اتنقل جوه قائمة الإعدادات. بتشغل الفيديو اللي في المنتصف
@@ -24,6 +47,18 @@ interface ReelsPageProps {
  * أسفل الفيديو "بياكل" ومش ظاهر) دلوقتي بنثبت الحاوية بـ top/bottom مباشرة على
  * ارتفاع الهيدر (4rem) والشريط السفلي (4rem)، وده بيتأقلم صح مع اختفاء/ظهور شريط
  * عنوان المتصفح في الموبايل بشكل تلقائي بخلاف حسابات الـ vh.
+ *
+ * إصلاح باگ "الفيديوهات بتقف تشتغل لما تنزل تحت": كان الكود القديم بيشغل
+ * ويوقف كل فيديو لوحده على حسب الـ entry بتاعه من غير ما ياخد بالباله باقي
+ * الفيديوهات، فكانت بتحصل حالتين سيئتين: (1) فيديوهين "شبه ظاهرين" في نفس
+ * اللحظة (وقت السكرول) يتشغلوا مع بعض، فـ play() لواحد بيبوظ play() التاني
+ * (AbortError) والكود ما كانش بيعيد المحاولة تاني، فالفيديو يفضل واقف لحد
+ * ما تعمل ريفريش. (2) الـ threshold كان [0, 0.6, 1] بس، يعني الـ observer
+ * ميرجعش نتيجة تانية إلا لو النسبة عدّت نقطة 0.6 فعلياً - في السكرول السريع
+ * ده مش بيحصل بالظبط دايماً. الحل: بنتابع نسبة ظهور كل الفيديوهات في نفس
+ * الوقت، وبعد كل تحديث بنحدد "الفيديو الأكتر ظهوراً" ده بس اللي يشتغل ونوقف
+ * الباقي، وبنعيد المحاولة تلقائياً كل مرة تتغير نسبة الظهور (بدل ما نعتمد
+ * على استدعاء واحد بس ممكن يفشل).
  */
 export default function ReelsPage({
   currentUser,
@@ -45,6 +80,28 @@ export default function ReelsPage({
   const lastShareAtRef = useRef<Map<string, number>>(new Map());
   const SHARE_COOLDOWN_MS = 10000;
 
+  // الفيديو النشط دلوقتي (اللي بيشتغل فعلياً) - بيتحدد من الـ IntersectionObserver
+  const [activeId, setActiveId] = useState<string | null>(null);
+  // نسبة تقدم الفيديو النشط (0-100) عشان شريط التقدم القابل للسحب
+  const [progress, setProgress] = useState(0);
+  const isSeekingRef = useRef(false);
+  // تنبيه بصري مؤقت (رجوع/تقديم 10 ثواني أو 2x) فوق الريل الحالي
+  const [gestureFeedback, setGestureFeedback] = useState<GestureFeedback>(null);
+  const gestureHideTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const tapStatesRef = useRef<Map<string, TapState>>(new Map());
+
+  const getTapState = (id: string): TapState => {
+    let state = tapStatesRef.current.get(id);
+    if (!state) {
+      state = {
+        startX: 0, startY: 0, isDragging: false, isLongPress: false,
+        lastTapTime: 0, lastTapSide: null, longPressTimer: null, singleTapTimer: null,
+      };
+      tapStatesRef.current.set(id, state);
+    }
+    return state;
+  };
+
   useEffect(() => {
     dataService.getVideoMemes(0, 20)
       .then(setReels)
@@ -52,33 +109,55 @@ export default function ReelsPage({
       .finally(() => setLoading(false));
   }, []);
 
-  // تشغيل الفيديو الظاهر في المنتصف بس وإيقاف الباقي
+  // تشغيل الفيديو الأكتر ظهوراً في الحاوية بس، وإيقاف الباقي - بيتعاد حسابه
+  // مع كل تغيير في نسب الظهور (مش استدعاء واحد بيتنسى)، فلو play() فشل مرة
+  // بيتحاول تاني أول ما يتغير أي حاجة (بدل ما يفضل الفيديو واقف للأبد)
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
+    const ratios = new Map<Element, number>();
+    const elToId = new Map<Element, string>();
+    Object.entries(videoRefs.current).forEach(([id, el]) => { if (el) elToId.set(el, id); });
+
+    const applyActiveVideo = () => {
+      let bestEl: Element | null = null;
+      let bestRatio = 0;
+      ratios.forEach((ratio, el) => {
+        if (ratio > bestRatio) { bestRatio = ratio; bestEl = el; }
+      });
+
+      const bestId = bestEl ? elToId.get(bestEl) || null : null;
+      if (bestRatio > 0.5 && bestId) setActiveId(bestId);
+
+      Object.entries(videoRefs.current).forEach(([id, v]) => {
+        if (!v) return;
+        if (v === bestEl && bestRatio > 0.5) {
+          if (v.paused) {
+            v.muted = isMuted;
+            v.play().catch((err) => {
+              if (err?.name === "NotAllowedError") {
+                v.muted = true;
+                setIsMuted(true);
+                v.play().catch(() => {});
+              }
+              // أي خطأ تاني (زي AbortError بسبب تعارض تشغيل/إيقاف سريع وقت
+              // السكرول) بنتجاهله بأمان - applyActiveVideo هتتنده تاني أول ما
+              // نسبة الظهور تتغير تاني فهتحاول تشغله من جديد
+            });
+          }
+        } else if (!v.paused) {
+          v.pause();
+        }
+      });
+    };
+
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          const video = entry.target as HTMLVideoElement;
-          if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
-            // بنحاول نشغل بالصوت الأول؛ لو المتصفح رفض (سياسة autoplay) بنكتم تلقائياً
-            // كحل بديل بس بنسيب زرار الصوت شغال عشان المستخدم يفعله بنفسه بضغطة واحدة.
-            // بنتأكد إن الرفض فعلاً بسبب سياسة المتصفح (NotAllowedError) مش لأي سبب تاني.
-            video.muted = isMuted;
-            video.play().catch((err) => {
-              if (err?.name === "NotAllowedError") {
-                video.muted = true;
-                setIsMuted(true);
-                video.play().catch(() => {});
-              }
-            });
-          } else {
-            video.pause();
-          }
-        });
+        entries.forEach((entry) => { ratios.set(entry.target, entry.intersectionRatio); });
+        applyActiveVideo();
       },
-      { root: container, threshold: [0, 0.6, 1] }
+      { root: container, threshold: [0, 0.25, 0.5, 0.6, 0.75, 0.9, 1] }
     );
 
     Object.values(videoRefs.current).forEach((v) => v && observer.observe(v));
@@ -98,6 +177,119 @@ export default function ReelsPage({
     }
     action();
   };
+
+  const showGestureFeedback = (fb: GestureFeedback, autoHide: boolean) => {
+    if (gestureHideTimerRef.current) clearTimeout(gestureHideTimerRef.current);
+    setGestureFeedback(fb);
+    if (autoHide && fb) {
+      gestureHideTimerRef.current = setTimeout(() => {
+        setGestureFeedback((cur) => (cur?.id === fb.id ? null : cur));
+      }, 550);
+    }
+  };
+
+  // بداية اللمس على الفيديو: بنسجل مكان البداية وبنبدأ عداد الضغط المطول
+  const handleVideoPointerDown = (meme: Meme) => (e: React.PointerEvent<HTMLVideoElement>) => {
+    const video = videoRefs.current[meme.id];
+    if (!video) return;
+    const state = getTapState(meme.id);
+    state.startX = e.clientX;
+    state.startY = e.clientY;
+    state.isDragging = false;
+    state.isLongPress = false;
+
+    if (state.longPressTimer) clearTimeout(state.longPressTimer);
+    state.longPressTimer = setTimeout(() => {
+      if (state.isDragging) return;
+      state.isLongPress = true;
+      video.playbackRate = 2;
+      showGestureFeedback({ id: meme.id, type: "speed" }, false);
+    }, LONG_PRESS_MS);
+  };
+
+  // لو الإصبع اتحرك مسافة محسوسة، ده سكرول مش ضغطة - نلغي كل حاجة
+  const handleVideoPointerMove = (meme: Meme) => (e: React.PointerEvent<HTMLVideoElement>) => {
+    const video = videoRefs.current[meme.id];
+    const state = tapStatesRef.current.get(meme.id);
+    if (!video || !state || state.isDragging) return;
+    const dx = Math.abs(e.clientX - state.startX);
+    const dy = Math.abs(e.clientY - state.startY);
+    if (dx > DRAG_CANCEL_PX || dy > DRAG_CANCEL_PX) {
+      state.isDragging = true;
+      if (state.longPressTimer) clearTimeout(state.longPressTimer);
+      if (state.isLongPress) {
+        video.playbackRate = 1;
+        state.isLongPress = false;
+        showGestureFeedback(null, false);
+      }
+    }
+  };
+
+  // نهاية اللمس: نحدد كانت إيه (سحب/ضغط مطول/دبل تاب/تاب عادي) وننفذ اللي يناسبها
+  const handleVideoPointerUp = (meme: Meme) => (e: React.PointerEvent<HTMLVideoElement>) => {
+    const video = videoRefs.current[meme.id];
+    const state = tapStatesRef.current.get(meme.id);
+    if (!video || !state) return;
+    if (state.longPressTimer) clearTimeout(state.longPressTimer);
+
+    if (state.isDragging) return; // كان سكرول، تجاهل تماماً
+
+    if (state.isLongPress) {
+      video.playbackRate = 1;
+      state.isLongPress = false;
+      showGestureFeedback(null, false);
+      return;
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const side: "left" | "right" = (e.clientX - rect.left) < rect.width / 2 ? "left" : "right";
+    const now = Date.now();
+    const isDoubleTap = now - state.lastTapTime < DOUBLE_TAP_MS && state.lastTapSide === side;
+
+    if (isDoubleTap) {
+      if (state.singleTapTimer) clearTimeout(state.singleTapTimer);
+      state.lastTapTime = 0;
+      state.lastTapSide = null;
+      const dur = video.duration || 0;
+      const delta = side === "right" ? SEEK_SECONDS : -SEEK_SECONDS;
+      video.currentTime = Math.min(Math.max(0, video.currentTime + delta), dur || video.currentTime + delta);
+      if (dur) setProgress((video.currentTime / dur) * 100);
+      showGestureFeedback({ id: meme.id, type: side === "right" ? "forward" : "back" }, true);
+    } else {
+      state.lastTapTime = now;
+      state.lastTapSide = side;
+      state.singleTapTimer = setTimeout(() => {
+        video.paused ? video.play().catch(() => {}) : video.pause();
+      }, DOUBLE_TAP_MS);
+    }
+  };
+
+  // شريط التقدم: تحديث النسبة أثناء اللعب، إلا لو المستخدم بيسحب دلوقتي
+  const handleTimeUpdate = (meme: Meme) => (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    if (meme.id !== activeId || isSeekingRef.current) return;
+    const v = e.currentTarget;
+    if (v.duration) setProgress((v.currentTime / v.duration) * 100);
+  };
+
+  const seekFromPointer = (meme: Meme, e: React.PointerEvent<HTMLDivElement>) => {
+    const video = videoRefs.current[meme.id];
+    if (!video || !video.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const percent = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    setProgress(percent * 100);
+    video.currentTime = percent * video.duration;
+  };
+
+  const handleBarPointerDown = (meme: Meme) => (e: React.PointerEvent<HTMLDivElement>) => {
+    isSeekingRef.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    seekFromPointer(meme, e);
+  };
+  const handleBarPointerMove = (meme: Meme) => (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isSeekingRef.current) return;
+    seekFromPointer(meme, e);
+  };
+  const handleBarPointerUp = () => { isSeekingRef.current = false; };
 
   /**
    * باگ كانت الأزرار (لايك/حفظ/مشاركة) "مش شغالة" فعلياً: كانت العملية بتتسجل
@@ -183,11 +375,30 @@ export default function ReelsPage({
             playsInline
             muted={isMuted}
             className="w-full h-full object-contain"
-            onClick={(e) => {
-              const v = e.currentTarget;
-              v.paused ? v.play() : v.pause();
-            }}
+            onTimeUpdate={handleTimeUpdate(meme)}
+            onPointerDown={handleVideoPointerDown(meme)}
+            onPointerMove={handleVideoPointerMove(meme)}
+            onPointerUp={handleVideoPointerUp(meme)}
+            onPointerCancel={handleVideoPointerUp(meme)}
           />
+
+          {/* تنبيه بصري: تقديم/ترجيع 10 ثواني أو سرعة 2x */}
+          {gestureFeedback?.id === meme.id && (
+            <div
+              className={`absolute inset-y-0 z-20 flex items-center pointer-events-none ${
+                gestureFeedback.type === "back" ? "left-6" : gestureFeedback.type === "forward" ? "right-6" : "inset-x-0 justify-center"
+              }`}
+            >
+              {gestureFeedback.type === "speed" ? (
+                <span className="bg-black/60 text-white font-bold text-base px-4 py-2 rounded-full">2x</span>
+              ) : (
+                <span className="bg-black/60 text-white p-3 rounded-full flex flex-col items-center gap-1">
+                  {gestureFeedback.type === "forward" ? <FastForward className="w-6 h-6" /> : <Rewind className="w-6 h-6" />}
+                  <span className="text-[10px] font-bold">10 ثواني</span>
+                </span>
+              )}
+            </div>
+          )}
 
           {/* زرار كتم/تشغيل الصوت زي التيك توك والريلز */}
           <button
@@ -198,7 +409,7 @@ export default function ReelsPage({
           </button>
 
           {/* معلومات صاحب المنشور والنص */}
-          <div className="absolute bottom-6 right-4 left-20 text-white z-10">
+          <div className="absolute bottom-10 right-4 left-20 text-white z-10">
             <button
               onClick={() => onUserProfileClick(meme.user_id)}
               className="flex items-center gap-2 mb-2"
@@ -212,7 +423,7 @@ export default function ReelsPage({
           </div>
 
           {/* أزرار التفاعل الجانبية */}
-          <div className="absolute bottom-6 left-3 flex flex-col items-center gap-5 text-white z-10">
+          <div className="absolute bottom-10 left-3 flex flex-col items-center gap-5 text-white z-10">
             <button
               onClick={() => handleLike(meme)}
               className="flex flex-col items-center gap-1"
@@ -240,6 +451,22 @@ export default function ReelsPage({
               <Share2 className="w-7 h-7" />
               <span className="text-xs font-bold">{meme.shares_count}</span>
             </button>
+          </div>
+
+          {/* شريط تقدم قابل للسحب - بيتقدم/يترجع بيه، زي تيك توك */}
+          <div
+            className="absolute bottom-0 inset-x-0 z-20 pt-3 pb-1.5 px-3 touch-none"
+            onPointerDown={handleBarPointerDown(meme)}
+            onPointerMove={handleBarPointerMove(meme)}
+            onPointerUp={handleBarPointerUp}
+            onPointerCancel={handleBarPointerUp}
+          >
+            <div className="h-1 bg-white/25 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-white rounded-full"
+                style={{ width: `${meme.id === activeId ? progress : 0}%` }}
+              />
+            </div>
           </div>
         </div>
       ))}
