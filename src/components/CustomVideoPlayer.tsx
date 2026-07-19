@@ -17,17 +17,21 @@ interface CustomVideoPlayerProps {
 export default function CustomVideoPlayer({
   src,
   poster,
-  autoPlay = false,
+  autoPlay = true,
   className = ""
 }: CustomVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
-  const [isPlaying, setIsPlaying] = useState(autoPlay);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
+  // الفيديو في الفيد كان محتاج ضغطة تشغيل يدوية أول ما يظهر، وده مش سلوك
+  // طبيعي (فيسبوك/إنستجرام بيشغلوا الفيديو أوتوماتيك أول ما يدخل الشاشة).
+  // المتصفحات بترفض الأوتوبلاي بالصوت، فبنبدأ مكتوم زي كل منصات الفيديو
+  // القصير، والمستخدم يقدر يفعّل الصوت بضغطة واحدة على زرار الكتم.
+  const [isMuted, setIsMuted] = useState(true);
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [buffered, setBuffered] = useState(0);
@@ -98,30 +102,43 @@ export default function CustomVideoPlayer({
 
   useEffect(() => {
     if (videoRef.current) {
+      // لازم نضبط خاصية muted نفسها مش بس الصوت = 0، لأن سياسة الأوتوبلاي في
+      // المتصفحات بتشترط muted=true فعلياً عشان تسمح بالتشغيل التلقائي.
+      videoRef.current.muted = isMuted;
       videoRef.current.volume = isMuted ? 0 : volume;
     }
   }, [volume, isMuted]);
 
-  // لو الفيديو خرج بره الشاشة وهو شغال (بالسكرول لأسفل أو لأعلى)، بنوقفه
-  // تلقائي - بنفس فكرة صفحة الريلز. مش بنشغّله تاني لوحده لما يرجع يبان،
-  // لأن الفيد (على عكس الريلز) مش أوتوبلاي من الأساس؛ المستخدم هو اللي
-  // يدوس تشغيل تاني لو عايز.
+  // زي فيسبوك/إنستجرام بالظبط: الفيديو بيشتغل لوحده (مكتوم) أول ما يدخل
+  // نص الشاشة، ويقف تلقائي لو خرج برة - من غير ما المستخدم يحتاج يدوس
+  // زرار تشغيل يدوي. بنحاول نشغّل بالصوت الأساسي لو autoPlay=false
+  // (يعني المستخدم مش عايز كتم افتراضي)، ولو المتصفح رفض (سياسة الأوتوبلاي)
+  // بنكتم تلقائياً كحل بديل - بالظبط زي صفحة الريلز.
   useEffect(() => {
     const container = containerRef.current;
     const video = videoRef.current;
-    if (!container || !video) return;
+    if (!container || !video || !autoPlay) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (!entries[0].isIntersecting && !video.paused) {
+        const entry = entries[0];
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+          if (video.paused) {
+            video.play().catch(() => {
+              video.muted = true;
+              setIsMuted(true);
+              video.play().catch(() => {});
+            });
+          }
+        } else if (!video.paused) {
           video.pause();
         }
       },
-      { threshold: 0.25 } // أقل من ربع الفيديو ظاهر = يتوقف
+      { threshold: [0, 0.5, 1] }
     );
     observer.observe(container);
     return () => observer.disconnect();
-  }, []);
+  }, [autoPlay]);
 
   const handleInteraction = () => {
     setShowControls(true);
@@ -163,6 +180,8 @@ export default function CustomVideoPlayer({
         className="w-full h-full object-contain"
         onClick={() => setIsPlaying(!isPlaying)}
         playsInline
+        muted={isMuted}
+        loop
       />
 
       {/* Loading Spinner */}

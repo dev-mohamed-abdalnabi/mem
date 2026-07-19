@@ -47,7 +47,10 @@ export default function App() {
    * طول بدل ما يرجعك للشاشة اللي قبلها جوا التطبيق نفسه.
    */
   const navigateToTab = useCallback((tab: string, options?: { profileId?: string }) => {
-    if (tab !== activeTab) {
+    // بدون الشرط ده، الانتقال من بروفايل لبروفايل تاني (تبويب "user-profile"
+    // فاضل زي ما هو، بس المعرف بيتغير) كان بيتسجلش كخطوة history خالص.
+    const isProfileSwitch = tab === "user-profile" && !!options?.profileId && options.profileId !== selectedProfileId;
+    if (tab !== activeTab || isProfileSwitch) {
       window.history.pushState({ tab }, "", window.location.href);
     }
     if (options?.profileId) setSelectedProfileId(options.profileId);
@@ -57,7 +60,13 @@ export default function App() {
       setPage(1);
       setHasMore(true);
     }
-  }, [activeTab]);
+    // كان فتح بروفايل (أو أي تبويب) بعد ما تكون سكرولت لتحت في صفحة تانية
+    // (زي الفيد) بيسيب موضع السكرول القديم زي ما هو، وبما إن صفحة البروفايل
+    // غالباً أقصر بكتير من صفحة الفيد، كان المستخدم "يلاقي نفسه" في نص أو
+    // آخر صفحة البروفايل على طول بدل ما يبدأ من فوق. دلوقتي بنرجع السكرول
+    // لفوق مع كل تنقل بين الصفحات/البروفايلات.
+    window.scrollTo(0, 0);
+  }, [activeTab, selectedProfileId]);
 
   const [currentUser, setCurrentUser] = useState<Profile>(initialGuestProfile); // المستخدم الحالي
   const [memes, setMemes] = useState<Meme[]>([]); // قائمة الميمز المعروضة
@@ -81,6 +90,16 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState(""); // نص البحث
   const [selectedTag, setSelectedTag] = useState<string | null>(null); // التاج المختار
   const [followingIds, setFollowingIds] = useState<string[]>([]); // قائمة المعرفات التي يتابعها المستخدم
+
+  // بيتبع حالة عارض الحالات (Stories) - لو مفتوح، زرار الرجوع في الموبايل
+  // لازم يقفله بس، مش يقفز لصفحة تانية. الإغلاق الفعلي بيحصل عن طريق
+  // closeStoryViewerRef اللي Stories.tsx بيسجله فينا.
+  const [storyViewerOpen, setStoryViewerOpen] = useState(false);
+  const closeStoryViewerRef = useRef<(() => void) | null>(null);
+  const handleStoryViewerChange = useCallback((isOpen: boolean, closeFn: (() => void) | null) => {
+    setStoryViewerOpen(isOpen);
+    closeStoryViewerRef.current = closeFn;
+  }, []);
 
   // مرجع للكاش لمنع إعادة التحميل غير الضرورية
   const cacheRef = useRef({
@@ -168,6 +187,11 @@ export default function App() {
    */
   useEffect(() => {
     const handlePopState = (e: PopStateEvent) => {
+      if (storyViewerOpen) {
+        closeStoryViewerRef.current?.();
+        window.history.pushState({ tab: activeTab }, "", window.location.href);
+        return;
+      }
       if (lightboxImage) {
         setLightboxImage(null);
         setLightboxMediaType(null);
@@ -186,11 +210,12 @@ export default function App() {
       }
       const targetTab = e.state?.tab || "feed";
       setActiveTab(targetTab);
+      window.scrollTo(0, 0);
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [activeTab, lightboxImage, selectedMemeForComments, showAuthModal]);
+  }, [activeTab, lightboxImage, selectedMemeForComments, showAuthModal, storyViewerOpen]);
 
   /**
    * تحميل المزيد من الميمز (Infinite Scroll)
@@ -339,7 +364,16 @@ export default function App() {
       handleSaveToggle,
       handleFollowToggle,
       setSelectedTag,
-      handleReportSubmit: (memeId: string, reason: string) => console.log("Report:", { memeId, reason }),
+      // البلاغات كانت بتتسجل بس في console.log من غير أي حفظ حقيقي في
+      // الداتابيز، رغم وجود جدول reports ودالة submitReport جاهزة أصلاً.
+      // المستخدم كان بيشوف رسالة "تم الإبلاغ" بس البلاغ بيروح في الفاضي.
+      handleReportSubmit: async (memeId: string, reason: string) => {
+        try {
+          await dataService.submitReport(memeId, currentUser.id, reason);
+        } catch (error) {
+          console.error("Error submitting report:", error);
+        }
+      },
       // كانت دي بس console.log ومفيش أي تسجيل حقيقي للمشاركة في الداتابيز رغم وجود
       // عمود shares_count وRPC جاهزة (increment_share_count). دلوقتي بتتسجل فعلياً.
       // كمان بنمنع تكرار التسجيل لو المستخدم ضغط زرار المشاركة كذا مرة ورا بعض
@@ -382,6 +416,7 @@ export default function App() {
             onOpenComments={(meme) => setSelectedMemeForComments(meme)}
             highlightedMemeId={highlightedMemeId}
             onHighlightConsumed={() => setHighlightedMemeId(null)}
+            onStoryViewerChange={handleStoryViewerChange}
           />
         );
       case "trending":

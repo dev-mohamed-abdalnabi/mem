@@ -7,6 +7,9 @@ import { socialService } from "../services/socialService";
 
 interface StoriesProps {
   currentUser: Profile;
+  // بتتنادى لما عارض الحالة يتفتح/يتقفل، عشان App.tsx يعرف يتحكم في زرار
+  // الرجوع في الموبايل صح (يقفل العارض بس، مش يقفز لصفحة تانية)
+  onStoryViewerChange?: (isOpen: boolean, closeFn: (() => void) | null) => void;
 }
 
 // أقصى مدة مسموحة لفيديو الحالة (بالثواني)
@@ -84,7 +87,7 @@ function relativeTimeAr(dateStr: string): string {
   return date.toLocaleDateString("ar-EG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 }
 
-export default function Stories({ currentUser }: StoriesProps) {
+export default function Stories({ currentUser, onStoryViewerChange }: StoriesProps) {
   const [stories, setStories] = useState<Story[]>([]);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
@@ -187,10 +190,46 @@ export default function Stories({ currentUser }: StoriesProps) {
     return () => { document.body.style.overflow = ""; };
   }, [selectedStory, showCreateModal]);
 
+  /**
+   * كان عارض الحالة بيتفتح من غير ما يسجل خطوة في الـ browser history، فزرار
+   * الرجوع في أندرويد كان بيتخطى الحالة ويطبق آخر خطوة متسجلة قبلها (زي
+   * تبويب بروفايل كان مفتوح قبل كده)، فتحس إنك "قفزت" لصفحة تانية غلط بدل ما
+   * الحالة تتقفل بس. دلوقتي أول ما الحالة تتفتح بنسجل خطوة history، وبنبلّغ
+   * App.tsx (اللي بيدير زرار الرجوع مركزياً زي باقي المودالز) إن فيه عارض
+   * حالة مفتوح ومعاه دالة قفل، عشان زرار الرجوع يقفل العارض بس مهما كان.
+   */
+  const pushedHistoryRef = useRef(false);
+  useEffect(() => {
+    if (selectedStory && !pushedHistoryRef.current) {
+      pushedHistoryRef.current = true;
+      window.history.pushState({ storyViewer: true }, "", window.location.href);
+      onStoryViewerChange?.(true, () => setSelectedStory(null));
+    } else if (!selectedStory && pushedHistoryRef.current) {
+      pushedHistoryRef.current = false;
+      onStoryViewerChange?.(false, null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStory]);
+
   // تسجيل المشاهدة فعلياً في الداتابيز أول ما الحالة تتفتح
   const markViewed = (story: Story) => {
     setViewedStoryIds(prev => new Set(prev).add(story.id));
     if (isRealUser) socialService.markStoryViewed(story.id, currentUser.id);
+  };
+
+  /**
+   * الإغلاق اليدوي للعارض (زرار X، الضغط على الخلفية، آخر حالة، حذف/إخفاء
+   * الحالة...). بما إننا سجلنا خطوة history لما العارض اتفتح، لازم نرجعها
+   * (history.back) بدل ما نقفل الـ state على طول - وإلا هتفضل خطوة "زومبي"
+   * في الـ history تخلي أول ضغطة رجوع بعد كده حاسس إنها "ملهاش تأثير".
+   * الإغلاق الفعلي للـ state بيحصل من جوه معالج popstate المركزي في App.tsx.
+   */
+  const closeStoryViewer = () => {
+    if (pushedHistoryRef.current) {
+      window.history.back();
+    } else {
+      setSelectedStory(null);
+    }
   };
 
   const openStory = (story: Story, index: number) => {
@@ -204,7 +243,7 @@ export default function Stories({ currentUser }: StoriesProps) {
     if (nextIndex < 0) return;
     if (nextIndex >= currentUserStories.length) {
       // خلصت حالات الشخص ده، نقفل العارض زي واتساب
-      setSelectedStory(null);
+      closeStoryViewer();
       return;
     }
     const next = currentUserStories[nextIndex];
@@ -218,7 +257,7 @@ export default function Stories({ currentUser }: StoriesProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!selectedStory) return;
-      if (e.key === "Escape") setSelectedStory(null);
+      if (e.key === "Escape") closeStoryViewer();
       if (e.key === "ArrowLeft") goToIndex(selectedStoryIndex - 1);
       if (e.key === "ArrowRight") goToIndex(selectedStoryIndex + 1);
     };
@@ -295,7 +334,7 @@ export default function Stories({ currentUser }: StoriesProps) {
     try {
       await socialService.hideStoryForHour(selectedStory.id);
       setShowOptionsMenu(false);
-      setSelectedStory(null);
+      closeStoryViewer();
       await loadStories();
     } catch (e: any) {
       alert(e?.message || "مقدرناش نخفي الحالة، حاول تاني.");
@@ -312,7 +351,7 @@ export default function Stories({ currentUser }: StoriesProps) {
     try {
       await socialService.deleteStory(selectedStory.id);
       setShowOptionsMenu(false);
-      setSelectedStory(null);
+      closeStoryViewer();
       await loadStories();
     } catch (e: any) {
       alert(e?.message || "مقدرناش نمسح الحالة، حاول تاني.");
@@ -534,7 +573,7 @@ export default function Stories({ currentUser }: StoriesProps) {
         <div
           data-story-viewer
           className="fixed inset-0 z-[100] bg-black flex flex-col select-none"
-          onClick={() => setSelectedStory(null)}
+          onClick={() => closeStoryViewer()}
         >
           {/* شريط التقدم المقسّم بستايل واتساب/انستجرام - بيتعبى تلقائي مع الوقت */}
           {/* z-30 عشان يبان فوق خلفية الهيدر المتدرجة (z-20) اللي كانت بتغطيه بالكامل */}
@@ -624,7 +663,7 @@ export default function Stories({ currentUser }: StoriesProps) {
             )}
 
             <button
-              onClick={(e) => { e.stopPropagation(); setSelectedStory(null); }}
+              onClick={(e) => { e.stopPropagation(); closeStoryViewer(); }}
               className="text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition-all"
               title="إغلاق (Esc)"
             >

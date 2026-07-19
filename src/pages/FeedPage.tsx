@@ -34,6 +34,10 @@ interface FeedPageProps {
   onOpenComments?: (meme: Meme) => void;
   highlightedMemeId?: string | null; // بوست جاي من لينك مشاركة، بنوصله له وننده عليه بالضوء
   onHighlightConsumed?: () => void; // بتتنادى بعد ما التظليل يخلص عشان الحالة تتصفر
+  // بتتنادى لما عارض الحالات (Stories) يتفتح أو يتقفل، عشان App.tsx يقدر
+  // يتحكم في زرار الرجوع في الموبايل صح (يقفل عارض الحالة بدل ما يقفز
+  // لتبويب/صفحة تانية غلط)
+  onStoryViewerChange?: (isOpen: boolean, closeFn: (() => void) | null) => void;
 }
 
 /**
@@ -66,6 +70,7 @@ export default function FeedPage({
   onOpenComments,
   highlightedMemeId,
   onHighlightConsumed,
+  onStoryViewerChange,
 }: FeedPageProps) {
   
   const loaderRef = useRef<HTMLDivElement>(null);
@@ -110,7 +115,7 @@ export default function FeedPage({
     <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto pb-20 lg:pb-8 px-4 md:px-0">
       
       {/* قصص المستخدمين (Stories) */}
-      {isRealUser && <Stories currentUser={currentUser} />}
+      {isRealUser && <Stories currentUser={currentUser} onStoryViewerChange={onStoryViewerChange} />}
 
       {/* رسالة ترحيب للزوار (للجوال فقط) */}
       {!isRealUser && (
