@@ -212,7 +212,7 @@ export default function PostDetailModal({
       {/* Media Section: full-screen behind the sheet on mobile, side-by-side on desktop */}
       <div className="absolute inset-0 md:static md:flex-1 bg-black flex items-center justify-center overflow-hidden">
         {meme.post_type === 'video' && meme.video_url ? (
-          <CustomVideoPlayer src={meme.video_url} className="max-h-full" />
+          <CustomVideoPlayer src={meme.video_url} className="max-h-full" memeId={meme.id} />
         ) : (
           <img 
             src={meme.image_url || (meme.images && meme.images[0]) || ""} 

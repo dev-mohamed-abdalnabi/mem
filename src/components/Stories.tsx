@@ -112,6 +112,10 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
   const [viewersFilter, setViewersFilter] = useState<"all" | "reacted">("all");
   // متابَعين المستخدم الحالي - مستخدمة في ترتيب شريط الحالات (خوارزمية زي انستجرام)
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
+  // ترتيب أصحاب الحالات (author_id) زي ما رجعته get_ranked_stories_v2 -
+  // بيبقى null لحد ما يوصل الرد، أو لو فشل الطلب (وقتها بنستخدم الترتيب
+  // المحلي القديم كـ fallback بدل ما الشريط يفضل واقف من غير ترتيب)
+  const [rankedAuthorOrder, setRankedAuthorOrder] = useState<string[] | null>(null);
   // شريط التقدم بستايل واتساب: نسبة التقدم (0-100) للحالة الحالية + هل الوقت متوقف مؤقتاً
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -137,6 +141,13 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
       socialService.getViewedStoryIds(currentUser.id).then(ids => setViewedStoryIds(new Set(ids)));
       socialService.getMyStoryReactions(currentUser.id).then(setMyReactions);
       dataService.getFollowingList(currentUser.id).then(ids => setFollowingIds(new Set(ids)));
+      // ترتيب حقيقي من الخوارزمية (get_ranked_stories_v2): affinity-based بدل
+      // following-only. لو فشل الاستدعاء (مثلاً مستخدم مش عنده صلاحية أو
+      // مشكلة شبكة)، بنسيب الترتيب المحلي القديم (following + unseen + latest)
+      // يشتغل عادي كـ fallback، مفيش داعي نكسر عرض الحالات بسبب كده.
+      dataService.getRankedStories()
+        .then(rows => setRankedAuthorOrder(rows.map(r => r.author_id)))
+        .catch(() => setRankedAuthorOrder(null));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser.id]);
@@ -174,7 +185,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
    * منطق حقيقي.
    */
   const sortedUserIds = useMemo(() => {
-    return Object.keys(userStories).sort((uidA, uidB) => {
+    const localFallbackSort = (uidA: string, uidB: string) => {
       const storiesA = userStories[uidA];
       const storiesB = userStories[uidB];
       const unseenA = !storiesA.every(s => viewedStoryIds.has(s.id));
@@ -188,8 +199,23 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
       const latestA = Math.max(...storiesA.map(s => new Date(s.created_at).getTime()));
       const latestB = Math.max(...storiesB.map(s => new Date(s.created_at).getTime()));
       return latestB - latestA;
-    });
-  }, [userStories, viewedStoryIds, followingIds]);
+    };
+
+    // لو الخوارزمية (get_ranked_stories_v2) رجعت ترتيب فعلي، بنستخدمه هو
+    // الأساس (بيراعي affinity حقيقي مش following بس)، وأي مستخدم عنده
+    // حالات جديدة محلياً لسه ما وصلتش السيرفر بيها بنضيفه في الآخر بالترتيب
+    // المحلي القديم عشان محدش يختفي من الشريط.
+    if (rankedAuthorOrder) {
+      const known = new Set(Object.keys(userStories));
+      const fromServer = rankedAuthorOrder.filter(uid => known.has(uid));
+      const missing = Object.keys(userStories)
+        .filter(uid => !fromServer.includes(uid))
+        .sort(localFallbackSort);
+      return [...fromServer, ...missing];
+    }
+
+    return Object.keys(userStories).sort(localFallbackSort);
+  }, [userStories, viewedStoryIds, followingIds, rankedAuthorOrder]);
 
   // منع تمرير الصفحة الرئيسية لما يكون فيه حالة أو مودال إنشاء مفتوح
   useEffect(() => {

@@ -82,6 +82,47 @@ export default function ReelsPage({
 
   // الفيديو النشط دلوقتي (اللي بيشتغل فعلياً) - بيتحدد من الـ IntersectionObserver
   const [activeId, setActiveId] = useState<string | null>(null);
+  const prevActiveIdRef = useRef<string | null>(null);
+
+  // --- تسجيل watch-time للريلز (أقوى إشارة تستخدمها خوارزمية الريلز -
+  // completion rate / rewatch rate، راجع RANKING_ALGORITHMS.md). بنتابع
+  // أطول نقطة وصلها المستخدم فعلياً في كل ريل (مش آخر currentTime بس،
+  // عشان لو رجع لورا يفضل الرقم الحقيقي الأعلى محفوظ)، ولو الفيديو اتلف
+  // (loop، بما إن كل فيديو معمول عليه loop) بنعتبرها rewatch وبنبعت
+  // القراءة دي فوراً بدل ما نستناها لحد ما يعدي المستخدم للريل اللي بعده.
+  const watchStatsRef = useRef<Map<string, { maxWatched: number; duration: number; rewatch: boolean; lastTime: number }>>(new Map());
+
+  const flushWatchStats = (memeId: string | null) => {
+    if (!memeId || !isRealUser) return;
+    const stats = watchStatsRef.current.get(memeId);
+    if (!stats || stats.duration <= 0 || stats.maxWatched <= 0) return;
+    dataService.logReelWatch(memeId, stats.maxWatched, stats.duration, stats.rewatch).catch(() => {});
+    // بعد التسجيل بنصفّر أطول نقطة وصلها (مش الـ rewatch flag) عشان لو
+    // فضل نفس الفيديو ظاهر أكتر، القراءة الجاية تحسب من جديد بدل ما تتراكم
+    // فوق قراءة اتبعتت خلاص.
+    watchStatsRef.current.set(memeId, { ...stats, maxWatched: 0 });
+  };
+
+  const handleWatchProgress = (meme: Meme) => (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const v = e.currentTarget;
+    if (!v.duration || !isFinite(v.duration)) return;
+    const prev = watchStatsRef.current.get(meme.id) || { maxWatched: 0, duration: v.duration, rewatch: false, lastTime: 0 };
+    // قفزة كبيرة لورا (من قرب النهاية لقرب البداية) = الفيديو لف من الأول
+    // (loop=true على كل فيديو). ده أقوى إشارة إيجابية ممكنة (rewatch)،
+    // فبنسجلها فوراً كقراءة كاملة بدل ما نستناها.
+    const looped = prev.lastTime > v.duration * 0.8 && v.currentTime < v.duration * 0.15;
+    if (looped) {
+      flushWatchStats(meme.id);
+      watchStatsRef.current.set(meme.id, { maxWatched: v.currentTime, duration: v.duration, rewatch: true, lastTime: v.currentTime });
+    } else {
+      watchStatsRef.current.set(meme.id, {
+        maxWatched: Math.max(prev.maxWatched, v.currentTime),
+        duration: v.duration,
+        rewatch: prev.rewatch,
+        lastTime: v.currentTime,
+      });
+    }
+  };
   // نسبة تقدم الفيديو النشط (0-100) عشان شريط التقدم القابل للسحب
   const [progress, setProgress] = useState(0);
   const isSeekingRef = useRef(false);
@@ -169,6 +210,23 @@ export default function ReelsPage({
   useEffect(() => {
     Object.values(videoRefs.current).forEach((v) => { if (v) v.muted = isMuted; });
   }, [isMuted]);
+
+  // أول ما الريل النشط يتغير (المستخدم سكرول لريل تاني)، بنبعت watch-time
+  // الريل اللي كان شغال قبل كده فوراً - ده اللحظة الطبيعية اللي فيها المستخدم
+  // "خلّص" مع الفيديو ده (سواء كمّله أو عمله fast-skip)، بدل ما نستنى unmount.
+  useEffect(() => {
+    if (prevActiveIdRef.current && prevActiveIdRef.current !== activeId) {
+      flushWatchStats(prevActiveIdRef.current);
+    }
+    prevActiveIdRef.current = activeId;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId]);
+
+  // وعند مغادرة الصفحة كلها، بنبعت آخر قراءة للريل اللي كان شغال وقتها
+  useEffect(() => {
+    return () => { flushWatchStats(prevActiveIdRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const requireAuth = (action: () => void) => {
     if (!isRealUser) {
@@ -387,7 +445,7 @@ export default function ReelsPage({
             playsInline
             muted={isMuted}
             className="w-full h-full object-contain"
-            onTimeUpdate={handleTimeUpdate(meme)}
+            onTimeUpdate={(e) => { handleTimeUpdate(meme)(e); handleWatchProgress(meme)(e); }}
             onPointerDown={handleVideoPointerDown(meme)}
             onPointerMove={handleVideoPointerMove(meme)}
             onPointerUp={handleVideoPointerUp(meme)}

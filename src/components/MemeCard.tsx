@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import DOMPurify from "dompurify";
 import { 
   Heart, MessageCircle, Share2, Bookmark, 
-  Trash2, AlertOctagon, Check, Frown, ShieldAlert, PlusCircle, ChevronRight, ChevronLeft
+  Trash2, AlertOctagon, Check, Frown, ShieldAlert, PlusCircle, ChevronRight, ChevronLeft,
+  MoreHorizontal, EyeOff, BellOff
 } from "lucide-react";
 import PostDetailModal from "./PostDetailModal";
 import { Meme, Comment, Profile } from "../types";
@@ -61,6 +62,29 @@ export default function MemeCard({
   const [reportSubmitting, setReportSubmitting] = useState(false); // حالة إرسال البلاغ
   const [shareSuccess, setShareSuccess] = useState(false); // نجاح المشاركة
   const [currentImageIndex, setCurrentImageIndex] = useState(0); // مؤشر الصورة الحالية في المنشورات المتعددة
+
+  // --- الـ feedback السلبي لخوارزمية الترتيب (راجع RANKING_ALGORITHMS.md) ---
+  // زرار "مش مهتم" كان معمول ليه service function (submitNegativeFeedback)
+  // بالكامل من غير أي زرار في الواجهة يستخدمها، فمحدش كان يقدر فعلياً يقول
+  // للخوارزمية "لا" غير إنه يتجاهل البوست. دلوقتي في مينيو صغير (⋯) فيه 3
+  // مستويات: إخفاء البوست ده بس / مش مهتم بمحتوى زي ده (بيأثر على الـ
+  // affinity مع صاحب البوست) / اسكات صاحب البوست 14 يوم.
+  const [showFeedbackMenu, setShowFeedbackMenu] = useState(false);
+  const [feedbackGiven, setFeedbackGiven] = useState<"hide" | "not_interested" | "snooze_author" | null>(null);
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+
+  const handleNegativeFeedback = async (type: "hide" | "not_interested" | "snooze_author") => {
+    setShowFeedbackMenu(false);
+    setFeedbackSubmitting(true);
+    try {
+      await dataService.submitNegativeFeedback(meme.id, type);
+      setFeedbackGiven(type);
+    } catch (e) {
+      console.error("Negative feedback failed:", e);
+    } finally {
+      setFeedbackSubmitting(false);
+    }
+  };
 
   // تحميل التعليقات عند فتح قسم التعليقات
   useEffect(() => {
@@ -188,6 +212,23 @@ export default function MemeCard({
   // معلومات منشئ المحتوى
   const creator = meme.profiles || { id: meme.user_id, username: "ميمر_مجهول", avatar_url: null, meme_level: "مبتدئ" };
 
+  // البوست اتعمله feedback سلبي -> بنستبدله بشريط مضغوط زي فيسبوك بالظبط
+  // ("هتشوف بوستات زي دي أقل") بدل ما يفضل ظاهر بمحتواه الكامل، من غير ما
+  // نحتاج نعتمد على الأب (App.tsx) يشيله من القايمة فوراً.
+  if (feedbackGiven) {
+    const labels: Record<string, string> = {
+      hide: "تم إخفاء المنشور ده",
+      not_interested: "هتشوف بوستات زي دي أقل من دلوقتي",
+      snooze_author: `هنقلل ظهور بوستات ${creator.username} لمدة أسبوعين`,
+    };
+    return (
+      <article className="bg-white border-b border-gray-200 text-right flex items-center justify-between px-4 py-5 text-sm text-gray-500">
+        <span>{labels[feedbackGiven]}</span>
+        <Check className="w-4 h-4 text-green-600 shrink-0" />
+      </article>
+    );
+  }
+
   return (
     <article ref={cardRef} className="bg-white border-b border-gray-200 text-right flex flex-col mb-0 transition-all shadow-sm hover:shadow-md">
       <div className="flex gap-3 p-4">
@@ -214,11 +255,49 @@ export default function MemeCard({
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">قيد المراجعة</span>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 relative">
               {(currentUser.id === creator.id || currentUser.role === "admin") && (
                 <button onClick={() => onDeleteMeme(meme.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
               )}
               <button onClick={() => setShowReportModal(true)} className="text-gray-400 hover:text-gray-600"><AlertOctagon className="w-4 h-4" /></button>
+              {currentUser.id !== "guest-user-temp" && currentUser.id !== creator.id && (
+                <button
+                  onClick={() => setShowFeedbackMenu(v => !v)}
+                  disabled={feedbackSubmitting}
+                  className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                  title="خيارات المنشور"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+              )}
+              {showFeedbackMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowFeedbackMenu(false)} />
+                  <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden text-right">
+                    <button
+                      onClick={() => handleNegativeFeedback("not_interested")}
+                      className="w-full flex items-center gap-2 justify-end px-4 py-3 text-sm text-gray-800 hover:bg-gray-50"
+                    >
+                      <span>مش مهتم بمحتوى زي ده</span>
+                      <Frown className="w-4 h-4 text-gray-500 shrink-0" />
+                    </button>
+                    <button
+                      onClick={() => handleNegativeFeedback("hide")}
+                      className="w-full flex items-center gap-2 justify-end px-4 py-3 text-sm text-gray-800 hover:bg-gray-50 border-t border-gray-100"
+                    >
+                      <span>إخفاء المنشور ده</span>
+                      <EyeOff className="w-4 h-4 text-gray-500 shrink-0" />
+                    </button>
+                    <button
+                      onClick={() => handleNegativeFeedback("snooze_author")}
+                      className="w-full flex items-center gap-2 justify-end px-4 py-3 text-sm text-gray-800 hover:bg-gray-50 border-t border-gray-100"
+                    >
+                      <span>اسكت {creator.username} لمدة أسبوعين</span>
+                      <BellOff className="w-4 h-4 text-gray-500 shrink-0" />
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -228,7 +307,7 @@ export default function MemeCard({
           {/* عرض الميديا (صورة، فيديو، أو مجموعة صور) */}
           <div className="rounded-xl border border-gray-200 overflow-hidden mb-3 bg-gray-50 relative group">
             {meme.post_type === 'video' && meme.video_url ? (
-              <CustomVideoPlayer src={meme.video_url} className="w-full max-h-[500px]" />
+              <CustomVideoPlayer src={meme.video_url} className="w-full max-h-[500px]" memeId={meme.id} />
             ) : meme.post_type === 'multi-image' && meme.images && meme.images.length > 0 ? (
               <div className="relative bg-gray-900">
                 {/* تخطيط الصور المتعددة */}

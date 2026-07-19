@@ -506,10 +506,11 @@ export const dataService = {
    * خفيفة حقيقية من جوه الداتابيز، فكل ريفريش بيدّي ترتيب متنوع شوية.
    */
   getVideoMemes: async (page: number = 0, limit: number = 10): Promise<Meme[]> => {
-    // بيستخدم get_ranked_reels_v2: خوارزمية مخصصة للريلز مبنية على completion
-    // rate / rewatch rate / share rate (مش لايكات خام زي الفيد العادي) - راجع
-    // ملف RANKING_ALGORITHMS.md للتفاصيل.
-    const { data, error } = await supabase.rpc("get_ranked_reels_v2", {
+    // بيستخدم get_ranked_reels_v3: زي v2 (completion rate / rewatch rate /
+    // share rate) زائد velocity حقيقي على المشاهدات، خبرة صانع المحتوى
+    // (creator quality prior)، ومطابقة اهتمامات (tags) - راجع
+    // RANKING_ALGORITHMS.md و ranking_v3.sql للتفاصيل الكاملة.
+    const { data, error } = await supabase.rpc("get_ranked_reels_v3", {
       p_limit: limit * 2, // نجيب ضعف العدد عشان نقدر نعمل diversity re-rank
       p_offset: page * limit,
     });
@@ -518,7 +519,7 @@ export const dataService = {
     const mapped = (data || []).map((m: any) => ({
       ...m,
       profiles: m.profile,
-      tags: [],
+      tags: Array.isArray(m.tags) ? m.tags : [],
     })) as Meme[];
 
     return diversityRerank(mapped, "user_id").slice(0, limit);
@@ -551,14 +552,16 @@ export const dataService = {
       return (data as Meme[]).map(m => ({ ...m, tags: Array.isArray(m.tags) ? m.tags : [] }));
     }
 
-    // الفيد الرئيسي -> get_ranked_feed_v2: خوارزمية متعددة الإشارات (affinity،
-    // meaningful interactions، video completion، تكرار الظهور، negative
-    // feedback...) راجع RANKING_ALGORITHMS.md للتفاصيل الكاملة. بنجيب مجموعة
-    // أوسع من اللازم عشان طبقة الـ diversity re-ranking تشتغل عليها (منع تكرار
-    // نفس الشخص أكتر من مرتين ورا بعض) قبل ما نقص للحجم المطلوب - بالظبط زي ما
-    // أنظمة الترتيب الحقيقية بتفصل بين مرحلة الـ scoring ومرحلة الـ business
-    // rules re-ranking.
-    const { data, error } = await supabase.rpc("get_ranked_feed_v2", {
+    // الفيد الرئيسي -> get_ranked_feed_v3: زي v2 (affinity، meaningful
+    // interactions، video completion، تكرار الظهور، negative feedback...)
+    // زائد إشارة نزاهة مجتمعية (community integrity) وmomentum/velocity
+    // حقيقي وتفضيل شكل المحتوى المتعلّم من سلوكك - راجع RANKING_ALGORITHMS.md
+    // و ranking_v3.sql للتفاصيل الكاملة. بنجيب مجموعة أوسع من اللازم عشان
+    // طبقة الـ diversity re-ranking تشتغل عليها (منع تكرار نفس الشخص أكتر من
+    // مرتين ورا بعض) قبل ما نقص للحجم المطلوب - بالظبط زي ما أنظمة الترتيب
+    // الحقيقية بتفصل بين مرحلة الـ scoring ومرحلة الـ business rules
+    // re-ranking.
+    const { data, error } = await supabase.rpc("get_ranked_feed_v3", {
       p_limit: limit * 2,
       p_offset: page * limit,
       p_tag: tag || null,
@@ -822,12 +825,15 @@ export const dataService = {
   },
 
   /**
-   * الحالات مرتبة بخوارزمية حقيقية (get_ranked_stories_v2): مين ما شافش
-   * حالته لسه بيتقدم الأول، وبعدين حسب قوة العلاقة (affinity) مش مجرد
-   * تاريخ آخر حالة. حالاتك انت شخصياً دايماً أول واحدة.
+   * الحالات مرتبة بخوارزمية حقيقية (get_ranked_stories_v3): مين ما شافش
+   * حالته لسه بيتقدم الأول، وبعدين طبقة "أصدقاء مقرّبين" (affinity عالي
+   * جداً) قبل باقي الغير-مشاهد العاديين، وبعدين حسب قوة العلاقة بشكل عام
+   * مش مجرد تاريخ آخر حالة. حالاتك انت شخصياً دايماً أول واحدة. كمان بتحترم
+   * قرارات الاستبعاد بتاعتك (لو عملت snooze/not_interested لحد في الفيد،
+   * حالاته بقت مستبعدة من هنا كمان - ده ماكانش موجود في v2).
    */
   getRankedStories: async () => {
-    const { data, error } = await supabase.rpc("get_ranked_stories_v2");
+    const { data, error } = await supabase.rpc("get_ranked_stories_v3");
     if (error) throw error;
     return (data || []) as {
       author_id: string;
@@ -836,6 +842,7 @@ export const dataService = {
       latest_created_at: string;
       has_unseen: boolean;
       affinity_score: number;
+      is_close_friend: boolean;
       story_ids: string[];
     }[];
   },

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Play, Pause, Volume2, VolumeX } from "lucide-react";
+import { dataService } from "../services/dataService";
 
 // بنتتبع آخر فيديو شغال في كل الصفحة (مش بس جوه الكومبوننت ده) عشان لو
 // المستخدم شغّل فيديو تاني (سواء بالسكرول أو أي حتة تانية)، الفيديو القديم
@@ -15,13 +16,19 @@ interface CustomVideoPlayerProps {
   poster?: string;
   autoPlay?: boolean;
   className?: string;
+  // اختياري: id البوست/الميم بتاع الفيديو ده - لو اتبعت، بيتسجل watch-time
+  // (أقوى إشارة تستخدمها خوارزمية الترتيب) بنفس المنطق المستخدم في صفحة
+  // الريلز. الفيديو هنا مش موجود دايماً جوه بوست حقيقي (ممكن يكون مثلاً
+  // preview جوه صفحة إنشاء منشور)، فسيبناها اختيارية بدل إجبارية.
+  memeId?: string;
 }
 
 export default function CustomVideoPlayer({
   src,
   poster,
   autoPlay = true,
-  className = ""
+  className = "",
+  memeId
 }: CustomVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -54,6 +61,47 @@ export default function CustomVideoPlayer({
     scheduleHideControls();
   };
 
+  // --- تسجيل watch-time (راجع RANKING_ALGORITHMS.md) ---
+  // نفس منطق ReelsPage: بنتابع أطول نقطة وصلها المستخدم فعلياً، وبنعتبر
+  // لفة الفيديو من الأول (loop) rewatch وبنبعت القراءة فوراً. بنبعت آخر
+  // قراءة كمان لما الفيديو يتوقف أو الكومبوننت يتفكك (المستخدم سكرول بعيد
+  // عن البوست ده مثلاً).
+  const watchStatsRef = useRef({ maxWatched: 0, duration: 0, rewatch: false, lastTime: 0 });
+  const flushWatch = () => {
+    const s = watchStatsRef.current;
+    if (!memeId || s.duration <= 0 || s.maxWatched <= 0) return;
+    dataService.logReelWatch(memeId, s.maxWatched, s.duration, s.rewatch).catch(() => {});
+    watchStatsRef.current = { ...s, maxWatched: 0 };
+  };
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !memeId) return;
+
+    const onTimeUpdate = () => {
+      if (!video.duration || !isFinite(video.duration)) return;
+      const prev = watchStatsRef.current;
+      const looped = prev.lastTime > video.duration * 0.8 && video.currentTime < video.duration * 0.15;
+      if (looped) {
+        flushWatch();
+        watchStatsRef.current = { maxWatched: video.currentTime, duration: video.duration, rewatch: true, lastTime: video.currentTime };
+      } else {
+        watchStatsRef.current = {
+          maxWatched: Math.max(prev.maxWatched, video.currentTime),
+          duration: video.duration,
+          rewatch: prev.rewatch,
+          lastTime: video.currentTime,
+        };
+      }
+    };
+    video.addEventListener("timeupdate", onTimeUpdate);
+    return () => {
+      video.removeEventListener("timeupdate", onTimeUpdate);
+      flushWatch();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memeId, src]);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -75,6 +123,7 @@ export default function CustomVideoPlayer({
       if (currentlyPlayingVideo === video) {
         currentlyPlayingVideo = null;
       }
+      flushWatch();
     };
     const handleTimeUpdate = () => setCurrentTime(video.currentTime);
     const handleLoadedMetadata = () => {
