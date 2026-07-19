@@ -7,6 +7,9 @@ import { Play, Pause, Volume2, VolumeX } from "lucide-react";
 // عن باقي الفيديوهات، فيقدر أكتر من فيديو يشتغلوا مع بعض في نفس الوقت.
 let currentlyPlayingVideo: HTMLVideoElement | null = null;
 
+// المدة اللي شريط التقدم/الكونترولز بتفضل ظاهرة بيها قبل ما تختفي لوحدها
+const CONTROLS_AUTO_HIDE_MS = 2500;
+
 interface CustomVideoPlayerProps {
   src: string;
   poster?: string;
@@ -22,22 +25,34 @@ export default function CustomVideoPlayer({
 }: CustomVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
-  // الفيديو في الفيد كان محتاج ضغطة تشغيل يدوية أول ما يظهر، وده مش سلوك
-  // طبيعي (فيسبوك/إنستجرام بيشغلوا الفيديو أوتوماتيك أول ما يدخل الشاشة).
-  // المتصفحات بترفض الأوتوبلاي بالصوت، فبنبدأ مكتوم زي كل منصات الفيديو
-  // القصير، والمستخدم يقدر يفعّل الصوت بضغطة واحدة على زرار الكتم.
-  const [isMuted, setIsMuted] = useState(true);
-  const [showControls, setShowControls] = useState(true);
+  // بنحاول نشغّل بالصوت على طول (زي صفحة الريلز بالظبط) - ومنبدأش مكتوم
+  // كقيمة افتراضية. لو المتصفح رفض الأوتوبلاي بالصوت (سياسة متصفحات
+  // الموبايل بالذات بترفض غالباً من غير تفاعل قبلها من المستخدم)، ساعتها
+  // بس بنكتم تلقائياً كحل بديل عشان الفيديو على الأقل يشتغل، والمستخدم
+  // يقدر يفعّل الصوت بضغطة واحدة على زرار الكتم.
+  const [isMuted, setIsMuted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [buffered, setBuffered] = useState(0);
-  
-  const controlsTimeoutRef = useRef<NodeJS.Timeout>();
-  const hideTimeoutRef = useRef<NodeJS.Timeout>();
+  // شريط التقدم/الوقت مش هيفضل ظاهر على طول عشان مياكلش من مساحة عرض
+  // الفيديو - بيظهر لمدة قصيرة بس (أول ما الفيديو يبدأ، أو لما تدوس عليه)
+  // وبعدين يختفي لوحده تلقائياً.
+  const [showControls, setShowControls] = useState(true);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const scheduleHideControls = () => {
+    if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+    hideTimeoutRef.current = setTimeout(() => {
+      setShowControls(false);
+    }, CONTROLS_AUTO_HIDE_MS);
+  };
+
+  const revealControls = () => {
+    setShowControls(true);
+    scheduleHideControls();
+  };
 
   useEffect(() => {
     const video = videoRef.current;
@@ -45,6 +60,7 @@ export default function CustomVideoPlayer({
 
     const handlePlay = () => {
       setIsPlaying(true);
+      revealControls();
       // أي فيديو تاني كان شغال (في بوست تاني) لازم يتوقف دلوقتي
       if (currentlyPlayingVideo && currentlyPlayingVideo !== video) {
         currentlyPlayingVideo.pause();
@@ -53,6 +69,9 @@ export default function CustomVideoPlayer({
     };
     const handlePause = () => {
       setIsPlaying(false);
+      // لو الفيديو واقف بنسيب الكونترولز ظاهرة (مفيش داعي تختفي وهو مش شغال)
+      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+      setShowControls(true);
       if (currentlyPlayingVideo === video) {
         currentlyPlayingVideo = null;
       }
@@ -62,18 +81,12 @@ export default function CustomVideoPlayer({
       setDuration(video.duration);
       setIsLoading(false);
     };
-    const handleProgress = () => {
-      if (video.buffered.length > 0) {
-        setBuffered(video.buffered.end(video.buffered.length - 1));
-      }
-    };
     const handleLoadStart = () => setIsLoading(true);
 
     video.addEventListener("play", handlePlay);
     video.addEventListener("pause", handlePause);
     video.addEventListener("timeupdate", handleTimeUpdate);
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
-    video.addEventListener("progress", handleProgress);
     video.addEventListener("loadstart", handleLoadStart);
 
     return () => {
@@ -81,8 +94,8 @@ export default function CustomVideoPlayer({
       video.removeEventListener("pause", handlePause);
       video.removeEventListener("timeupdate", handleTimeUpdate);
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      video.removeEventListener("progress", handleProgress);
       video.removeEventListener("loadstart", handleLoadStart);
+      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
       if (currentlyPlayingVideo === video) {
         currentlyPlayingVideo = null;
       }
@@ -92,11 +105,10 @@ export default function CustomVideoPlayer({
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    
+
     if (isPlaying) {
       // ده المكان الوحيد اللي بينده فيه على video.play() فعلياً. لو المتصفح
-      // رفض التشغيل بالصوت (سياسة الأوتوبلاي)، بنكتم ونحاول تاني - بالظبط
-      // زي ما كان بيحصل قبل كده جوه الـ IntersectionObserver.
+      // رفض التشغيل بالصوت (سياسة الأوتوبلاي)، بنكتم ونحاول تاني.
       video.play().catch(() => {
         video.muted = true;
         setIsMuted(true);
@@ -109,18 +121,15 @@ export default function CustomVideoPlayer({
 
   useEffect(() => {
     if (videoRef.current) {
-      // لازم نضبط خاصية muted نفسها مش بس الصوت = 0، لأن سياسة الأوتوبلاي في
+      // لازم نضبط خاصية muted نفسها مش بس الصوت، لأن سياسة الأوتوبلاي في
       // المتصفحات بتشترط muted=true فعلياً عشان تسمح بالتشغيل التلقائي.
       videoRef.current.muted = isMuted;
-      videoRef.current.volume = isMuted ? 0 : volume;
     }
-  }, [volume, isMuted]);
+  }, [isMuted]);
 
-  // زي فيسبوك/إنستجرام بالظبط: الفيديو بيشتغل لوحده (مكتوم) أول ما يدخل
-  // نص الشاشة، ويقف تلقائي لو خرج برة - من غير ما المستخدم يحتاج يدوس
-  // زرار تشغيل يدوي. بنحاول نشغّل بالصوت الأساسي لو autoPlay=false
-  // (يعني المستخدم مش عايز كتم افتراضي)، ولو المتصفح رفض (سياسة الأوتوبلاي)
-  // بنكتم تلقائياً كحل بديل - بالظبط زي صفحة الريلز.
+  // زي فيسبوك/إنستجرام بالظبط: الفيديو بيشتغل لوحده أول ما يدخل نص
+  // الشاشة، ويقف تلقائي لو خرج برة - من غير ما المستخدم يحتاج يدوس زرار
+  // تشغيل يدوي.
   useEffect(() => {
     const container = containerRef.current;
     const video = videoRef.current;
@@ -131,12 +140,8 @@ export default function CustomVideoPlayer({
         const entry = entries[0];
         // بنكتفي بتحديث الـ state بس هنا. اللي بيشغل/يوقف الفيديو فعلياً
         // (video.play()/pause()) هو الـ effect التاني اللي بيتابع isPlaying -
-        // ده عشان يبقى في مصدر واحد بس بيتحكم في الفيديو فعلياً. قبل كده
-        // الـ observer كان بينده على play()/pause() على الـ DOM مباشرة وبرضو
-        // فيه effect تاني بيعمل نفس الحاجة بناءً على الـ state، فكانوا بيتصادموا
-        // مع بعض لما تسكرول بسرعة (زي ما بيحصل في الفيد): كان ينتج عنه إن
-        // الفيديو فعلياً فاضل شغال (تسمع صوته) بس الـ state فاضل واقف على false،
-        // فزرار الـ Play بيفضل ظاهر فوق الفيديو وكإنه واقف/متجمد مع إنه لسه شغال.
+        // ده عشان يبقى في مصدر واحد بس بيتحكم في الفيديو فعلياً، فمايحصلش
+        // تصادم بين الـ observer والـ effect زي ما كان بيحصل قبل كده.
         if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
           setIsPlaying(true);
         } else {
@@ -149,20 +154,6 @@ export default function CustomVideoPlayer({
     return () => observer.disconnect();
   }, [autoPlay]);
 
-  const handleInteraction = () => {
-    setShowControls(true);
-    
-    if (hideTimeoutRef.current) {
-      clearTimeout(hideTimeoutRef.current);
-    }
-    
-    if (isPlaying) {
-      hideTimeoutRef.current = setTimeout(() => {
-        setShowControls(false);
-      }, 4000);
-    }
-  };
-
   const formatTime = (time: number) => {
     if (!isFinite(time)) return "0:00";
     const minutes = Math.floor(time / 60);
@@ -171,15 +162,13 @@ export default function CustomVideoPlayer({
   };
 
   const progressPercent = duration ? (currentTime / duration) * 100 : 0;
-  const bufferedPercent = duration ? (buffered / duration) * 100 : 0;
 
   return (
     <div
       ref={containerRef}
-      className={`relative bg-black rounded-lg overflow-hidden group w-full ${className}`}
-      onTouchStart={handleInteraction}
-      onMouseMove={handleInteraction}
-      onMouseLeave={() => isPlaying && setShowControls(false)}
+      className={`relative bg-black rounded-lg overflow-hidden w-full ${className}`}
+      onTouchStart={revealControls}
+      onMouseMove={revealControls}
     >
       {/* Video Element */}
       <video
@@ -187,7 +176,10 @@ export default function CustomVideoPlayer({
         src={src}
         poster={poster}
         className="w-full h-full object-contain"
-        onClick={() => setIsPlaying(!isPlaying)}
+        onClick={() => {
+          setIsPlaying(!isPlaying);
+          revealControls();
+        }}
         playsInline
         muted={isMuted}
         loop
@@ -202,8 +194,12 @@ export default function CustomVideoPlayer({
 
       {/* Play Button Overlay */}
       {!isPlaying && !isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/40 transition-colors cursor-pointer"
-          onClick={() => setIsPlaying(true)}
+        <div
+          className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/40 transition-colors cursor-pointer"
+          onClick={() => {
+            setIsPlaying(true);
+            revealControls();
+          }}
         >
           <div className="w-16 h-16 bg-white/80 rounded-full flex items-center justify-center hover:bg-white transition-colors">
             <Play className="w-8 h-8 text-black fill-black ml-1" />
@@ -211,96 +207,55 @@ export default function CustomVideoPlayer({
         </div>
       )}
 
-      {/* Controls */}
+      {/* الكونترولز (شريط التقدم + الوقت + الكتم) - بتظهر لمدة ثانيتين وبعدين
+          تختفي لوحدها تلقائياً عشان متغطيش على الفيديو باستمرار */}
       <div
-        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-3 sm:p-4 transition-opacity duration-300 ${
-          showControls ? "opacity-100" : "opacity-0"
+        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 sm:p-3 transition-opacity duration-300 ${
+          showControls ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
         {/* Progress Bar */}
-        <div className="mb-3 flex items-center gap-2">
-          <div className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden cursor-pointer group/progress"
-            onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              const percent = (e.clientX - rect.left) / rect.width;
-              if (videoRef.current) {
-                videoRef.current.currentTime = percent * duration;
-              }
-            }}
-            onTouchEnd={(e) => {
-              const touch = e.changedTouches[0];
-              const rect = e.currentTarget.getBoundingClientRect();
-              const percent = (touch.clientX - rect.left) / rect.width;
-              if (videoRef.current) {
-                videoRef.current.currentTime = Math.max(0, Math.min(duration, percent * duration));
-              }
-            }}
-          >
-            {/* Buffered Progress */}
-            <div
-              className="h-full bg-white/40"
-              style={{ width: `${bufferedPercent}%` }}
-            />
-            {/* Current Progress */}
-            <div
-              className="h-full bg-red-500"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
+        <div
+          className="mb-2 h-1 bg-white/20 rounded-full overflow-hidden cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            const rect = e.currentTarget.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            if (videoRef.current) {
+              videoRef.current.currentTime = percent * duration;
+            }
+            revealControls();
+          }}
+        >
+          <div className="h-full bg-red-500" style={{ width: `${progressPercent}%` }} />
         </div>
 
-        {/* Controls Row */}
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 flex-1">
-            {/* Play/Pause */}
-            <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              className="text-white hover:text-red-500 transition-colors p-1 flex-shrink-0"
-              title={isPlaying ? "إيقاف مؤقت" : "تشغيل"}
-            >
-              {isPlaying ? (
-                <Pause className="w-5 h-5 fill-current" />
-              ) : (
-                <Play className="w-5 h-5 fill-current" />
-              )}
-            </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsPlaying(!isPlaying);
+            }}
+            className="text-white p-1 flex-shrink-0"
+            title={isPlaying ? "إيقاف مؤقت" : "تشغيل"}
+          >
+            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+          </button>
 
-            {/* Volume Control */}
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setIsMuted(!isMuted)}
-                className="text-white hover:text-red-500 transition-colors p-1 flex-shrink-0"
-                title={isMuted ? "تفعيل الصوت" : "كتم الصوت"}
-              >
-                {isMuted || volume === 0 ? (
-                  <VolumeX className="w-5 h-5" />
-                ) : (
-                  <Volume2 className="w-5 h-5" />
-                )}
-              </button>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                value={isMuted ? 0 : volume}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value);
-                  setVolume(val);
-                  if (val > 0) setIsMuted(false);
-                }}
-                className="w-12 h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-red-500 hidden sm:block"
-                title="مستوى الصوت"
-              />
-            </div>
+          <span className="text-white text-xs flex-shrink-0">
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </span>
 
-            {/* Time Display */}
-            <div className="text-white text-xs sm:text-sm ml-auto flex-shrink-0">
-              <span>{formatTime(currentTime)}</span>
-              <span className="text-white/50"> / </span>
-              <span>{formatTime(duration)}</span>
-            </div>
-          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMuted(prev => !prev);
+            }}
+            className="text-white p-1 flex-shrink-0 mr-auto"
+            title={isMuted ? "تفعيل الصوت" : "كتم الصوت"}
+          >
+            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
         </div>
       </div>
     </div>
