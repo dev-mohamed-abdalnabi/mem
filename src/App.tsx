@@ -38,36 +38,6 @@ export default function App() {
   // --- حالات التطبيق (States) ---
   const [activeTab, setActiveTab] = useState("feed"); // التبويب النشط
 
-  /**
-   * كل تنقل بين التبويبات لازم يعدي من هنا، مش نداء مباشر لـ setActiveTab.
-   * كان فيه أماكن كتير (لينك البروفايل جوه بوست، صفحة المتصدرين، بعد نشر
-   * بوست جديد، بروفايل من الريلز، لوحة الأدمن) بتنادي setActiveTab مباشرة
-   * من غير ما تسجل خطوة في الـ browser history؛ فلما تدوس زرار الرجوع في
-   * أندرويد من واحدة من الشاشات دي، كان بيتخطى خطوات أو يقفل التطبيق على
-   * طول بدل ما يرجعك للشاشة اللي قبلها جوا التطبيق نفسه.
-   */
-  const navigateToTab = useCallback((tab: string, options?: { profileId?: string }) => {
-    // بدون الشرط ده، الانتقال من بروفايل لبروفايل تاني (تبويب "user-profile"
-    // فاضل زي ما هو، بس المعرف بيتغير) كان بيتسجلش كخطوة history خالص.
-    const isProfileSwitch = tab === "user-profile" && !!options?.profileId && options.profileId !== selectedProfileId;
-    if (tab !== activeTab || isProfileSwitch) {
-      window.history.pushState({ tab }, "", window.location.href);
-    }
-    if (options?.profileId) setSelectedProfileId(options.profileId);
-    setActiveTab(tab);
-    setSelectedTag(null);
-    if (tab === "feed") {
-      setPage(1);
-      setHasMore(true);
-    }
-    // كان فتح بروفايل (أو أي تبويب) بعد ما تكون سكرولت لتحت في صفحة تانية
-    // (زي الفيد) بيسيب موضع السكرول القديم زي ما هو، وبما إن صفحة البروفايل
-    // غالباً أقصر بكتير من صفحة الفيد، كان المستخدم "يلاقي نفسه" في نص أو
-    // آخر صفحة البروفايل على طول بدل ما يبدأ من فوق. دلوقتي بنرجع السكرول
-    // لفوق مع كل تنقل بين الصفحات/البروفايلات.
-    window.scrollTo(0, 0);
-  }, [activeTab, selectedProfileId]);
-
   const [currentUser, setCurrentUser] = useState<Profile>(initialGuestProfile); // المستخدم الحالي
   const [memes, setMemes] = useState<Meme[]>([]); // قائمة الميمز المعروضة
   const [profiles, setProfiles] = useState<Profile[]>([]); // قائمة البروفايلات
@@ -90,6 +60,41 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState(""); // نص البحث
   const [selectedTag, setSelectedTag] = useState<string | null>(null); // التاج المختار
   const [followingIds, setFollowingIds] = useState<string[]>([]); // قائمة المعرفات التي يتابعها المستخدم
+
+  /**
+   * كل تنقل بين التبويبات لازم يعدي من هنا، مش نداء مباشر لـ setActiveTab.
+   * كان فيه أماكن كتير (لينك البروفايل جوه بوست، صفحة المتصدرين، بعد نشر
+   * بوست جديد، بروفايل من الريلز، لوحة الأدمن) بتنادي setActiveTab مباشرة
+   * من غير ما تسجل خطوة في الـ browser history؛ فلما تدوس زرار الرجوع في
+   * أندرويد من واحدة من الشاشات دي، كان بيتخطى خطوات أو يقفل التطبيق على
+   * طول بدل ما يرجعك للشاشة اللي قبلها جوا التطبيق نفسه.
+   *
+   * ملحوظة: الدالة دي لازم تتعرّف بعد كل الـ useState اللي بتستخدمها
+   * (selectedProfileId وغيرها)، لأن الاعتماد عليها جوه مصفوفة الـ deps
+   * بتاعة useCallback قبل ما الـ const بتاعها يتعرّف في الكود كان بيسبب
+   * "Cannot access before initialization" وبيوقع الصفحة كلها بشاشة سودة.
+   */
+  const navigateToTab = useCallback((tab: string, options?: { profileId?: string }) => {
+    // بدون الشرط ده، الانتقال من بروفايل لبروفايل تاني (تبويب "user-profile"
+    // فاضل زي ما هو، بس المعرف بيتغير) كان بيتسجلش كخطوة history خالص.
+    const isProfileSwitch = tab === "user-profile" && !!options?.profileId && options.profileId !== selectedProfileId;
+    if (tab !== activeTab || isProfileSwitch) {
+      window.history.pushState({ tab }, "", window.location.href);
+    }
+    if (options?.profileId) setSelectedProfileId(options.profileId);
+    setActiveTab(tab);
+    setSelectedTag(null);
+    if (tab === "feed") {
+      setPage(1);
+      setHasMore(true);
+    }
+    // كان فتح بروفايل (أو أي تبويب) بعد ما تكون سكرولت لتحت في صفحة تانية
+    // (زي الفيد) بيسيب موضع السكرول القديم زي ما هو، وبما إن صفحة البروفايل
+    // غالباً أقصر بكتير من صفحة الفيد، كان المستخدم "يلاقي نفسه" في نص أو
+    // آخر صفحة البروفايل على طول بدل ما يبدأ من فوق. دلوقتي بنرجع السكرول
+    // لفوق مع كل تنقل بين الصفحات/البروفايلات.
+    window.scrollTo(0, 0);
+  }, [activeTab, selectedProfileId]);
 
   // بيتبع حالة عارض الحالات (Stories) - لو مفتوح، زرار الرجوع في الموبايل
   // لازم يقفله بس، مش يقفز لصفحة تانية. الإغلاق الفعلي بيحصل عن طريق
