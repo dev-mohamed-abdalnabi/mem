@@ -192,8 +192,10 @@ textarea:focus {
    بيتلوّن بلون العنصر الأساسي (foreground) بدل اللون المقصود، فيحصل نص
    مختفي فوق خلفية بنفس اللون تقريباً. من غير !important، كلاسات Tailwind
    الصريحة (زي .text-white) بتكسب تلقائي لأن الـspecificity بتاعها أعلى. */
-button {
-  color: var(--foreground);
+@layer base {
+  button {
+    color: var(--foreground);
+  }
 }
 
 .hover\:bg-gray-50:hover,
