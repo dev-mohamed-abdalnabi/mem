@@ -442,6 +442,12 @@ export const dataService = {
     if (error) throw error;
   },
 
+  /**
+   * بترجع التعليقات مرتبة في هيكل شجري: التعليقات الأساسية بس في المستوى
+   * الأول، وكل تعليق فيه مصفوفة replies بتاعته. كمان بتحسب liked_by_me
+   * لكل تعليق (كان مش موجود خالص قبل كده، فزرار الإعجاب بالتعليق ماكانش
+   * ينفع يتعمله أصلاً).
+   */
   getComments: async (memeId: string): Promise<Comment[]> => {
     const { data, error } = await supabase
       .from("comments")
@@ -450,10 +456,36 @@ export const dataService = {
       .order("created_at", { ascending: true });
     
     if (error) throw error;
-    return data as Comment[];
+    const all = (data as Comment[]) || [];
+
+    const { data: { user } } = await supabase.auth.getUser();
+    let likedIds = new Set<string>();
+    if (user && all.length > 0) {
+      const { data: likes } = await supabase
+        .from("comment_likes")
+        .select("comment_id")
+        .eq("user_id", user.id)
+        .in("comment_id", all.map(c => c.id));
+      likedIds = new Set((likes || []).map((l: any) => l.comment_id));
+    }
+
+    const withLikes = all.map(c => ({ ...c, liked_by_me: likedIds.has(c.id) }));
+    const topLevel = withLikes.filter(c => !c.parent_comment_id);
+    const byParent = new Map<string, Comment[]>();
+    withLikes.filter(c => c.parent_comment_id).forEach(c => {
+      const list = byParent.get(c.parent_comment_id!) || [];
+      list.push(c);
+      byParent.set(c.parent_comment_id!, list);
+    });
+    return topLevel.map(c => ({ ...c, replies: byParent.get(c.id) || [] }));
   },
 
-  addComment: async (memeId: string, _unusedUserId: string, content: string): Promise<Comment> => {
+  /**
+   * ضفنا parentCommentId اختياري عشان ينفع ترد على تعليق معين (بيتسجل رد
+   * جوه نفس جدول comments بربط parent_comment_id بيه) بدل ما التعليق كان
+   * بس مستوى واحد من غير أي رد ممكن.
+   */
+  addComment: async (memeId: string, _unusedUserId: string, content: string, parentCommentId?: string | null): Promise<Comment> => {
     const userId = await getAuthenticatedUserId();
     
     const { data, error } = await supabase
@@ -461,13 +493,38 @@ export const dataService = {
       .insert({
         meme_id: ensureUUID(memeId),
         user_id: userId,
-        content: DOMPurify.sanitize(content.trim())
+        content: DOMPurify.sanitize(content.trim()),
+        parent_comment_id: parentCommentId ? ensureUUID(parentCommentId) : null,
       })
       .select("*, profiles!user_id(*)")
       .single();
     
     if (error) throw error;
     return data as Comment;
+  },
+
+  /**
+   * إعجاب/إلغاء إعجاب بتعليق معين - مكنش موجود خالص، التفاعل كان مقصور
+   * على المنشور نفسه بس من غير ما ينفع تتفاعل مع تعليق بعينه.
+   */
+  toggleCommentLike: async (commentId: string): Promise<boolean> => {
+    const userId = await getAuthenticatedUserId();
+    const { data: existing } = await supabase
+      .from("comment_likes")
+      .select("comment_id")
+      .eq("comment_id", ensureUUID(commentId))
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await supabase.from("comment_likes").delete().eq("comment_id", ensureUUID(commentId)).eq("user_id", userId);
+      if (error) throw error;
+      return false;
+    } else {
+      const { error } = await supabase.from("comment_likes").insert({ comment_id: ensureUUID(commentId), user_id: userId });
+      if (error) throw error;
+      return true;
+    }
   },
 
   submitReport: async (memeId: string, _unusedUserId: string, reason: string): Promise<void> => {

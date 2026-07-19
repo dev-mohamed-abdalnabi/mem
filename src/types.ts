@@ -52,8 +52,12 @@ export interface Comment {
   content: string;
   created_at: string;
   updated_at: string;
+  parent_comment_id?: string | null; // لو التعليق ده رد على تعليق تاني
+  likes_count?: number;
+  liked_by_me?: boolean;
   // Joins
   profiles?: Profile;
+  replies?: Comment[]; // بتتحسب في الفرونت إند من الليستة المسطحة، مش عمود في الداتابيز
 }
 
 export interface Follow {

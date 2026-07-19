@@ -28,6 +28,8 @@ export default function PostDetailModal({
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  // التعليق اللي بترد عليه دلوقتي (لو فيه) - بيتحط ك parent_comment_id للرد الجديد
+  const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null);
 
   useEffect(() => {
     loadComments();
@@ -55,9 +57,15 @@ export default function PostDetailModal({
 
     setSubmitting(true);
     try {
-      const added = await dataService.addComment(meme.id, currentUser.id, newComment.trim());
-      setComments(prev => [...prev, added]);
+      const added = await dataService.addComment(meme.id, currentUser.id, newComment.trim(), replyingTo?.id || null);
+      if (replyingTo) {
+        // رد على تعليق موجود -> يتضاف لمصفوفة الردود بتاعته
+        setComments(prev => prev.map(c => c.id === replyingTo.id ? { ...c, replies: [...(c.replies || []), added] } : c));
+      } else {
+        setComments(prev => [...prev, { ...added, replies: [] }]);
+      }
       setNewComment("");
+      setReplyingTo(null);
     } catch (e) {
       console.error(e);
     } finally {
@@ -65,7 +73,69 @@ export default function PostDetailModal({
     }
   };
 
+  /**
+   * إعجاب/إلغاء إعجاب بتعليق (سواء أساسي أو رد) - تحديث متفائل فوري
+   * للعداد والحالة، وبعدين استدعاء الداتابيز فعلياً.
+   */
+  const handleToggleCommentLike = async (commentId: string, isReply: boolean, parentId?: string) => {
+    const applyToggle = (c: Comment): Comment => {
+      if (c.id !== commentId) return c;
+      const wasLiked = !!c.liked_by_me;
+      return { ...c, liked_by_me: !wasLiked, likes_count: (c.likes_count || 0) + (wasLiked ? -1 : 1) };
+    };
+    if (isReply && parentId) {
+      setComments(prev => prev.map(c => c.id === parentId ? { ...c, replies: (c.replies || []).map(applyToggle) } : c));
+    } else {
+      setComments(prev => prev.map(applyToggle));
+    }
+    try {
+      await dataService.toggleCommentLike(commentId);
+    } catch (e) {
+      console.error(e);
+      // لو فشل النداء، نرجع نعكس التحديث المتفائل تاني
+      if (isReply && parentId) {
+        setComments(prev => prev.map(c => c.id === parentId ? { ...c, replies: (c.replies || []).map(applyToggle) } : c));
+      } else {
+        setComments(prev => prev.map(applyToggle));
+      }
+    }
+  };
+
   const creator = meme.profiles || { id: meme.user_id, username: "ميمر_مجهول", avatar_url: null };
+
+  /** عرض تعليق واحد (أساسي أو رد) - نفس الشكل لكن الردود بتتعرض أصغر ومزحزحة لجنب */
+  const renderComment = (c: Comment, isReply: boolean, parentId?: string) => (
+    <div key={c.id} className={`flex gap-3 ${isReply ? "mr-8 mt-3" : ""}`}>
+      <img 
+        src={c.profiles?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${c.profiles?.username}`} 
+        className={`rounded-full object-cover shrink-0 ${isReply ? "w-6 h-6" : "w-8 h-8"}`} 
+      />
+      <div className="flex-1">
+        <div className="bg-gray-100 p-3 rounded-2xl rounded-tr-none">
+          <div className="font-bold text-xs mb-1">{c.profiles?.username}</div>
+          <div className="text-sm text-gray-800">{DOMPurify.sanitize(c.content)}</div>
+        </div>
+        <div className="flex items-center gap-3 text-[10px] text-gray-400 mt-1 mr-2">
+          <span>{new Date(c.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
+          <button
+            onClick={() => handleToggleCommentLike(c.id, isReply, parentId)}
+            className={`flex items-center gap-1 font-bold ${c.liked_by_me ? "text-red-500" : "text-gray-500"}`}
+          >
+            <Heart className={`w-3 h-3 ${c.liked_by_me ? "fill-current" : ""}`} />
+            {(c.likes_count || 0) > 0 && <span>{c.likes_count}</span>}
+          </button>
+          {!isReply && (
+            <button
+              onClick={() => setReplyingTo({ id: c.id, username: c.profiles?.username || "" })}
+              className="font-bold text-gray-500"
+            >
+              رد
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-[10000] bg-black md:bg-white flex flex-col md:flex-row" dir="rtl">
@@ -141,20 +211,9 @@ export default function PostDetailModal({
             </div>
           ) : (
             comments.map((c) => (
-              <div key={c.id} className="flex gap-3">
-                <img 
-                  src={c.profiles?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${c.profiles?.username}`} 
-                  className="w-8 h-8 rounded-full object-cover shrink-0" 
-                />
-                <div className="flex-1">
-                  <div className="bg-gray-100 p-3 rounded-2xl rounded-tr-none">
-                    <div className="font-bold text-xs mb-1">{c.profiles?.username}</div>
-                    <div className="text-sm text-gray-800">{DOMPurify.sanitize(c.content)}</div>
-                  </div>
-                  <div className="text-[10px] text-gray-400 mt-1 mr-2">
-                    {new Date(c.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
+              <div key={c.id}>
+                {renderComment(c, false)}
+                {(c.replies || []).map(r => renderComment(r, true, c.id))}
               </div>
             ))
           )}
@@ -175,12 +234,19 @@ export default function PostDetailModal({
           </div>
           <div className="text-xs font-bold mb-4">{meme.likes_count} إعجاب</div>
 
+          {replyingTo && (
+            <div className="flex items-center justify-between bg-blue-50 text-blue-700 text-xs px-3 py-1.5 rounded-full mb-2">
+              <span>بترد على {replyingTo.username}</span>
+              <button onClick={() => setReplyingTo(null)} className="font-bold">إلغاء</button>
+            </div>
+          )}
+
           <form onSubmit={handleAddComment} className="flex gap-2">
             <input 
               type="text" 
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder="اكتب تعليقك هنا..." 
+              placeholder={replyingTo ? `رد على ${replyingTo.username}...` : "اكتب تعليقك هنا..."}
               className="flex-1 bg-gray-100 border-none rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button 

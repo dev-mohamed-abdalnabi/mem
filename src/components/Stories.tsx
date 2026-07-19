@@ -102,6 +102,10 @@ export default function Stories({ currentUser }: StoriesProps) {
   const [showViewers, setShowViewers] = useState(false);
   const [viewersList, setViewersList] = useState<{ viewer: Profile; emoji: string | null; viewedAt: string }[]>([]);
   const [loadingViewers, setLoadingViewers] = useState(false);
+  // فلتر شيت "مين شاف الحالة": كل الناس، أو المتفاعلين بس (اللي حطوا إيموجي)
+  const [viewersFilter, setViewersFilter] = useState<"all" | "reacted">("all");
+  // متابَعين المستخدم الحالي - مستخدمة في ترتيب شريط الحالات (خوارزمية زي انستجرام)
+  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   // شريط التقدم بستايل واتساب: نسبة التقدم (0-100) للحالة الحالية + هل الوقت متوقف مؤقتاً
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -121,6 +125,7 @@ export default function Stories({ currentUser }: StoriesProps) {
     if (isRealUser) {
       socialService.getViewedStoryIds(currentUser.id).then(ids => setViewedStoryIds(new Set(ids)));
       socialService.getMyStoryReactions(currentUser.id).then(setMyReactions);
+      dataService.getFollowingList(currentUser.id).then(ids => setFollowingIds(new Set(ids)));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser.id]);
@@ -149,6 +154,31 @@ export default function Stories({ currentUser }: StoriesProps) {
   const currentUserStories = useMemo(() => {
     return selectedStory ? userStories[selectedStory.user_id] || [] : [];
   }, [selectedStory, userStories]);
+
+  /**
+   * ترتيب شريط الحالات زي انستجرام بالظبط: الحالات اللي لسه ماتشافتش الأول
+   * (عشان محدش يفوّته حاجة جديدة)، وجوه كل مجموعة (مشافة/مش مشافة) اللي
+   * بتتابعهم بيتقدموا على اللي مش بتابعهم، وأخيراً الأحدث تحديثاً. كان
+   * الترتيب قبل كده مجرد ترتيب الرد من الداتابيز (بالتاريخ بس) من غير أي
+   * منطق حقيقي.
+   */
+  const sortedUserIds = useMemo(() => {
+    return Object.keys(userStories).sort((uidA, uidB) => {
+      const storiesA = userStories[uidA];
+      const storiesB = userStories[uidB];
+      const unseenA = !storiesA.every(s => viewedStoryIds.has(s.id));
+      const unseenB = !storiesB.every(s => viewedStoryIds.has(s.id));
+      if (unseenA !== unseenB) return unseenA ? -1 : 1;
+
+      const followingA = followingIds.has(uidA);
+      const followingB = followingIds.has(uidB);
+      if (followingA !== followingB) return followingA ? -1 : 1;
+
+      const latestA = Math.max(...storiesA.map(s => new Date(s.created_at).getTime()));
+      const latestB = Math.max(...storiesB.map(s => new Date(s.created_at).getTime()));
+      return latestB - latestA;
+    });
+  }, [userStories, viewedStoryIds, followingIds]);
 
   // منع تمرير الصفحة الرئيسية لما يكون فيه حالة أو مودال إنشاء مفتوح
   useEffect(() => {
@@ -452,7 +482,8 @@ export default function Stories({ currentUser }: StoriesProps) {
         </div>
 
         {/* User Stories */}
-        {Object.entries(userStories).map(([uid, uStories]) => {
+        {sortedUserIds.map((uid) => {
+          const uStories = userStories[uid];
           const isFullyViewed = uStories.every(s => viewedStoryIds.has(s.id));
           return (
             <div
@@ -688,6 +719,37 @@ export default function Stories({ currentUser }: StoriesProps) {
                     <X className="w-5 h-5" />
                   </button>
                 </div>
+                {/* ملخص الإيموجيز اللي اتحطت - نظرة سريعة على التفاعلات من غير ما تفتح الليستة */}
+                {(() => {
+                  const reactedCount = viewersList.filter(v => v.emoji).length;
+                  if (reactedCount === 0) return null;
+                  const counts: Record<string, number> = {};
+                  viewersList.forEach(v => { if (v.emoji) counts[v.emoji] = (counts[v.emoji] || 0) + 1; });
+                  return (
+                    <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 dark:border-gray-800 overflow-x-auto">
+                      {Object.entries(counts).map(([emoji, count]) => (
+                        <span key={emoji} className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-full px-2.5 py-1 text-sm shrink-0">
+                          <span>{emoji}</span><span className="font-bold text-gray-700 dark:text-gray-300">{count}</span>
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })()}
+                {/* تبويب: الكل / اللي اتفاعلوا بس - عشان تقدر تشوف مين تفاعل مش شاف بس */}
+                <div className="flex border-b border-gray-200 dark:border-gray-800">
+                  <button
+                    onClick={() => setViewersFilter("all")}
+                    className={`flex-1 py-2.5 text-sm font-bold ${viewersFilter === "all" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500"}`}
+                  >
+                    الكل ({viewersList.length})
+                  </button>
+                  <button
+                    onClick={() => setViewersFilter("reacted")}
+                    className={`flex-1 py-2.5 text-sm font-bold ${viewersFilter === "reacted" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500"}`}
+                  >
+                    اتفاعلوا ({viewersList.filter(v => v.emoji).length})
+                  </button>
+                </div>
                 <div className="overflow-y-auto flex-1">
                   {loadingViewers ? (
                     <div className="p-8 flex justify-center">
@@ -696,13 +758,22 @@ export default function Stories({ currentUser }: StoriesProps) {
                   ) : viewersList.length === 0 ? (
                     <p className="text-center text-sm text-gray-500 p-8">لسه محدش شاف الحالة دي</p>
                   ) : (
-                    viewersList.map((v, i) => (
-                      <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
-                        <img src={v.viewer?.avatar_url || ""} className="w-10 h-10 rounded-full object-cover" alt="" />
-                        <span className="flex-1 font-bold text-sm text-gray-900 dark:text-white">{v.viewer?.username || "مستخدم"}</span>
-                        {v.emoji && <span className="text-xl">{v.emoji}</span>}
-                      </div>
-                    ))
+                    (() => {
+                      // بنرتب المتفاعلين الأول عشان يبانوا فوق مباشرة، وبعدين فلترة
+                      // حسب التبويب المختار (الكل / اللي اتفاعلوا بس)
+                      const sorted = [...viewersList].sort((a, b) => (b.emoji ? 1 : 0) - (a.emoji ? 1 : 0));
+                      const filtered = viewersFilter === "reacted" ? sorted.filter(v => v.emoji) : sorted;
+                      if (filtered.length === 0) {
+                        return <p className="text-center text-sm text-gray-500 p-8">لسه محدش تفاعل مع الحالة دي</p>;
+                      }
+                      return filtered.map((v, i) => (
+                        <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                          <img src={v.viewer?.avatar_url || ""} className="w-10 h-10 rounded-full object-cover" alt="" />
+                          <span className="flex-1 font-bold text-sm text-gray-900 dark:text-white">{v.viewer?.username || "مستخدم"}</span>
+                          {v.emoji && <span className="text-xl">{v.emoji}</span>}
+                        </div>
+                      ));
+                    })()
                   )}
                 </div>
               </div>
