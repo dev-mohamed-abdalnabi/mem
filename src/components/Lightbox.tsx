@@ -32,13 +32,37 @@ export default function Lightbox({ mediaUrl, mediaType = 'image', onClose }: Lig
 
   if (!mediaUrl) return null;
 
-  const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = mediaUrl;
-    link.download = `media-${Date.now()}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    try {
+      // خاصية download بتتجاهل تماماً لو الرابط من دومين مختلف (زي روابط
+      // تخزين Supabase) - المتصفح بيتعامل معاها كأنها رابط عادي وبيفتحها
+      // في تاب بدل ما ينزلها. الحل إننا نجيب الملف فعلياً كـ blob ونعمل
+      // رابط تنزيل محلي منه (نفس الدومين)، وساعتها خاصية download بتشتغل صح.
+      const response = await fetch(mediaUrl);
+      if (!response.ok) throw new Error("Failed to fetch media");
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const extension = mediaType === 'video' ? 'mp4' : (blob.type.split('/')[1] || 'jpg');
+
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `media-${Date.now()}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Download error:", err);
+      // لو الفتش فشل لأي سبب (مثلاً مشكلة CORS)، على الأقل نفتح الملف في
+      // تاب جديد عشان المستخدم يقدر يحفظه يدوي بدل ما محصلش حاجة خالص
+      window.open(mediaUrl, "_blank");
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const handleShare = () => {
@@ -74,10 +98,15 @@ export default function Lightbox({ mediaUrl, mediaType = 'image', onClose }: Lig
         
         <button
           onClick={handleDownload}
-          className="text-white p-2 rounded-full hover:bg-white/10 transition-all active:scale-95"
+          disabled={isDownloading}
+          className="text-white p-2 rounded-full hover:bg-white/10 transition-all active:scale-95 disabled:opacity-50"
           title="تحميل"
         >
-          <Download className="w-6 h-6" />
+          {isDownloading ? (
+            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Download className="w-6 h-6" />
+          )}
         </button>
       </div>
 

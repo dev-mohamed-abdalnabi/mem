@@ -107,12 +107,23 @@ export default function CustomVideoPlayer({
     if (!video) return;
 
     if (isPlaying) {
-      // ده المكان الوحيد اللي بينده فيه على video.play() فعلياً. لو المتصفح
-      // رفض التشغيل بالصوت (سياسة الأوتوبلاي)، بنكتم ونحاول تاني.
-      video.play().catch(() => {
-        video.muted = true;
-        setIsMuted(true);
-        video.play().catch(err => console.error("Play error:", err));
+      // ده المكان الوحيد اللي بينده فيه على video.play() فعلياً. بنكتم
+      // ونعيد المحاولة بس لو الرفض فعلاً بسبب سياسة الأوتوبلاي
+      // (NotAllowedError) - مش أي رفض تاني. المشكلة كانت إن أي فيديو تاني
+      // في الفيد يشتغل بيوقف الفيديو الحالي (عن طريق currentlyPlayingVideo)،
+      // وده بيرفض الـ promise بتاع play() بنوع خطأ مختلف (AbortError) مش
+      // له علاقة بسياسة المتصفح خالص - وكان الكود بيتعامل مع أي رفض على إنه
+      // "المتصفح رفض الصوت" ويكتم الفيديو غلط. أول فيديو أو اتنين في الفيد
+      // بيتصادموا مع بعض كده غالباً لأنهم بيدخلوا نص الشاشة في نفس الوقت
+      // تقريباً وقت أول تحميل للصفحة.
+      video.play().catch((err) => {
+        if (err?.name === "NotAllowedError") {
+          video.muted = true;
+          setIsMuted(true);
+          video.play().catch(e2 => console.error("Play error:", e2));
+        } else {
+          console.error("Play error:", err);
+        }
       });
     } else {
       video.pause();

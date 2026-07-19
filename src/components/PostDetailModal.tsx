@@ -30,12 +30,33 @@ export default function PostDetailModal({
   const [submitting, setSubmitting] = useState(false);
   // التعليق اللي بترد عليه دلوقتي (لو فيه) - بيتحط ك parent_comment_id للرد الجديد
   const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null);
+  // بنعرض 10 تعليقات بس في الأول، وبعدين +10 كل ما تدوس "عرض المزيد" -
+  // عشان مانحملش شاشة المستخدم بمئات التعليقات مرة واحدة
+  const COMMENTS_PAGE_SIZE = 10;
+  const [visibleCount, setVisibleCount] = useState(COMMENTS_PAGE_SIZE);
+  // الردود بتبقى مطوية (مخفية) افتراضياً وبيتعرض عدد الردود بس - بتتفتح
+  // بالضغط عليها، بدل ما تفضل كلها ظاهرة على طول وتاكل مساحة كبيرة
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+
+  const toggleReplies = (commentId: string) => {
+    setExpandedReplies(prev => {
+      const next = new Set(prev);
+      if (next.has(commentId)) next.delete(commentId);
+      else next.add(commentId);
+      return next;
+    });
+  };
 
   useEffect(() => {
     loadComments();
     document.body.style.overflow = 'hidden';
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
       document.body.style.overflow = 'auto';
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [meme.id]);
 
@@ -133,9 +154,25 @@ export default function PostDetailModal({
             </button>
           )}
         </div>
+
+        {/* الردود مطوية افتراضياً - بتظهر بعدد الردود بس، وتتفتح بالضغط */}
+        {!isReply && (c.replies || []).length > 0 && (
+          <>
+            <button
+              onClick={() => toggleReplies(c.id)}
+              className="text-[11px] font-bold text-gray-500 mt-2 mr-2 hover:text-gray-700"
+            >
+              {expandedReplies.has(c.id)
+                ? "إخفاء الردود"
+                : `عرض ${c.replies!.length} ${c.replies!.length === 1 ? "رد" : "ردود"}`}
+            </button>
+            {expandedReplies.has(c.id) && (c.replies || []).map(r => renderComment(r, true, c.id))}
+          </>
+        )}
       </div>
     </div>
   );
+
 
   return (
     <div className="fixed inset-0 z-[10000] bg-black md:bg-white flex flex-col md:flex-row" dir="rtl">
@@ -159,6 +196,15 @@ export default function PostDetailModal({
       >
         <X className="w-5 h-5" />
       </button>
+
+      {/* المنطقة الفاضية فوق شيت التعليقات (في الموبايل بس) - الدوس عليها
+          بيقفل الصفحة كلها ويرجعك للفيد، بالظبط زي ما بيحصل في تيك توك/انستجرام
+          لما تدوس على الميديا برة شيت التعليقات */}
+      <div
+        className="md:hidden fixed inset-x-0 top-0 z-[15]"
+        style={{ bottom: "68vh" }}
+        onClick={onClose}
+      />
 
       {/* Comments Section: bottom sheet over the video on mobile (TikTok style), side panel on desktop */}
       <div className="fixed md:static inset-x-0 bottom-0 md:inset-auto z-20 md:z-auto w-full md:w-[400px] h-[68vh] md:h-full flex flex-col bg-white md:border-r rounded-t-3xl md:rounded-none animate-slide-up overflow-hidden">
@@ -210,12 +256,21 @@ export default function PostDetailModal({
               <p className="text-sm">مفيش تعليقات لسه، كن أول من يضحك!</p>
             </div>
           ) : (
-            comments.map((c) => (
-              <div key={c.id}>
-                {renderComment(c, false)}
-                {(c.replies || []).map(r => renderComment(r, true, c.id))}
-              </div>
-            ))
+            <>
+              {comments.slice(0, visibleCount).map((c) => (
+                <div key={c.id}>
+                  {renderComment(c, false)}
+                </div>
+              ))}
+              {visibleCount < comments.length && (
+                <button
+                  onClick={() => setVisibleCount(prev => prev + COMMENTS_PAGE_SIZE)}
+                  className="w-full text-center text-xs font-bold text-blue-600 py-2 hover:underline"
+                >
+                  عرض المزيد ({comments.length - visibleCount} تعليق متبقي)
+                </button>
+              )}
+            </>
           )}
         </div>
 

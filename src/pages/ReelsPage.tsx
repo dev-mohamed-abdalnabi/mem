@@ -63,12 +63,15 @@ export default function ReelsPage({
           const video = entry.target as HTMLVideoElement;
           if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
             // بنحاول نشغل بالصوت الأول؛ لو المتصفح رفض (سياسة autoplay) بنكتم تلقائياً
-            // كحل بديل بس بنسيب زرار الصوت شغال عشان المستخدم يفعله بنفسه بضغطة واحدة
+            // كحل بديل بس بنسيب زرار الصوت شغال عشان المستخدم يفعله بنفسه بضغطة واحدة.
+            // بنتأكد إن الرفض فعلاً بسبب سياسة المتصفح (NotAllowedError) مش لأي سبب تاني.
             video.muted = isMuted;
-            video.play().catch(() => {
-              video.muted = true;
-              setIsMuted(true);
-              video.play().catch(() => {});
+            video.play().catch((err) => {
+              if (err?.name === "NotAllowedError") {
+                video.muted = true;
+                setIsMuted(true);
+                video.play().catch(() => {});
+              }
             });
           } else {
             video.pause();

@@ -106,6 +106,34 @@ export default function App() {
     closeStoryViewerRef.current = closeFn;
   }, []);
 
+  /**
+   * زي ما اتصلح في عارض الحالات (Stories) بالظبط: فتح أي مودال (لايتبوكس،
+   * تسجيل الدخول، أو أي حاجة تانية بتتفتح فوق الصفحة) لازم يسجل خطوة في
+   * الـ browser history. من غيرها، زرار الرجوع في أندرويد كان بيتخطى
+   * المودال تماماً - إما مبيعملش حاجة، أو بيطلعك برة الصفحة/التطبيق على
+   * طول بدل ما يقفل المودال بس. الدوال دي بتلف الـ setState الأصلي
+   * وتسجل خطوة history بس لما المودال بيتفتح فعلياً (مش لما يتقفل، عشان
+   * الإغلاق بيحصل من خلال زرار الرجوع نفسه أو زرار X).
+   */
+  const openLightboxGuarded = useCallback((url: string | null) => {
+    if (url) {
+      window.history.pushState({ modal: "lightbox" }, "", window.location.href);
+    }
+    setLightboxImage(url);
+  }, []);
+
+  const openAuthModalGuarded = useCallback((show: boolean) => {
+    if (show) {
+      window.history.pushState({ modal: "auth" }, "", window.location.href);
+    }
+    setShowAuthModal(show);
+  }, []);
+
+  const openCommentsGuarded = useCallback((meme: Meme) => {
+    window.history.pushState({ modal: "comments" }, "", window.location.href);
+    setSelectedMemeForComments(meme);
+  }, []);
+
   // مرجع للكاش لمنع إعادة التحميل غير الضرورية
   const cacheRef = useRef({
     feed: [] as Meme[],
@@ -399,7 +427,7 @@ export default function App() {
       handleDeleteMeme,
       setSelectedProfileId,
       setActiveTab: navigateToTab,
-      setLightboxImage
+      setLightboxImage: openLightboxGuarded
     };
 
     switch (activeTab) {
@@ -415,10 +443,10 @@ export default function App() {
             // الفلترة بالبحث/التاج بقت تحصل في الداتابيز نفسها عن طريق get_ranked_feed
             filteredMemes={memes}
             setMemes={setMemes} 
-            setShowAuthModal={setShowAuthModal} 
+            setShowAuthModal={openAuthModalGuarded} 
             setAuthTab={setAuthTab} 
             setSearchQuery={setSearchQuery}
-            onOpenComments={(meme) => setSelectedMemeForComments(meme)}
+            onOpenComments={openCommentsGuarded}
             highlightedMemeId={highlightedMemeId}
             onHighlightConsumed={() => setHighlightedMemeId(null)}
             onStoryViewerChange={handleStoryViewerChange}
@@ -448,8 +476,8 @@ export default function App() {
             handleLikeToggle={handleLikeToggle}
             handleSaveToggle={handleSaveToggle}
             handleShareCompleted={commonProps.handleShareCompleted}
-            onOpenComments={(meme) => setSelectedMemeForComments(meme)}
-            setShowAuthModal={setShowAuthModal}
+            onOpenComments={openCommentsGuarded}
+            setShowAuthModal={openAuthModalGuarded}
             onUserProfileClick={(userId) => navigateToTab("user-profile", { profileId: userId })}
           />
         );
@@ -477,7 +505,7 @@ export default function App() {
             userMemes={memes.filter(m => m.user_id === profileToShow.id)} 
             setCurrentUser={setCurrentUser} 
             setProfiles={setProfiles} 
-            setShowAuthModal={setShowAuthModal} 
+            setShowAuthModal={openAuthModalGuarded} 
           />
         );
       case "admin":
@@ -510,10 +538,10 @@ export default function App() {
           console.error("Error marking notifications read:", error);
         }
       }}
-      onShowAuthModal={() => { setShowAuthModal(true); setAuthTab("signin"); }}
+      onShowAuthModal={() => { openAuthModalGuarded(true); setAuthTab("signin"); }}
       onCloseAuthModal={() => setShowAuthModal(false)}
       setAuthTab={setAuthTab}
-      setShowAuthModal={setShowAuthModal}
+      setShowAuthModal={openAuthModalGuarded}
       onSignOutReal={async () => {
         try {
           await dataService.signOut?.();
