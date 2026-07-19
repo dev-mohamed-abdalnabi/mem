@@ -376,6 +376,14 @@ export default function ProfilePage({
           <div className="flex items-center gap-2 mt-1">
             <span className="text-[14px] text-gray-500" dir="ltr">@{profile.username.replace(/\s+/g, '_').toLowerCase()}</span>
           </div>
+          {/* وصف المستخدم (النبذة الشخصية) - كانت المساحة دي فاضية تماماً حتى
+              لو المستخدم كاتب نبذة، لأنها كانت بتتعرض جوه تبويب "معلومات
+              الحساب" بس مش هنا في الهيدر نفسه زي فيسبوك/تويتر */}
+          {profile.bio && (
+            <p className="text-[15px] text-gray-800 dark:text-gray-100 mt-3 leading-relaxed whitespace-pre-wrap">
+              {DOMPurify.sanitize(profile.bio)}
+            </p>
+          )}
         </div>
       </div>
 

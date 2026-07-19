@@ -366,11 +366,23 @@ export default function ReelsPage({
       ref={containerRef}
       className="fixed top-16 bottom-16 md:bottom-4 inset-x-0 md:static md:h-[80vh] md:rounded-2xl overflow-y-scroll snap-y snap-mandatory bg-black no-scrollbar z-30"
     >
-      {reels.map((meme) => (
+      {reels.map((meme, index) => {
+        // استراتيجية تحميل ذكية زي تيك توك: الفيديو الشغال دلوقتي واللي بعده
+        // مباشرة بيتحمّلوا كاملين مقدماً (auto) عشان يشتغلوا فوراً أول ما توصلهم
+        // بالسكرول من غير أي تأخير، والفيديو اللي فات بيفضل خفيف (metadata بس)،
+        // والباقي البعيد مش بيتحمّل خالص لحد ما يقرب - كده مش بنستهلك نت/رام
+        // في فيديوهات المستخدم لسه بعيد عنها
+        const activeIndex = reels.findIndex(r => r.id === activeId);
+        const distance = activeIndex === -1 ? index : index - activeIndex;
+        const preload: "auto" | "metadata" | "none" =
+          distance === 0 || distance === 1 ? "auto" : distance === -1 ? "metadata" : "none";
+
+        return (
         <div key={meme.id} className="relative w-full h-full snap-start snap-always flex items-center justify-center bg-black">
           <video
             ref={(el) => { videoRefs.current[meme.id] = el; }}
             src={meme.video_url || ""}
+            preload={preload}
             loop
             playsInline
             muted={isMuted}
@@ -469,7 +481,8 @@ export default function ReelsPage({
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

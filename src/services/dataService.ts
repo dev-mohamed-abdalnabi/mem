@@ -32,14 +32,18 @@ export function extractTagsFromCaption(caption: string | null): string[] {
 /**
  * ضغط الصور قبل الرفع (كانت الصور بترفع بحجمها الأصلي زي ما هي من الموبايل،
  * أحياناً 3-4 ميجا للصورة الواحدة، وده كان بيستهلك مساحة/باندويدث الـ storage
- * بسرعة رهيبة). بنعمل resize لأقصى بعد 1600px وضغط JPEG جودة 0.82،
- * وده بيقلل حجم أغلب صور الموبايل بنسبة 70-90% من غير فرق ملحوظ في الجودة
- * على الشاشة. الفيديو مش بيتضغط هنا (محتاج ffmpeg حقيقي) بس بنفرض حد أقصى
- * على مدته من صفحة إنشاء البوست.
+ * بسرعة رهيبة). بنعمل resize لأقصى بعد 1600px وضغط JPEG جودة 0.82، وبعدين
+ * لو الملف لسه كبير (صور عالية التفاصيل جداً) بنقلل الجودة تدريجياً لحد
+ * أقصى حجم مستهدف - من غير ما ننزل عن حد أدنى للجودة عشان مايبانش تلف واضح.
+ * ده بيقلل حجم أغلب صور الموبايل بنسبة 70-90% من غير فرق ملحوظ في الجودة
+ * على الشاشة.
  */
 async function compressImage(file: File, maxDimension = 1600, quality = 0.82): Promise<File> {
   // ملفات GIF بنسيبها زي ما هي عشان الضغط بيكسر الحركة (canvas بياخد فريم واحد بس)
   if (file.type === "image/gif") return file;
+
+  const TARGET_MAX_BYTES = 700 * 1024; // ~700KB كحد مستهدف بعد الضغط
+  const MIN_QUALITY = 0.55; // مانزلش تحت كده عشان مايبانش تلف واضح في الصورة
 
   try {
     const bitmap = await createImageBitmap(file);
@@ -55,7 +59,15 @@ async function compressImage(file: File, maxDimension = 1600, quality = 0.82): P
     ctx.drawImage(bitmap, 0, 0, width, height);
     bitmap.close?.();
 
-    const blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", quality));
+    let q = quality;
+    let blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", q));
+    // لو لسه أكبر من الحجم المستهدف، بنقلل الجودة تدريجياً (خطوات صغيرة)
+    // لحد ما نوصل للحجم المطلوب أو نوصل للحد الأدنى المسموح للجودة
+    while (blob && blob.size > TARGET_MAX_BYTES && q > MIN_QUALITY) {
+      q = Math.max(MIN_QUALITY, q - 0.1);
+      blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", q));
+    }
+
     if (!blob || blob.size >= file.size) return file; // لو الضغط زوّد الحجم، سيب الأصلي
 
     const newName = file.name.replace(/\.\w+$/, "") + ".jpg";
@@ -63,6 +75,125 @@ async function compressImage(file: File, maxDimension = 1600, quality = 0.82): P
   } catch (e) {
     console.warn("Image compression failed, uploading original:", e);
     return file;
+  }
+}
+
+/**
+ * ضغط الفيديو قبل الرفع - كان مفيش أي ضغط للفيديو خالص، فيديو الموبايل
+ * (خصوصاً لو 4K أو بمعدل بت عالي) كان بيترفع بحجمه الأصلي كامل، وده سبب
+ * رئيسي في بطء تحميل الفيديو وقت التشغيل (خصوصاً في الريلز اللي المفروض
+ * يشتغل فوراً زي تيك توك). هنا بنعيد رسم الفيديو على canvas بأبعاد أصغر
+ * (أقصى بعد 1280px) ومعدل بت محدود، ونسجله بـ MediaRecorder، فبيطلع بحجم
+ * أصغر بكتير مع جودة مقبولة بصرياً.
+ *
+ * ملحوظة مهمة: العملية دي بتعتمد على MediaRecorder + captureStream، ومش
+ * كل المتصفحات بتدعمها بنفس الكفاءة (سفاري القديم مثلاً بيدعمها جزئياً).
+ * لو أي خطوة فشلت أو المتصفح مش داعم، بنرجع الملف الأصلي زي ما هو من غير
+ * ما نوقف عملية الرفع - الضغط تحسين إضافي مش شرط أساسي للنشر.
+ */
+async function compressVideo(file: File, maxDimension = 1280): Promise<File> {
+  if (typeof MediaRecorder === "undefined" || !HTMLCanvasElement.prototype.captureStream) {
+    return file;
+  }
+
+  let objectUrl: string | null = null;
+  let audioCtx: AudioContext | null = null;
+
+  try {
+    objectUrl = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.src = objectUrl;
+    video.muted = true; // مكتوم وقت الرسم على الـ canvas بس - الصوت الحقيقي بيتسجل من الـ audio track منفصل
+    video.playsInline = true;
+
+    await new Promise<void>((resolve, reject) => {
+      video.onloadedmetadata = () => resolve();
+      video.onerror = () => reject(new Error("تعذر تحميل بيانات الفيديو"));
+    });
+
+    const longSide = Math.max(video.videoWidth, video.videoHeight);
+    // لو الفيديو أصلاً أصغر من الحد الأقصى، الضغط مش هيفرق كتير - نسيبه زي ما هو
+    if (!longSide || longSide <= maxDimension) {
+      URL.revokeObjectURL(objectUrl);
+      return file;
+    }
+
+    const scale = maxDimension / longSide;
+    let width = Math.round(video.videoWidth * scale);
+    let height = Math.round(video.videoHeight * scale);
+    width -= width % 2; // لازم رقم زوجي عشان أغلب الـ encoders
+    height -= height % 2;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) { URL.revokeObjectURL(objectUrl); return file; }
+
+    const canvasStream = (canvas as HTMLCanvasElement).captureStream(30);
+
+    // بنحاول نضيف الصوت الأصلي للفيديو الجديد عن طريق AudioContext - لو فشلت
+    // (متصفح مش داعم مثلاً) بنكمل بدون صوت بدل ما نوقف الضغط بالكامل
+    try {
+      audioCtx = new AudioContext();
+      const source = audioCtx.createMediaElementSource(video);
+      const dest = audioCtx.createMediaStreamDestination();
+      source.connect(dest);
+      dest.stream.getAudioTracks().forEach(track => canvasStream.addTrack(track));
+    } catch (e) {
+      console.warn("Video audio capture failed, compressing video without audio:", e);
+    }
+
+    const mimeCandidates = [
+      "video/webm;codecs=vp9,opus",
+      "video/webm;codecs=vp8,opus",
+      "video/webm",
+    ];
+    const mimeType = mimeCandidates.find(m => MediaRecorder.isTypeSupported(m)) || "video/webm";
+    // معدل بت محدود على حسب عدد البكسلات - كافي لجودة مقبولة بصرياً بحجم أصغر بكتير
+    const videoBitsPerSecond = Math.min(4_000_000, Math.max(1_200_000, Math.round(width * height * 0.09)));
+
+    const recorder = new MediaRecorder(canvasStream, { mimeType, videoBitsPerSecond });
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+
+    const recordingDone = new Promise<Blob>((resolve) => {
+      recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+    });
+
+    let stopped = false;
+    const drawFrame = () => {
+      if (stopped || video.paused || video.ended) return;
+      ctx.drawImage(video, 0, 0, width, height);
+      requestAnimationFrame(drawFrame);
+    };
+
+    recorder.start(250);
+    video.currentTime = 0;
+    await video.play();
+    drawFrame();
+
+    await new Promise<void>((resolve) => {
+      video.onended = () => resolve();
+    });
+    stopped = true;
+    recorder.stop();
+    video.pause();
+
+    const blob = await recordingDone;
+    URL.revokeObjectURL(objectUrl);
+    objectUrl = null;
+
+    if (!blob || blob.size === 0 || blob.size >= file.size) return file; // لو الضغط ملوش فايدة، سيب الأصلي
+
+    const newName = file.name.replace(/\.\w+$/, "") + ".webm";
+    return new File([blob], newName, { type: mimeType });
+  } catch (e) {
+    console.warn("Video compression failed, uploading original:", e);
+    return file;
+  } finally {
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    if (audioCtx) audioCtx.close().catch(() => {});
   }
 }
 
@@ -203,12 +334,28 @@ export const dataService = {
   },
 
   uploadMemeFile: async (file: File, bucket: string = "memes"): Promise<string> => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4'];
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime'];
     if (!allowedTypes.includes(file.type)) throw new Error("نوع الملف غير مدعوم.");
-    if (file.size > 10 * 1024 * 1024) throw new Error("حجم الملف كبير جداً.");
 
-    // ضغط الصور فقط قبل الرفع (الفيديو بيتفحص/يتحدد مدته من صفحة النشر نفسها)
-    const fileToUpload = file.type.startsWith("image/") ? await compressImage(file) : file;
+    // حد أقصى لحجم الملف الأصلي قبل الضغط - أكبر بكتير للفيديو عشان فيديوهات
+    // الموبايل الحديثة (4K مثلاً) بتبقى كبيرة بطبيعتها قبل ما نضغطها هنا
+    const maxOriginalSize = file.type.startsWith("video/") ? 200 * 1024 * 1024 : 15 * 1024 * 1024;
+    if (file.size > maxOriginalSize) throw new Error("حجم الملف كبير جداً.");
+
+    // ضغط الصور والفيديوهات قبل الرفع فعلياً (كان الفيديو بيترفع بحجمه الأصلي
+    // كامل من غير أي ضغط، وده سبب رئيسي في بطء التحميل والتشغيل)
+    const fileToUpload = file.type.startsWith("image/")
+      ? await compressImage(file)
+      : file.type.startsWith("video/")
+        ? await compressVideo(file)
+        : file;
+
+    // بعد الضغط، بنتأكد إن الحجم بقى معقول للرفع (الضغط ممكن يفشل ويرجع
+    // الملف الأصلي كامل لو المتصفح مش داعم، فلازم نتأكد تاني هنا)
+    const maxUploadSize = 30 * 1024 * 1024;
+    if (fileToUpload.size > maxUploadSize) {
+      throw new Error("الملف لسه كبير بعد الضغط، جرب فيديو أقصر أو بجودة أقل من الموبايل.");
+    }
 
     const fileExt = fileToUpload.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
@@ -249,11 +396,16 @@ export const dataService = {
     // بصلاحيات (RLS violation) وده اللي كان بيظهر كـ"فشل رفع الصورة" من غير
     // أي تفاصيل. دلوقتي بنحط uid المستخدم هو أول جزء من المسار عشان يتطابق
     // مع النمط ده لو موجود.
-    const fileExt = file.name.split('.').pop() || 'jpg';
+    // ملحوظة: صورة البروفايل عمداً من غير ضغط - بترفع بالجودة اللي القص
+    // (Canvas 300x300 كوالتي 0.9) طلعها بيها زي ما هي، عكس باقي الصور
+    // والفيديوهات اللي بتتضغط في uploadMemeFile
+    const fileToUpload = file;
+
+    const fileExt = fileToUpload.name.split('.').pop() || 'jpg';
     const fileName = `${userId}/avatar-${Date.now()}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage.from("memes").upload(fileName, file, {
+    const { error: uploadError } = await supabase.storage.from("memes").upload(fileName, fileToUpload, {
       upsert: true,
-      contentType: file.type,
+      contentType: fileToUpload.type,
       cacheControl: '3600',
     });
     if (uploadError) {
