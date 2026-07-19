@@ -236,19 +236,28 @@ nav button {
   color: var(--muted-foreground) !important;
 }
 
-/* ===== DROPDOWN MENUS ===== */
-.absolute.left-0,
-.absolute.right-0 {
-  background-color: var(--card) !important;
-  color: var(--foreground) !important;
-  border-color: var(--border) !important;
-}
+/* القاعدة القديمة هنا كانت بتكسح على أي عنصر absolute بكلاس left-0/right-0
+   حرفي - مش بس الدروب داون - وده كان بيبوّظ عناصر تانية خالص زي شريط تقدم
+   الحالات وهيدرها في Stories.tsx (كانت بتتحول من خلفية سودا شفافة لخلفية
+   بيضا صريحة في الوضع الفاتح فيختفي الشريط والنص فوقه)، وكمان أوفرلاي
+   الصور في Lightbox.tsx. اتشالت لأنه مفيش دروب داون فعلي في المشروع
+   بيعتمد عليها أصلاً (كلهم معاهم bg-white/dark:bg-gray-900 صريحة). */
 
 /* ===== CARDS ===== */
-.rounded-2xl,
-.rounded-3xl {
-  background-color: var(--card) !important;
-  color: var(--foreground) !important;
+/* جوه @layer base (مش قاعدة عادية) ولا !important: القاعدة دي المفروض
+   تبقى لون افتراضي بس للكروت اللي مالهاش خلفية/لون نص صريح خاص بيها.
+   لما كانت !important وبرا أي layer، كانت بتكسح حتى على عناصر عندها
+   تصميم متعمد مختلف تمامًا زي بانر "لوحة شرف الأباطرة" في Leaderboard.tsx
+   (خلفية متدرجة كحلي/بنفسجي ونص أبيض) - كانت بتتحول لخلفية بيضا ونص غامق
+   فوقها في الوضع الفاتح، فيختفي العنوان والوصف تقريبًا. دلوقتي كلاسات
+   Tailwind الصريحة (bg-gradient-to-r، text-white...) بترجع تكسب لأنها جوه
+   utilities layer اللي أعلى أولوية من base. */
+@layer base {
+  .rounded-2xl,
+  .rounded-3xl {
+    background-color: var(--card);
+    color: var(--foreground);
+  }
 }
 
 article {
