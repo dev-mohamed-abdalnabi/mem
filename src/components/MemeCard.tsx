@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Heart, MessageCircle, Share2, Bookmark, 
   Trash2, AlertOctagon, Check, Frown, ShieldAlert, PlusCircle, ChevronRight, ChevronLeft,
@@ -61,6 +61,19 @@ export default function MemeCard({
   const [reportSubmitting, setReportSubmitting] = useState(false); // حالة إرسال البلاغ
   const [shareSuccess, setShareSuccess] = useState(false); // نجاح المشاركة
   const [currentImageIndex, setCurrentImageIndex] = useState(0); // مؤشر الصورة الحالية في المنشورات المتعددة
+
+  // --- إظهار/إخفاء النص الطويل (عرض المزيد) ---
+  const [captionExpanded, setCaptionExpanded] = useState(false); // هل النص متوسع بالكامل
+  const [captionOverflowing, setCaptionOverflowing] = useState(false); // هل النص أطول من سطرين فعلاً
+  const captionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = captionRef.current;
+    if (el) {
+      // بنقارن ارتفاع النص الكامل بارتفاع السطرين لمعرفة لو محتاج زرار "عرض المزيد"
+      setCaptionOverflowing(el.scrollHeight > el.clientHeight + 1);
+    }
+  }, [meme.caption]);
 
   // --- الـ feedback السلبي لخوارزمية الترتيب (راجع RANKING_ALGORITHMS.md) ---
   // زرار "مش مهتم" كان معمول ليه service function (submitNegativeFeedback)
@@ -299,8 +312,34 @@ export default function MemeCard({
             </div>
           </div>
 
-          {/* نص المنشور */}
-          {meme.caption && <div className="text-sm text-gray-800 leading-relaxed mb-3">{parseCaption(meme.caption)}</div>}
+          {/* نص المنشور - سطرين بس، والباقي ورا "عرض المزيد" */}
+          {meme.caption && (
+            <div className="text-sm text-gray-800 leading-relaxed mb-3">
+              <div
+                ref={captionRef}
+                style={
+                  captionExpanded
+                    ? undefined
+                    : {
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }
+                }
+              >
+                {parseCaption(meme.caption)}
+              </div>
+              {(captionOverflowing || captionExpanded) && (
+                <button
+                  onClick={() => setCaptionExpanded(v => !v)}
+                  className="text-gray-500 text-xs font-bold mt-1 hover:underline"
+                >
+                  {captionExpanded ? "عرض أقل" : "عرض المزيد"}
+                </button>
+              )}
+            </div>
+          )}
 
           {/* عرض الميديا (صورة، فيديو، أو مجموعة صور) */}
           <div className="rounded-xl border border-gray-200 overflow-hidden mb-3 bg-gray-50 relative group">

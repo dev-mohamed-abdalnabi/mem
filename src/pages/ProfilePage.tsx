@@ -60,9 +60,6 @@ export default function ProfilePage({
   const [isEditing, setIsEditing] = useState(false);
   const [tempBio, setTempBio] = useState(profile.bio || "");
   const [tempName, setTempName] = useState(profile.username);
-  // النبذة الشخصية لو طويلة بتتقص على أول سطرين في الهيدر، وبتتفتح كاملة
-  // بزرار "عرض المزيد" بدل ما تاخد مساحة كبيرة من الهيدر على طول
-  const [isBioExpanded, setIsBioExpanded] = useState(false);
   
   // تبويبات الصفحة
   const [activeProfileTab, setActiveProfileTab] = useState<"posts" | "info">("posts");
@@ -93,12 +90,6 @@ export default function ProfilePage({
     }
     return () => { document.body.style.overflow = "auto"; };
   }, [avatarPreview]);
-
-  // لو المستخدم فتح بروفايل واحد وقرا نبذته كاملة، وبعدين روح لبروفايل حد
-  // تاني، النبذة الجديدة لازم تبدأ مقفولة (مقصوصة) من الأول برضه
-  useEffect(() => {
-    setIsBioExpanded(false);
-  }, [profile.id]);
 
   useEffect(() => {
     const fetchUserMemes = async () => {
@@ -406,25 +397,9 @@ export default function ProfilePage({
               لو المستخدم كاتب نبذة، لأنها كانت بتتعرض جوه تبويب "معلومات
               الحساب" بس مش هنا في الهيدر نفسه زي فيسبوك/تويتر */}
           {profile.bio && (
-            <div className="mt-3">
-              <p
-                className={`text-[15px] text-gray-800 dark:text-gray-100 leading-relaxed whitespace-pre-wrap ${
-                  isBioExpanded ? "" : "line-clamp-2"
-                }`}
-              >
-                {profile.bio}
-              </p>
-              {/* بنظهر زرار "عرض المزيد" بس لو النبذة فعلاً طويلة (أكتر من ~٩٠
-                  حرف أو فيها أكتر من سطرين يدويين)، مش لو هي أصلاً قصيرة وسطرين كفاية ليها */}
-              {(profile.bio.length > 90 || (profile.bio.match(/\n/g)?.length ?? 0) >= 2) && (
-                <button
-                  onClick={() => setIsBioExpanded(v => !v)}
-                  className="text-[13px] font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mt-1"
-                >
-                  {isBioExpanded ? "عرض أقل" : "عرض المزيد"}
-                </button>
-              )}
-            </div>
+            <p className="text-[15px] text-gray-800 dark:text-gray-100 mt-3 leading-relaxed whitespace-pre-wrap">
+              {profile.bio}
+            </p>
           )}
         </div>
 
