@@ -143,6 +143,18 @@ export default function Header({
             <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
             <span>{currentUser.total_points}</span>
           </div>
+
+          {/* بادج سلسلة الأيام المتتالية (Streak) - بتظهر بس لو المستخدم عنده
+              سلسلة فعلية (يومين فأكتر)، عشان مانضايقش بادج فاضية لمستخدم جديد */}
+          {isRealUser && !!currentUser.current_streak && currentUser.current_streak >= 2 && (
+            <div
+              className="h-10 px-3 rounded-full bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900 flex items-center gap-1 text-sm font-bold text-orange-600 dark:text-orange-400 select-none"
+              title={`سلسلة ${currentUser.current_streak} يوم متتالي - افتح التطبيق كل يوم عشان متخسرهاش`}
+            >
+              <span aria-hidden="true">🔥</span>
+              <span>{currentUser.current_streak}</span>
+            </div>
+          )}
         </div>
 
         {/* شريط البحث المركزي */}

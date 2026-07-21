@@ -484,7 +484,7 @@ export default function ReelsPage({
               onClick={() => onUserProfileClick(meme.user_id)}
               className="flex items-center gap-2 mb-2"
             >
-              <img src={meme.profiles?.avatar_url || ""} className="w-9 h-9 rounded-full border-2 border-white object-cover" alt="" />
+              <img loading="lazy" decoding="async" src={meme.profiles?.avatar_url || ""} className="w-9 h-9 rounded-full border-2 border-white object-cover" alt="" />
               <span className="font-bold text-sm">{meme.profiles?.username || "مستخدم"}</span>
             </button>
             {meme.caption && (

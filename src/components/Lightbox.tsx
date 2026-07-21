@@ -71,7 +71,7 @@ export default function Lightbox({ mediaUrl, mediaType = 'image', onClose }: Lig
         title: 'مشاركة',
         text: 'شارك هذا المحتوى',
         url: mediaUrl
-      }).catch(err => console.log('Share error:', err));
+      }).catch(() => { /* المستخدم لغى المشاركة أو حصل خطأ غير مهم - تجاهل صامت في الإنتاج */ });
     }
   };
 

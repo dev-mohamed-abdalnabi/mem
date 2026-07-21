@@ -17,6 +17,8 @@ export interface Profile {
   following_count: number;
   created_at: string;
   updated_at: string;
+  current_streak?: number;
+  longest_streak?: number;
 }
 
 export interface Meme {

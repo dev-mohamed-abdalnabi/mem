@@ -19,5 +19,19 @@ export default defineConfig(() => {
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
+    build: {
+      // بيفصل مكتبات الـ vendor الكبيرة (react, supabase, motion) في ملفات
+      // منفصلة عن كود التطبيق نفسه، عشان المتصفح يقدر يعمل cache لها لوحدها
+      // من غير ما تتحمل تاني كل ما تعمل نشر جديد لكود التطبيق بس.
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom'],
+            'vendor-supabase': ['@supabase/supabase-js'],
+            'vendor-motion': ['motion'],
+          },
+        },
+      },
+    },
   };
 });

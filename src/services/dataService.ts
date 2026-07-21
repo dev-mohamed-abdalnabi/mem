@@ -89,19 +89,26 @@ async function compressImage(file: File, maxDimension = 1600, quality = 0.82): P
     ctx.drawImage(bitmap, 0, 0, width, height);
     bitmap.close?.();
 
+    // بنجرب WebP الأول (بيوفر 25-35% حجم إضافي عن JPEG بنفس الجودة تقريباً)،
+    // ولو المتصفح مش داعم توليد WebP فعلياً، بنرجع تلقائياً لـ JPEG عشان
+    // نضمن التوافق مع كل المتصفحات (سفاري القديم مثلاً).
+    const supportsWebp = canvas.toDataURL("image/webp").startsWith("data:image/webp");
+    const outputType = supportsWebp ? "image/webp" : "image/jpeg";
+    const outputExt = supportsWebp ? ".webp" : ".jpg";
+
     let q = quality;
-    let blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", q));
+    let blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, outputType, q));
     // لو لسه أكبر من الحجم المستهدف، بنقلل الجودة تدريجياً (خطوات صغيرة)
     // لحد ما نوصل للحجم المطلوب أو نوصل للحد الأدنى المسموح للجودة
     while (blob && blob.size > TARGET_MAX_BYTES && q > MIN_QUALITY) {
       q = Math.max(MIN_QUALITY, q - 0.1);
-      blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", q));
+      blob = await new Promise(resolve => canvas.toBlob(resolve, outputType, q));
     }
 
     if (!blob || blob.size >= file.size) return file; // لو الضغط زوّد الحجم، سيب الأصلي
 
-    const newName = file.name.replace(/\.\w+$/, "") + ".jpg";
-    return new File([blob], newName, { type: "image/jpeg" });
+    const newName = file.name.replace(/\.\w+$/, "") + outputExt;
+    return new File([blob], newName, { type: outputType });
   } catch (e) {
     console.warn("Image compression failed, uploading original:", e);
     return file;
@@ -363,6 +370,24 @@ export const dataService = {
     return true;
   },
 
+  /**
+   * بتتنادى مرة واحدة بس لكل جلسة/يوم لما المستخدم يفتح التطبيق فعلياً (مش
+   * كل ريكوست بيانات عادي)، عشان تحسب سلسلة الأيام المتتالية (Streak) - نفس
+   * فكرة سناب/دولينجو اللي بتخلي المستخدم يرجع كل يوم عشان مايخسرش السلسلة.
+   * الحساب الفعلي والتحقق كله في الداتابيز (RPC)، هنا بس بننادي وبنرجع
+   * النتيجة عشان نعرضها في الهيدر.
+   */
+  recordDailyActivity: async (): Promise<{ current_streak: number; longest_streak: number; streak_increased: boolean } | null> => {
+    try {
+      const { data, error } = await supabase.rpc("record_daily_activity");
+      if (error) throw error;
+      return Array.isArray(data) ? data[0] : data;
+    } catch (e) {
+      console.warn("تعذر تسجيل السلسلة اليومية:", e);
+      return null;
+    }
+  },
+
   uploadMemeFile: async (file: File, bucket: string = "memes"): Promise<string> => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime'];
     if (!allowedTypes.includes(file.type)) throw new Error("نوع الملف غير مدعوم.");
@@ -374,8 +399,10 @@ export const dataService = {
 
     // حد أقصى لحجم الملف الأصلي قبل الضغط - أكبر بكتير للفيديو عشان فيديوهات
     // الموبايل الحديثة (4K مثلاً) بتبقى كبيرة بطبيعتها قبل ما نضغطها هنا
-    const maxOriginalSize = file.type.startsWith("video/") ? 200 * 1024 * 1024 : 15 * 1024 * 1024;
-    if (file.size > maxOriginalSize) throw new Error("حجم الملف كبير جداً.");
+    // كان الحد 200 ميجا للفيديو، ده كان بيخلي أي رفع من نت ضعيف يفشل أو ياخد
+    // دقايق طويلة. قللناه لحد منطقي (50 ميجا) قبل الضغط المحلي اللي بيحصل تحت.
+    const maxOriginalSize = file.type.startsWith("video/") ? 50 * 1024 * 1024 : 15 * 1024 * 1024;
+    if (file.size > maxOriginalSize) throw new Error("حجم الملف كبير جداً. جرب فيديو أقصر أو بجودة أقل.");
 
     // ضغط الصور والفيديوهات قبل الرفع فعلياً (كان الفيديو بيترفع بحجمه الأصلي
     // كامل من غير أي ضغط، وده سبب رئيسي في بطء التحميل والتشغيل)
@@ -394,7 +421,16 @@ export const dataService = {
 
     const fileExt = fileToUpload.name.split('.').pop();
     const fileName = `${userId}/${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(fileName, fileToUpload);
+    // كان الرفع من غير cacheControl ولا contentType صريح (عكس uploadAvatar)،
+    // يعني كل صورة/فيديو ميم كان بيترفع بـ Cache-Control افتراضي قصير جداً
+    // (ثانية واحدة من Supabase)، فأي زيارة تانية لنفس البوست كانت بتعيد تحميل
+    // نفس الملف من الصفر بدل ما المتصفح/الـ CDN يخدمه من الكاش. ده استهلاك
+    // باندويدث وبطء غير ضروري خصوصاً في الفيديوهات. دلوقتي بنحط كاش يوم كامل
+    // (الملفات أصلاً بأسماء عشوائية unique، فمفيش خطر تضارب مع نسخة قديمة).
+    const { error: uploadError } = await supabase.storage.from(bucket).upload(fileName, fileToUpload, {
+      contentType: fileToUpload.type,
+      cacheControl: "86400",
+    });
     if (uploadError) throw uploadError;
 
     const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(fileName);
@@ -590,12 +626,16 @@ export const dataService = {
    * الكود القديم كان بس بياخد الـ 10 بوستات المحملة في الفيد ويعيد ترتيبهم محلياً!
    */
   getTrendingMemes: async (limit: number = 30): Promise<Meme[]> => {
-    const { data, error } = await supabase
-      .from("trending_memes")
-      .select("*, profiles:user_id(*)")
-      .limit(limit);
+    // كانت القراءة بتحصل مباشرة من الـ materialized view عبر REST API (أي
+    // حد حتى بدون تسجيل دخول يقدر يستعلم عليها). دلوقتي بتعدي على RPC
+    // (`get_trending_memes_v1` في fix_security_v5.sql) بدل القراءة المباشرة.
+    const { data, error } = await supabase.rpc("get_trending_memes_v1", { p_limit: limit });
     if (error) throw error;
-    return (data as Meme[]).map(m => ({ ...m, tags: [] }));
+    return (data as any[]).map(m => ({
+      ...m,
+      profiles: m.profile,
+      tags: [],
+    })) as Meme[];
   },
 
   toggleLike: async (memeId: string, _unusedUserId: string): Promise<{ liked: boolean; likesCount: number }> => {
