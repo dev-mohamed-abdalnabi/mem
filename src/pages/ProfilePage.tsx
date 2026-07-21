@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import DOMPurify from "dompurify";
 import { Camera, MessageCircle, Award, Clock, X, Check, CalendarDays, Users, UserPlus, Image as ImageIcon } from "lucide-react";
 import { Profile, Meme } from "../types";
 import MemeCard from "../components/MemeCard";
@@ -264,7 +263,7 @@ export default function ProfilePage({
               onPointerUp={handlePointerUp}
               onPointerLeave={handlePointerUp}
             >
-              <img 
+              <img loading="lazy" decoding="async" 
                 ref={imageRef}
                 src={avatarPreview} 
                 alt="Crop preview" 
@@ -322,7 +321,7 @@ export default function ProfilePage({
               onClick={() => !isUploadingAvatar && setLightboxImage(profile.avatar_url || null)}
             >
               {profile.avatar_url ? (
-                <img src={profile.avatar_url} className="w-full h-full object-cover" referrerPolicy="no-referrer" alt="" />
+                <img loading="lazy" decoding="async" src={profile.avatar_url} className="w-full h-full object-cover" referrerPolicy="no-referrer" alt="" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-gray-400">{profile.username[0]}</div>
               )}
@@ -387,7 +386,7 @@ export default function ProfilePage({
               الحساب" بس مش هنا في الهيدر نفسه زي فيسبوك/تويتر */}
           {profile.bio && (
             <p className="text-[15px] text-gray-800 dark:text-gray-100 mt-3 leading-relaxed whitespace-pre-wrap">
-              {DOMPurify.sanitize(profile.bio)}
+              {profile.bio}
             </p>
           )}
         </div>
@@ -458,7 +457,7 @@ export default function ProfilePage({
                 <div className="border-b border-gray-200 dark:border-gray-800 pb-5">
                   <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">نبذة</h2>
                   <p className="text-[15px] text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
-                    {profile.bio ? DOMPurify.sanitize(profile.bio) : "لا توجد نبذة شخصية."}
+                    {profile.bio ? profile.bio : "لا توجد نبذة شخصية."}
                   </p>
                 </div>
 

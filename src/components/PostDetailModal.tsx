@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { X, Heart, MessageCircle, Share2, Bookmark, Send, Loader2 } from "lucide-react";
-import DOMPurify from "dompurify";
 import { Meme, Comment, Profile } from "../types";
 import { dataService } from "../services/dataService";
 import CustomVideoPlayer from "./CustomVideoPlayer";
@@ -158,7 +157,7 @@ export default function PostDetailModal({
   /** عرض تعليق واحد (أساسي أو رد) - نفس الشكل لكن الردود بتتعرض أصغر ومزحزحة لجنب */
   const renderComment = (c: Comment, isReply: boolean, parentId?: string) => (
     <div key={c.id} className={`flex gap-3 ${isReply ? "mr-8 mt-3" : ""}`}>
-      <img 
+      <img loading="lazy" decoding="async" 
         src={c.profiles?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${c.profiles?.username}`} 
         className={`rounded-full object-cover shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${isReply ? "w-6 h-6" : "w-8 h-8"}`}
         onClick={() => c.profiles?.id && onUserProfileClick(c.profiles.id)}
@@ -167,7 +166,7 @@ export default function PostDetailModal({
       <div className="flex-1">
         <div className="bg-gray-100 p-3 rounded-2xl rounded-tr-none">
           <div className="font-bold text-xs mb-1">{c.profiles?.username}</div>
-          <div className="text-sm text-gray-800">{DOMPurify.sanitize(c.content)}</div>
+          <div className="text-sm text-gray-800">{c.content}</div>
         </div>
         <div className="flex items-center gap-3 text-[10px] text-gray-400 mt-1 mr-2">
           <span>{new Date(c.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
@@ -214,7 +213,7 @@ export default function PostDetailModal({
         {meme.post_type === 'video' && meme.video_url ? (
           <CustomVideoPlayer src={meme.video_url} className="max-h-full" memeId={meme.id} />
         ) : (
-          <img 
+          <img loading="lazy" decoding="async" 
             src={meme.image_url || (meme.images && meme.images[0]) || ""} 
             className="max-w-full max-h-full object-contain"
             alt="post"
@@ -261,7 +260,7 @@ export default function PostDetailModal({
         {/* Creator Info - Desktop only header */}
         <div className="hidden md:flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-3">
-            <img 
+            <img loading="lazy" decoding="async" 
               src={creator.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${creator.username}`} 
               className="w-10 h-10 rounded-full object-cover" 
               onClick={() => onUserProfileClick(creator.id)}
@@ -279,11 +278,11 @@ export default function PostDetailModal({
         {meme.caption && (
           <div className="p-4 border-b bg-gray-50/50">
             <div className="flex gap-3">
-              <img 
+              <img loading="lazy" decoding="async" 
                 src={creator.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${creator.username}`} 
                 className="w-8 h-8 rounded-full shrink-0" 
               />
-              <p className="text-sm leading-relaxed">{DOMPurify.sanitize(meme.caption)}</p>
+              <p className="text-sm leading-relaxed">{meme.caption}</p>
             </div>
           </div>
         )}

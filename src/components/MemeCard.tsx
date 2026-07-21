@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import DOMPurify from "dompurify";
 import { 
   Heart, MessageCircle, Share2, Bookmark, 
   Trash2, AlertOctagon, Check, Frown, ShieldAlert, PlusCircle, ChevronRight, ChevronLeft,
@@ -195,8 +194,7 @@ export default function MemeCard({
    */
   const parseCaption = (caption: string | null) => {
     if (!caption) return "";
-    const sanitizedCaption = DOMPurify.sanitize(caption);
-    return sanitizedCaption.split(" ").map((word, i) => {
+    return caption.split(" ").map((word, i) => {
       if (word.startsWith("#")) {
         const cleanTag = word.replace("#", "");
         return (
@@ -236,7 +234,7 @@ export default function MemeCard({
         <div className="flex flex-col items-center gap-2 shrink-0">
           <div className="relative">
             <div className="cursor-pointer hover:opacity-80" onClick={() => onUserProfileClick(creator.id)}>
-              <img src={creator.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${creator.username}`} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-100" />
+              <img loading="lazy" decoding="async" src={creator.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${creator.username}`} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-100" />
             </div>
             {!isFollowingCreator && currentUser.id !== creator.id && (
               <button onClick={() => onFollowToggle(currentUser.id, creator.id)} className="absolute -bottom-1 -left-1 bg-black text-white rounded-full w-4 h-4 flex items-center justify-center border-2 border-white"><PlusCircle className="w-3 h-3" /></button>
@@ -315,27 +313,27 @@ export default function MemeCard({
                   <div className="grid grid-cols-2 gap-0.5 aspect-square">
                     {meme.images.map((img, idx) => (
                       <div key={idx} className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(img)}>
-                        <img src={img} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt={`صورة ${idx + 1}`} />
+                        <img loading="lazy" decoding="async" src={img} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt={`صورة ${idx + 1}`} />
                       </div>
                     ))}
                   </div>
                 ) : meme.images.length === 3 ? (
                   <div className="grid gap-0.5 aspect-square" style={{ gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr' }}>
                     <div className="col-span-1 row-span-2 relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(meme.images![0])}>
-                      <img src={meme.images[0]} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt="صورة 1" />
+                      <img loading="lazy" decoding="async" src={meme.images[0]} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt="صورة 1" />
                     </div>
                     <div className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(meme.images![1])}>
-                      <img src={meme.images[1]} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt="صورة 2" />
+                      <img loading="lazy" decoding="async" src={meme.images[1]} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt="صورة 2" />
                     </div>
                     <div className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(meme.images![2])}>
-                      <img src={meme.images[2]} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt="صورة 3" />
+                      <img loading="lazy" decoding="async" src={meme.images[2]} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt="صورة 3" />
                     </div>
                   </div>
                 ) : meme.images.length === 4 ? (
                   <div className="grid grid-cols-2 gap-0.5 aspect-square">
                     {meme.images.map((img, idx) => (
                       <div key={idx} className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(img)}>
-                        <img src={img} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt={`صورة ${idx + 1}`} />
+                        <img loading="lazy" decoding="async" src={img} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt={`صورة ${idx + 1}`} />
                       </div>
                     ))}
                   </div>
@@ -343,7 +341,7 @@ export default function MemeCard({
                   <div className="grid grid-cols-2 gap-0.5 aspect-square">
                     {meme.images.slice(0, 4).map((img, idx) => (
                       <div key={idx} className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(img)}>
-                        <img src={img} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt={`صورة ${idx + 1}`} />
+                        <img loading="lazy" decoding="async" src={img} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt={`صورة ${idx + 1}`} />
                         {idx === 3 && meme.images!.length > 4 && (
                           <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                             <span className="text-white text-2xl font-black">+{meme.images!.length - 4}</span>
@@ -355,7 +353,7 @@ export default function MemeCard({
                 )}
               </div>
             ) : meme.image_url ? (
-              <img src={meme.image_url} className="w-full max-h-[500px] object-contain" onClick={() => onImageClick?.(meme.image_url!)} />
+              <img loading="lazy" decoding="async" src={meme.image_url} className="w-full max-h-[500px] object-contain" onClick={() => onImageClick?.(meme.image_url!)} />
             ) : null}
           </div>
 
@@ -389,7 +387,7 @@ export default function MemeCard({
         <div className="bg-gray-50/50 p-4 border-t border-gray-100 flex flex-col gap-3">
           {commentsList.map((c) => (
             <div key={c.id} className="flex items-start gap-2 text-right">
-              <img
+              <img loading="lazy" decoding="async"
                 src={c.profiles?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${c.profiles?.username}`}
                 className="w-8 h-8 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => c.profiles?.id && onUserProfileClick(c.profiles.id)}
@@ -397,7 +395,7 @@ export default function MemeCard({
               />
               <div className="flex-1 bg-gray-100 p-2.5 rounded-2xl">
                 <div className="font-extrabold text-xs text-gray-900">{c.profiles?.username}</div>
-                <div className="text-sm text-gray-800">{DOMPurify.sanitize(c.content)}</div>
+                <div className="text-sm text-gray-800">{c.content}</div>
               </div>
             </div>
           ))}

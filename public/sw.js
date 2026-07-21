@@ -1,13 +1,25 @@
-// Service Worker: تركيب "قابل للتثبيت" + كاش حقيقي بستايل
-// Network First مع رجوع للكاش لو مفيش نت.
-// - أونلاين: بيجيب كل حاجة من النت على طول (عشان أي تحديث يوصل فوراً)
-//   وبيحفظ نسخة منها في الكاش أول أول.
-// - أوفلاين: لما fetch للنت يفشل، بيرجع آخر نسخة محفوظة في الكاش (لو
-//   الصفحة/الملف ده كان اتفتح قبل كده وهو أونلاين).
-// - تنقل بين الصفحات (SPA) أوفلاين: لو مفيش نسخة مطابقة بالظبط، بنرجع
-//   /index.html المحفوظة عشان الـ SPA تفتح وتكمل من الكاش المحلي.
+// Service Worker: تركيب "قابل للتثبيت" + كاش حقيقي بستايل هجين:
+// - الملفات الثابتة (JS/CSS/أيقونات/خطوط اللي بيبنيها Vite بأسماء فيها hash،
+//   يعني أي تعديل في الكود بيولّد اسم ملف جديد تلقائي) بقت Cache First:
+//   لو موجودة في الكاش، بترجع فوراً من غير ما تضرب النت خالص - أسرع وأوفر
+//   في الداتا. مفيش خطر إنها تبقى قديمة لأن اسم الملف نفسه بيتغير لو المحتوى
+//   اتغير (الملف القديم بس بيفضل في الكاش من غير ما حد يطلبه تاني).
+// - أي حاجة تانية (صفحات HTML، طلبات API لـ Supabase، إلخ) لسه Network First
+//   زي الأول بالظبط، عشان أي تحديث في البيانات يوصل فوراً وقت النت شغال،
+//   ولو النت قطع بيرجع لآخر نسخة محفوظة.
 
-const CACHE_NAME = "mem-shell-v3";
+const CACHE_NAME = "mem-shell-v4";
+
+// باترن بسيط للملفات الثابتة القابلة لـ Cache First (بناءً على المسار أو الامتداد)
+const STATIC_PATTERNS = [
+  /\/assets\//,
+  /\/icons\//,
+  /\.(js|css|woff2?|ttf|eot|png|jpe?g|webp|svg|ico)$/,
+];
+
+function isStaticAsset(url) {
+  return STATIC_PATTERNS.some((re) => re.test(url));
+}
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -73,6 +85,27 @@ self.addEventListener("fetch", (event) => {
   // بس GET بيتخزن في الكاش - أي حاجة تانية (POST/PUT..) لازم تعدي على النت زي ما هي
   if (request.method !== "GET") return;
 
+  // Cache First للملفات الثابتة: أسرع وأوفر في النت، وآمن لأن أسماء
+  // الملفات دي فيها hash بيتغير تلقائي مع أي تحديث في الكود
+  if (isStaticAsset(request.url)) {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(CACHE_NAME);
+        const cached = await cache.match(request);
+        if (cached) return cached;
+        try {
+          const response = await fetch(request);
+          if (response && response.status === 200) cache.put(request, response.clone());
+          return response;
+        } catch (err) {
+          throw err;
+        }
+      })()
+    );
+    return;
+  }
+
+  // Network First لكل حاجة تانية (صفحات SPA، طلبات API..)
   event.respondWith(
     (async () => {
       try {

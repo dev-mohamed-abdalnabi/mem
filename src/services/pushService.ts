@@ -15,10 +15,47 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 export const pushService = {
   /**
+   * بتفعّل الاشتراك بس لو الإذن ممنوح بالفعل من قبل (صامتة تماماً - مفيش
+   * أي prompt). بتتنادى أول ما التطبيق يفتح، عشان نتأكد إن الاشتراك لسه
+   * موجود في الداتابيز من غير ما نضايق مستخدم لسه ما وثقش في التطبيق
+   * بطلب إذن الإشعارات فور ما يفتحه لأول مرة.
+   */
+  ensureSubscribedIfGranted: async (userId: string): Promise<void> => {
+    try {
+      if (userId === "guest-user-temp") return;
+      if (!("serviceWorker" in navigator) || !("PushManager" in window) || typeof Notification === "undefined") return;
+      if (Notification.permission !== "granted") return;
+      await pushService.subscribe(userId);
+    } catch (e) {
+      console.warn("تعذر التأكد من اشتراك الإشعارات:", e);
+    }
+  },
+
+  /**
+   * بتطلب إذن الإشعارات فعلياً (لو لسه ما اتسألش قبل كده) وتفعّل الاشتراك.
+   * لازم تتنادى بس بعد أول تفاعل حقيقي من المستخدم (لايك/كومنت/بوست) مش
+   * فور ما يفتح التطبيق - المتصفحات بتدي فرصة واحدة بس لطلب الإذن ده،
+   * ولو المستخدم رفض بسرعة قبل ما يثق في التطبيق (زي ما بيحصل غالباً مع
+   * أي prompt بيظهر فوراً عند الفتح)، بيبقى صعب جداً تسترجعه تاني.
+   * بتتحكم في نفسها عشان متتكررش أكتر من مرة لكل جهاز.
+   */
+  promptForPermissionOnce: async (userId: string): Promise<void> => {
+    try {
+      if (userId === "guest-user-temp") return;
+      if (!("serviceWorker" in navigator) || !("PushManager" in window) || typeof Notification === "undefined") return;
+      if (Notification.permission !== "default") return; // already answered (granted/denied)
+      if (localStorage.getItem("push_prompt_shown") === "1") return;
+      localStorage.setItem("push_prompt_shown", "1");
+      await pushService.subscribe(userId);
+    } catch (e) {
+      console.warn("تعذر طلب إذن الإشعارات:", e);
+    }
+  },
+
+  /**
    * بتحاول تفعّل إشعارات الـ Push للمستخدم الحالي (لو المتصفح بيدعمها ولسه
-   * ما رفضش الإذن قبل كده). بتتنادى مرة عند تسجيل الدخول/فتح التطبيق، وأي
-   * فشل فيها (المتصفح مش بيدعم، الإذن مرفوض...) بيتم تجاهله بهدوء من غير
-   * ما يوقف باقي التطبيق.
+   * ما رفضش الإذن قبل كده). أي فشل فيها (المتصفح مش بيدعم، الإذن مرفوض...)
+   * بيتم تجاهله بهدوء من غير ما يوقف باقي التطبيق.
    */
   subscribe: async (userId: string): Promise<void> => {
     try {

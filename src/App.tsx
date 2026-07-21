@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from "react";
 
 // استيراد الأنواع والخدمات
 import { Profile, Meme, Notification } from "./types";
@@ -9,13 +9,16 @@ import MainLayout from "./components/layout/MainLayout";
 import FeedPage from "./pages/FeedPage";
 import CreatePostPage from "./pages/CreatePostPage";
 import SavesPage from "./pages/SavesPage";
-import ReelsPage from "./pages/ReelsPage";
-import TrendingPage from "./pages/TrendingPage";
 import ProfilePage from "./pages/ProfilePage";
-import Leaderboard from "./components/Leaderboard";
 import PostDetailModal from "./components/PostDetailModal";
-import AdminPanel from "./pages/AdminPanel"; // لوحة تحكم المشرف
-import MessagesPage from "./pages/MessagesPage"; // نظام الرسايل الخاصة (زي الماسنجر)
+// code splitting: الصفحات دي مش محتاجة تتحمل في أول فتحة للتطبيق (ريلز/ترندينج
+// بيتفتحوا بس لما المستخدم يدوس عليهم، والأدمن بانل والرسايل أصلاً لفئة صغيرة
+// من المستخدمين) - ده بيقلل حجم أول تحميل (bundle) لكل الزوار العاديين.
+const ReelsPage = lazy(() => import("./pages/ReelsPage"));
+const TrendingPage = lazy(() => import("./pages/TrendingPage"));
+const Leaderboard = lazy(() => import("./components/Leaderboard"));
+const AdminPanel = lazy(() => import("./pages/AdminPanel")); // لوحة تحكم المشرف
+const MessagesPage = lazy(() => import("./pages/MessagesPage")); // نظام الرسايل الخاصة (زي الماسنجر)
 import { messagesService } from "./services/messagesService";
 import { pushService } from "./services/pushService";
 
@@ -310,7 +313,7 @@ export default function App() {
    */
   useEffect(() => {
     if (currentUser.id === "guest-user-temp") return;
-    const unsubscribe = messagesService.subscribeToInbox(async () => {
+    const unsubscribe = messagesService.subscribeToInbox(currentUser.id, async () => {
       try {
         const totalUnread = await messagesService.getTotalUnreadCount();
         setUnreadMessagesCount(totalUnread);
@@ -327,7 +330,7 @@ export default function App() {
    */
   useEffect(() => {
     if (currentUser.id === "guest-user-temp") return;
-    pushService.subscribe(currentUser.id);
+    pushService.ensureSubscribedIfGranted(currentUser.id);
   }, [currentUser.id]);
 
   /**
@@ -409,6 +412,10 @@ export default function App() {
           ? { ...m, liked_by_me: result.liked, likes_count: result.likesCount }
           : m
       ));
+      // أول تفاعل حقيقي من المستخدم (لايك) هو أنسب لحظة نطلب فيها إذن
+      // الإشعارات - المستخدم بقى بيستخدم التطبيق فعلياً بدل ما نطلب الإذن
+      // من أول ثانية قبل ما يثق في حاجة، وده بيقلل احتمال الرفض الفوري.
+      pushService.promptForPermissionOnce(currentUser.id);
     } catch (error) {
       console.error("Error toggling like:", error);
     }
@@ -663,7 +670,14 @@ export default function App() {
       onSignOutReal={async () => {
         try {
           await dataService.signOut?.();
+          // بنمسح بيانات الجلسة بس، مش تفضيلات الجهاز (زي الوضع الليلي) —
+          // كان localStorage.clear() بيمسح كل حاجة فتسجيل الخروج كان بيرجّع
+          // الثيم لافتراضي كل مرة.
+          const theme = localStorage.getItem("theme");
+          const pushPromptShown = localStorage.getItem("push_prompt_shown");
           localStorage.clear();
+          if (theme) localStorage.setItem("theme", theme);
+          if (pushPromptShown) localStorage.setItem("push_prompt_shown", pushPromptShown);
           sessionStorage.clear();
         } catch (error) {
           console.error("Logout error:", error);
@@ -675,7 +689,9 @@ export default function App() {
       onCloseLightbox={() => { setLightboxImage(null); setLightboxMediaType(null); }}
       unreadMessagesCount={unreadMessagesCount}
     >
-      {renderContent()}
+      <Suspense fallback={<div className="w-full flex items-center justify-center py-20 text-gray-400 text-sm">جاري التحميل...</div>}>
+        {renderContent()}
+      </Suspense>
       
       {selectedMemeForComments && (
         <PostDetailModal 

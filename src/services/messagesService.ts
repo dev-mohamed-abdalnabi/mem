@@ -150,14 +150,18 @@ export const messagesService = {
    * مفتوحة حالياً)، عشان نحدّث قايمة المحادثات وعداد الرسايل الغير مقروءة
    * فوراً زي ما بيحصل في تطبيقات الشات الحقيقية.
    */
-  subscribeToInbox: (onChange: () => void) => {
+  subscribeToInbox: (userId: string, onChange: () => void) => {
     // بنولّد اسم قناة فريد لكل اشتراك، عشان لو فيه أكتر من مكان في التطبيق
     // بيعمل subscribeToInbox في نفس الوقت (مثلاً البادج في الهيدر + صفحة
     // الرسايل نفسها)، ميحصلش تعارض بين قنوات بنفس الاسم.
     const channelId = `messages-inbox-${Math.random().toString(36).slice(2)}-${Date.now()}`;
     const channel = supabase
       .channel(channelId)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => onChange())
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `recipient_id=eq.${userId}` },
+        () => onChange()
+      )
       .subscribe();
 
     return () => {

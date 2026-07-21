@@ -235,6 +235,7 @@ export default function CustomVideoPlayer({
         ref={videoRef}
         src={src}
         poster={poster}
+        preload="metadata"
         className="w-full h-full object-contain"
         onClick={() => {
           setIsPlaying(!isPlaying);

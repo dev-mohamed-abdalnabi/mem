@@ -1,6 +1,5 @@
 import { supabase } from "../supabaseClient";
 import { Profile, Meme, Comment, Notification, Report } from "../types";
-import DOMPurify from "dompurify";
 
 // Removed mock data entirely
 export const MOCK_PROFILES: Profile[] = [];
@@ -368,6 +367,11 @@ export const dataService = {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime'];
     if (!allowedTypes.includes(file.type)) throw new Error("نوع الملف غير مدعوم.");
 
+    // لازم نعرف هوية المستخدم عشان نحط ملفاته جوه فولدر باسم الـ uid بتاعه.
+    // ده مطلوب دلوقتي فعلياً من الـ storage RLS policy (اتصلحت عشان تفرض
+    // إن أول جزء من المسار = uid بتاع الرافع)، مش بس تنظيم شكلي زي قبل كده.
+    const userId = await getAuthenticatedUserId();
+
     // حد أقصى لحجم الملف الأصلي قبل الضغط - أكبر بكتير للفيديو عشان فيديوهات
     // الموبايل الحديثة (4K مثلاً) بتبقى كبيرة بطبيعتها قبل ما نضغطها هنا
     const maxOriginalSize = file.type.startsWith("video/") ? 200 * 1024 * 1024 : 15 * 1024 * 1024;
@@ -389,7 +393,7 @@ export const dataService = {
     }
 
     const fileExt = fileToUpload.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+    const fileName = `${userId}/${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
     const { error: uploadError } = await supabase.storage.from(bucket).upload(fileName, fileToUpload);
     if (uploadError) throw uploadError;
 
@@ -688,7 +692,7 @@ export const dataService = {
       .insert({
         meme_id: ensureUUID(memeId),
         user_id: userId,
-        content: DOMPurify.sanitize(content.trim()),
+        content: content.trim(),
         parent_comment_id: parentCommentId ? ensureUUID(parentCommentId) : null,
       })
       .select("*, profiles!user_id(*)")

@@ -466,7 +466,7 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
                   </div>
 
                   {report.meme?.image_url && (
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={report.meme.image_url}
                       alt="المنشور المبلغ عنه"
                       className="w-full max-h-64 object-cover rounded-lg mb-4"
@@ -530,7 +530,7 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
                   </div>
 
                   {meme.image_url && (
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={meme.image_url}
                       alt="المنشور"
                       className="w-full max-h-64 object-cover rounded-lg mb-4"

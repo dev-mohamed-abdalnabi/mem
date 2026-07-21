@@ -582,7 +582,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
             onClick={() => setShowCreateModal(true)}
             className="relative cursor-pointer group"
           >
-            <img
+            <img loading="lazy" decoding="async"
               src={currentUser?.avatar_url || ""}
               className="w-14 h-14 rounded-full border-2 border-gray-200 object-cover group-hover:border-blue-500 transition-colors"
               alt="قصتك"
@@ -612,7 +612,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
                 }
                 style={isFullyViewed ? undefined : { background: buildStoryRingBackground(uStories, viewedStoryIds) }}
               >
-                <img
+                <img loading="lazy" decoding="async"
                   src={uStories[0]?.profiles?.avatar_url || ""}
                   className="w-14 h-14 rounded-full border-2 border-white object-cover group-hover:scale-105 transition-transform"
                   alt={uStories[0]?.profiles?.username || "مستخدم"}
@@ -686,7 +686,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
 
           {/* هيدر الحالة بستايل واتساب: أفاتار + اسم + وقت حقيقي + خيارات + إغلاق */}
           <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/70 via-black/30 to-transparent pt-7 pb-6 px-3 flex items-center gap-3">
-            <img
+            <img loading="lazy" decoding="async"
               src={selectedStory?.profiles?.avatar_url || ""}
               className="w-9 h-9 rounded-full border-2 border-white object-cover"
               alt="الملف الشخصي"
@@ -909,7 +909,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
                             }
                           }}
                         >
-                          <img src={v.viewer?.avatar_url || ""} className="w-10 h-10 rounded-full object-cover" alt="" />
+                          <img loading="lazy" decoding="async" src={v.viewer?.avatar_url || ""} className="w-10 h-10 rounded-full object-cover" alt="" />
                           <span className="flex-1 font-bold text-sm text-gray-900 dark:text-white">{v.viewer?.username || "مستخدم"}</span>
                           {v.emoji && <span className="text-xl">{v.emoji}</span>}
                         </div>
@@ -951,7 +951,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
                   />
                   <div className="flex items-center gap-4 p-4 border-2 border-dashed border-blue-300 rounded-xl cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors">
                     <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                      <img className="w-6 h-6" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231877F2'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='9' cy='9' r='2' fill='white'/%3E%3Cpath d='M3 15l6-6 9 9' stroke='white' stroke-width='2' fill='none'/%3E%3C/svg%3E" alt="صورة" />
+                      <img loading="lazy" decoding="async" className="w-6 h-6" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231877F2'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='9' cy='9' r='2' fill='white'/%3E%3Cpath d='M3 15l6-6 9 9' stroke='white' stroke-width='2' fill='none'/%3E%3C/svg%3E" alt="صورة" />
                     </div>
                     <div>
                       <p className="font-bold text-gray-900 dark:text-white">صورة</p>

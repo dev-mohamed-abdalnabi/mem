@@ -122,7 +122,7 @@ export default function Header({
             onClick={() => onNavigate("feed")}
             className="flex items-center gap-2 cursor-pointer select-none group"
           >
-            <img 
+            <img loading="lazy" decoding="async" 
               src="/logo.png" 
               alt="mem logo" 
               className="w-10 h-10 rounded-full object-cover group-hover:scale-105 transition-transform shadow-sm"
@@ -223,7 +223,7 @@ export default function Header({
                       >
                         {/* صورة صاحب الإشعار - دوس عليها توديك لحسابه مباشرة */}
                         {notif.actor?.avatar_url ? (
-                          <img
+                          <img loading="lazy" decoding="async"
                             src={notif.actor.avatar_url}
                             alt="avatar"
                             onClick={(e) => {
@@ -291,7 +291,7 @@ export default function Header({
                 </p>
               </div>
               {isRealUser && currentUser.avatar_url ? (
-                <img
+                <img loading="lazy" decoding="async"
                   src={currentUser.avatar_url}
                   alt={currentUser.username}
                   className="w-8 h-8 rounded-full object-cover bg-white dark:bg-gray-700"

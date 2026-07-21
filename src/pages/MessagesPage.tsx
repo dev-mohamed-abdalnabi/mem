@@ -83,11 +83,11 @@ export default function MessagesPage({
   // الاشتراك اللايف في أي رسالة جديدة (حتى لو شاتها مش مفتوح) عشان
   // قايمة المحادثات والبادج يتحدثوا فوراً من غير ما المستخدم يعمل ريفريش
   useEffect(() => {
-    const unsubscribe = messagesService.subscribeToInbox(() => {
+    const unsubscribe = messagesService.subscribeToInbox(currentUser.id, () => {
       refreshConversations();
     });
     return unsubscribe;
-  }, [refreshConversations]);
+  }, [refreshConversations, currentUser.id]);
 
   const openConversation = useCallback(async (conv: ConversationListItem) => {
     setActiveConversation(conv);
@@ -285,7 +285,7 @@ export default function MessagesPage({
               className="w-full flex items-center gap-3 px-4 py-3 text-right transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60 border-b border-gray-50 dark:border-gray-800/60 last:border-b-0"
             >
                 {conv.otherUser.avatar_url ? (
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={conv.otherUser.avatar_url}
                     alt=""
                     onClick={(e) => { e.stopPropagation(); onUserProfileClick(conv.otherUser.id); }}
@@ -338,7 +338,7 @@ export default function MessagesPage({
                 className="flex items-center gap-2.5 text-right flex-1 min-w-0"
               >
                 {activeConversation.otherUser.avatar_url ? (
-                  <img src={activeConversation.otherUser.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" referrerPolicy="no-referrer" />
+                  <img loading="lazy" decoding="async" src={activeConversation.otherUser.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" referrerPolicy="no-referrer" />
                 ) : (
                   <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 font-black flex items-center justify-center shrink-0">
                     {activeConversation.otherUser.username?.[0] || "؟"}
@@ -386,7 +386,7 @@ export default function MessagesPage({
                         }`}
                       >
                         {msg.image_url && (
-                          <img src={msg.image_url} alt="" className="rounded-xl mb-1 max-h-64 object-cover" />
+                          <img loading="lazy" decoding="async" src={msg.image_url} alt="" className="rounded-xl mb-1 max-h-64 object-cover" />
                         )}
                         {msg.content && <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>}
                         <div className={`flex items-center gap-1 mt-1 ${isMine ? "justify-start" : "justify-end"}`}>
@@ -408,7 +408,7 @@ export default function MessagesPage({
           {attachedPreview && (
             <div className="shrink-0 px-4 pt-2 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
               <div className="relative inline-block">
-                <img src={attachedPreview} alt="" className="h-20 rounded-lg object-cover" />
+                <img loading="lazy" decoding="async" src={attachedPreview} alt="" className="h-20 rounded-lg object-cover" />
                 <button
                   onClick={clearAttachment}
                   className="absolute -top-2 -left-2 bg-gray-900 text-white rounded-full w-5 h-5 flex items-center justify-center"
@@ -497,7 +497,7 @@ export default function MessagesPage({
                     className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 text-right"
                   >
                     {p.avatar_url ? (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={p.avatar_url}
                         alt=""
                         onClick={(e) => { e.stopPropagation(); onUserProfileClick(p.id); }}
