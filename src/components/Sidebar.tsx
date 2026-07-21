@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, Flame, Cpu, Trophy, Bookmark, AlertTriangle, ShieldCheck, Heart, Sparkles, MessageCircle } from "lucide-react";
+import { Home, Flame, Cpu, Trophy, Bookmark, ShieldCheck, Heart, Sparkles, MessageCircle } from "lucide-react";
 import { Profile } from "../types";
 
 interface SidebarProps {
@@ -106,32 +106,9 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
             );
           })}
 
-          {/* Admin Emergency Reports Check */}
-          {isStaff && (
-            <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-              <p className="px-3 text-[10px] text-red-400 dark:text-red-400/80 font-black mb-1">صلاحيات الإشراف</p>
-              <button
-                onClick={() => onNavigate("moderation")}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl transition-all cursor-pointer text-right ${
-                  activeTab === "moderation"
-                    ? "bg-red-600 text-white"
-                    : "text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-1.5 rounded-lg ${activeTab === 'moderation' ? 'bg-white/10 text-white' : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'}`}>
-                    <AlertTriangle className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold leading-none">مراجعة البلاغات</p>
-                    <p className={`text-[9px] mt-1 ${activeTab === 'moderation' ? 'not-italic text-red-100' : 'text-red-400 dark:text-red-400/70'}`}>
-                      الميمز المبلغ عنها من المستخدمين
-                    </p>
-                  </div>
-                </div>
-              </button>
-            </div>
-          )}
+          {/* لوحة تحكم المشرف بقت مخفية تماماً من الموقع - مفيش زرار أو رابط
+              ظاهر ليها في أي مكان، والوصول ليها بس عن طريق رابط سري
+              (/11193) لحساب عنده صلاحية admin/moderator فعلاً. */}
         </div>
 
         {/* Humorous Egypt Status/Credits line */}

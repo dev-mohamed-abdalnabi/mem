@@ -223,12 +223,16 @@ export default function App() {
    * والتحقق من رابط الصفحة الحالي
    */
   useEffect(() => {
-    // التحقق من رابط الصفحة لتحديد التبويب النشط - لو مفيش رابط خاص (زي /admin)،
-    // بنبدأ من آخر تبويب كان محفوظ من قبل الريفريش (activeTab اتحدد بالفعل من
-    // sessionStorage في الـ useState initializer فوق) بدل ما نرجع للفيد دايماً.
+    // التحقق من رابط الصفحة لتحديد التبويب النشط - لوحة الأدمن بقت مخفية
+    // ومش ليها أي زرار أو رابط ظاهر في الموقع، والوصول ليها بس عن طريق
+    // الرابط السري /11193 (وبرضه لازم الحساب يكون admin/moderator فعلاً
+    // عشان لوحة الدخول جوه AdminPanel بتتحقق من الصلاحية قبل ما تفتح حاجة).
+    // لو مفيش رابط سري، بنبدأ من آخر تبويب كان محفوظ من قبل الريفريش
+    // (activeTab اتحدد بالفعل من sessionStorage في الـ useState initializer
+    // فوق) بدل ما نرجع للفيد دايماً.
     const path = window.location.pathname;
     let startTab = activeTab;
-    if (path === '/admin' || path.includes('admin')) {
+    if (path === '/11193') {
       startTab = 'admin';
       setActiveTab('admin');
     }
