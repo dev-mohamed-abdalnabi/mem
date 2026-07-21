@@ -352,24 +352,6 @@ export default function ProfilePage({
             )}
           </div>
 
-          {/* إحصائيات سريعة - النقاط / المتابعين / المشاهدات / الإعجابات */}
-          <div className="flex-1 grid grid-cols-4 gap-1 self-center px-1 sm:px-3">
-            {[
-              { icon: Flame, value: profile.total_points || 0, label: "نقطة", color: "text-amber-500" },
-              { icon: Users, value: profile.followers_count || 0, label: "متابع", color: "text-[#1d9bf0]" },
-              { icon: Eye, value: totalViews, label: "مشاهدة", color: "text-emerald-500" },
-              { icon: Heart, value: totalLikes, label: "إعجاب", color: "text-rose-500" },
-            ].map(({ icon: Icon, value, label, color }) => (
-              <div key={label} className="flex flex-col items-center gap-0.5">
-                <Icon className={`w-4 h-4 ${color}`} />
-                <span className="text-[13px] sm:text-[15px] font-extrabold text-gray-900 dark:text-white leading-none">
-                  {formatCompactNumber(value)}
-                </span>
-                <span className="text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 leading-none">{label}</span>
-              </div>
-            ))}
-          </div>
-
           <div className="pt-2">
             {!isOwnProfile && isRealUser ? (
               <div className="flex gap-2">
@@ -419,6 +401,28 @@ export default function ProfilePage({
               {profile.bio}
             </p>
           )}
+        </div>
+
+        {/* إحصائيات سريعة - شريط كامل العرض تحت النبذة، بدل ما تتزنق جنب
+            الصورة وتتلزق فوق بعض. كل رقم له مساحته وواضح لوحده. */}
+        <div className="grid grid-cols-4 mt-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-2xl py-3">
+          {[
+            { icon: Flame, value: profile.total_points || 0, label: "نقطة", color: "text-amber-500" },
+            { icon: Users, value: profile.followers_count || 0, label: "متابع", color: "text-[#1d9bf0]" },
+            { icon: Eye, value: totalViews, label: "مشاهدة", color: "text-emerald-500" },
+            { icon: Heart, value: totalLikes, label: "إعجاب", color: "text-rose-500" },
+          ].map(({ icon: Icon, value, label, color }, i) => (
+            <div
+              key={label}
+              className={`flex flex-col items-center gap-1 ${i > 0 ? "border-r border-gray-200 dark:border-gray-800" : ""}`}
+            >
+              <Icon className={`w-[18px] h-[18px] ${color}`} />
+              <span className="text-[16px] font-extrabold text-gray-900 dark:text-white leading-none">
+                {formatCompactNumber(value)}
+              </span>
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 leading-none">{label}</span>
+            </div>
+          ))}
         </div>
       </div>
 
