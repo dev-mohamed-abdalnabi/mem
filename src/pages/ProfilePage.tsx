@@ -59,12 +59,29 @@ export default function ProfilePage({
   
   const [isEditing, setIsEditing] = useState(false);
   const [tempBio, setTempBio] = useState(profile.bio || "");
+  // --- إظهار/إخفاء النبذة الطويلة (عرض المزيد) - نفس منطق caption البوست ---
+  const [bioExpanded, setBioExpanded] = useState(false);
+  const [bioOverflowing, setBioOverflowing] = useState(false);
+  const bioRef = useRef<HTMLParagraphElement>(null);
+  const [infoBioExpanded, setInfoBioExpanded] = useState(false);
+  const [infoBioOverflowing, setInfoBioOverflowing] = useState(false);
+  const infoBioRef = useRef<HTMLParagraphElement>(null);
+
   const [tempName, setTempName] = useState(profile.username);
   
   // تبويبات الصفحة
   const [activeProfileTab, setActiveProfileTab] = useState<"posts" | "info">("posts");
   const [localUserMemes, setLocalUserMemes] = useState<Meme[]>(userMemes);
   const [isLoadingMemes, setIsLoadingMemes] = useState(false);
+
+  useEffect(() => {
+    if (bioRef.current) {
+      setBioOverflowing(bioRef.current.scrollHeight > bioRef.current.clientHeight + 1);
+    }
+    if (infoBioRef.current) {
+      setInfoBioOverflowing(infoBioRef.current.scrollHeight > infoBioRef.current.clientHeight + 1);
+    }
+  }, [profile.bio, activeProfileTab]);
 
   // --- حالات أداة قص الصورة (Cropper) ---
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -397,9 +414,32 @@ export default function ProfilePage({
               لو المستخدم كاتب نبذة، لأنها كانت بتتعرض جوه تبويب "معلومات
               الحساب" بس مش هنا في الهيدر نفسه زي فيسبوك/تويتر */}
           {profile.bio && (
-            <p className="text-[15px] text-gray-800 dark:text-gray-100 mt-3 leading-relaxed whitespace-pre-wrap">
-              {profile.bio}
-            </p>
+            <div className="mt-3">
+              <p
+                ref={bioRef}
+                className="text-[15px] text-gray-800 dark:text-gray-100 leading-relaxed whitespace-pre-wrap"
+                style={
+                  bioExpanded
+                    ? undefined
+                    : {
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }
+                }
+              >
+                {profile.bio}
+              </p>
+              {(bioOverflowing || bioExpanded) && (
+                <button
+                  onClick={() => setBioExpanded(prev => !prev)}
+                  className="text-xs text-gray-500 font-semibold mt-1 hover:underline"
+                >
+                  {bioExpanded ? "عرض أقل" : "عرض المزيد"}
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -490,9 +530,30 @@ export default function ProfilePage({
                 {/* النبذة */}
                 <div className="border-b border-gray-200 dark:border-gray-800 pb-5">
                   <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">نبذة</h2>
-                  <p className="text-[15px] text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+                  <p
+                    ref={infoBioRef}
+                    className="text-[15px] text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed"
+                    style={
+                      infoBioExpanded
+                        ? undefined
+                        : {
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                          }
+                    }
+                  >
                     {profile.bio ? profile.bio : "لا توجد نبذة شخصية."}
                   </p>
+                  {profile.bio && (infoBioOverflowing || infoBioExpanded) && (
+                    <button
+                      onClick={() => setInfoBioExpanded(prev => !prev)}
+                      className="text-xs text-gray-500 font-semibold mt-1 hover:underline"
+                    >
+                      {infoBioExpanded ? "عرض أقل" : "عرض المزيد"}
+                    </button>
+                  )}
                 </div>
 
                 {/* التفاصيل (قائمة) */}
