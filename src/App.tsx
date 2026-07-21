@@ -40,9 +40,39 @@ const initialGuestProfile: Profile = {
   updated_at: new Date().toISOString()
 };
 
+// مفاتيح حفظ آخر تبويب/بروفايل في sessionStorage - عشان الريفريش يرجّع
+// المستخدم لنفس المكان اللي كان فيه بدل ما يرميه دايماً على الفيد من الأول.
+// sessionStorage (مش localStorage) عن قصد: يفضل طول ما التاب مفتوح، ويتصفر
+// تلقائي لو المستخدم قفل التاب وفتح تاني من جديد.
+const SAVED_TAB_KEY = "mem_active_tab";
+const SAVED_PROFILE_KEY = "mem_selected_profile_id";
+
+function getSavedTab(): string | null {
+  try {
+    return sessionStorage.getItem(SAVED_TAB_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function getSavedProfileId(): string | null {
+  try {
+    return sessionStorage.getItem(SAVED_PROFILE_KEY);
+  } catch {
+    return null;
+  }
+}
+
 export default function App() {
   // --- حالات التطبيق (States) ---
-  const [activeTab, setActiveTab] = useState("feed"); // التبويب النشط
+  // بنبدأ بآخر تبويب كان محفوظ (لو موجود) بدل ما نرجع للفيد دايماً؛ التبويبات
+  // اللي مش آمنة تترجع لوحدها من غير سياق (زي "user-profile" من غير معرف
+  // بروفايل مخزن) بترجع لـ"feed" تلقائي.
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = getSavedTab();
+    if (saved === "user-profile" && !getSavedProfileId()) return "feed";
+    return saved || "feed";
+  }); // التبويب النشط
 
   const [currentUser, setCurrentUser] = useState<Profile>(initialGuestProfile); // المستخدم الحالي
   const [streakToast, setStreakToast] = useState<number | null>(null); // رقم السلسلة لما تزيد النهاردة (عشان نظهره في تنبيه احتفالي مؤقت)
@@ -57,7 +87,7 @@ export default function App() {
   const [hasMore, setHasMore] = useState(true); // هل توجد بيانات إضافية للتحميل
   const [page, setPage] = useState(0); // رقم الصفحة الحالية للتحميل التدريجي
   
-  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null); // معرف البروفايل المختار
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(getSavedProfileId); // معرف البروفايل المختار
   const [showAuthModal, setShowAuthModal] = useState(false); // إظهار مودال الدخول
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin"); // تبويب مودال الدخول
   const [lightboxImage, setLightboxImage] = useState<string | null>(null); // صورة اللايت بوكس
@@ -93,6 +123,12 @@ export default function App() {
     if (options?.profileId) setSelectedProfileId(options.profileId);
     setActiveTab(tab);
     setSelectedTag(null);
+    try {
+      sessionStorage.setItem(SAVED_TAB_KEY, tab);
+      if (options?.profileId) sessionStorage.setItem(SAVED_PROFILE_KEY, options.profileId);
+    } catch {
+      // sessionStorage ممكن يكون مش متاح (وضع تصفح خاص مثلاً) - مش مشكلة، بنكمل عادي
+    }
     if (tab === "feed") {
       setPage(1);
       setHasMore(true);
@@ -187,9 +223,11 @@ export default function App() {
    * والتحقق من رابط الصفحة الحالي
    */
   useEffect(() => {
-    // التحقق من رابط الصفحة لتحديد التبويب النشط
+    // التحقق من رابط الصفحة لتحديد التبويب النشط - لو مفيش رابط خاص (زي /admin)،
+    // بنبدأ من آخر تبويب كان محفوظ من قبل الريفريش (activeTab اتحدد بالفعل من
+    // sessionStorage في الـ useState initializer فوق) بدل ما نرجع للفيد دايماً.
     const path = window.location.pathname;
-    let startTab = "feed";
+    let startTab = activeTab;
     if (path === '/admin' || path.includes('admin')) {
       startTab = 'admin';
       setActiveTab('admin');
@@ -259,16 +297,22 @@ export default function App() {
           if (sharedMeme) {
             setMemes(prev => prev.some(m => m.id === sharedMeme.id) ? prev : [sharedMeme, ...prev]);
             setActiveTab("feed");
+            try { sessionStorage.setItem(SAVED_TAB_KEY, "feed"); } catch {}
             setHighlightedMemeId(sharedMeme.id);
           }
         } else if (chatUserId && dbCurrentUser && dbCurrentUser.id !== "guest-user-temp") {
           // جاي من إشعار رسالة جديدة (send-push) - نفتحله المحادثة مع اللي بعتله على طول
           setPendingMessageTargetId(chatUserId);
           setActiveTab("messages");
+          try { sessionStorage.setItem(SAVED_TAB_KEY, "messages"); } catch {}
         } else if (profileId) {
           // جاي من إشعار فولو - نفتحله بروفايل اللي عمل فولو
           setSelectedProfileId(profileId);
           setActiveTab("user-profile");
+          try {
+            sessionStorage.setItem(SAVED_TAB_KEY, "user-profile");
+            sessionStorage.setItem(SAVED_PROFILE_KEY, profileId);
+          } catch {}
         }
 
         // بننضف الرابط من الـ query params بعد ما فتحنا الوجهة المقصودة عشان لو
@@ -319,6 +363,7 @@ export default function App() {
       }
       const targetTab = e.state?.tab || "feed";
       setActiveTab(targetTab);
+      try { sessionStorage.setItem(SAVED_TAB_KEY, targetTab); } catch {}
       window.scrollTo(0, 0);
     };
 
