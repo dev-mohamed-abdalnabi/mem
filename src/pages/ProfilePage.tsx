@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Camera, MessageCircle, Award, Clock, X, Check, CalendarDays, Users, UserPlus, Image as ImageIcon } from "lucide-react";
+import { Camera, MessageCircle, Award, Clock, X, Check, CalendarDays, Users, UserPlus, Image as ImageIcon, Flame, Eye, Heart } from "lucide-react";
 import { Profile, Meme } from "../types";
 import MemeCard from "../components/MemeCard";
 import { dataService } from "../services/dataService";
@@ -25,6 +25,14 @@ interface ProfilePageProps {
   setSelectedProfileId: (id: string | null) => void;
   setActiveTab: (tab: string) => void;
   setLightboxImage: (url: string | null) => void;
+}
+
+// تنسيق الأرقام الكبيرة بشكل شيك (1.2K / 3.4M) بدل ما تتكتب كاملة وتبوظ التصميم
+function formatCompactNumber(num: number): string {
+  if (!num) return "0";
+  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (num >= 1_000) return (num / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
+  return String(num);
 }
 
 export default function ProfilePage({
@@ -99,6 +107,10 @@ export default function ProfilePage({
     };
     fetchUserMemes();
   }, [profile.id, currentUser.id]);
+
+  // إجمالي المشاهدات والإعجابات على كل منشورات المستخدم (للإحصائيات في الهيدر)
+  const totalViews = localUserMemes.reduce((sum, m) => sum + (m.views_count || 0), 0);
+  const totalLikes = localUserMemes.reduce((sum, m) => sum + (m.likes_count || 0), 0);
 
   const onFollowClick = async () => {
     if (!isRealUser) {
@@ -338,6 +350,24 @@ export default function ProfilePage({
                 <input type="file" className="hidden" accept="image/*" onChange={handleFileSelect} />
               </label>
             )}
+          </div>
+
+          {/* إحصائيات سريعة - النقاط / المتابعين / المشاهدات / الإعجابات */}
+          <div className="flex-1 grid grid-cols-4 gap-1 self-center px-1 sm:px-3">
+            {[
+              { icon: Flame, value: profile.total_points || 0, label: "نقطة", color: "text-amber-500" },
+              { icon: Users, value: profile.followers_count || 0, label: "متابع", color: "text-[#1d9bf0]" },
+              { icon: Eye, value: totalViews, label: "مشاهدة", color: "text-emerald-500" },
+              { icon: Heart, value: totalLikes, label: "إعجاب", color: "text-rose-500" },
+            ].map(({ icon: Icon, value, label, color }) => (
+              <div key={label} className="flex flex-col items-center gap-0.5">
+                <Icon className={`w-4 h-4 ${color}`} />
+                <span className="text-[13px] sm:text-[15px] font-extrabold text-gray-900 dark:text-white leading-none">
+                  {formatCompactNumber(value)}
+                </span>
+                <span className="text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 leading-none">{label}</span>
+              </div>
+            ))}
           </div>
 
           <div className="pt-2">
