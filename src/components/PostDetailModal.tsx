@@ -47,6 +47,19 @@ export default function PostDetailModal({
   // بالضغط عليها، بدل ما تفضل كلها ظاهرة على طول وتاكل مساحة كبيرة
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
 
+  // --- إظهار/إخفاء الوصف الطويل (عرض المزيد) - نفس منطق MemeCard ---
+  const [captionExpanded, setCaptionExpanded] = useState(false); // هل النص متوسع بالكامل
+  const [captionOverflowing, setCaptionOverflowing] = useState(false); // هل النص أطول من سطرين فعلاً
+  const captionRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const el = captionRef.current;
+    if (el) {
+      // بنقارن ارتفاع النص الكامل بارتفاع السطرين لمعرفة لو محتاج زرار "عرض المزيد"
+      setCaptionOverflowing(el.scrollHeight > el.clientHeight + 1);
+    }
+  }, [meme.caption]);
+
   const toggleReplies = (commentId: string) => {
     setExpandedReplies(prev => {
       const next = new Set(prev);
@@ -282,7 +295,32 @@ export default function PostDetailModal({
                 src={creator.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${creator.username}`} 
                 className="w-8 h-8 rounded-full shrink-0" 
               />
-              <p className="text-sm leading-relaxed">{meme.caption}</p>
+              <div className="min-w-0">
+                <p
+                  ref={captionRef}
+                  className="text-sm leading-relaxed whitespace-pre-wrap"
+                  style={
+                    captionExpanded
+                      ? undefined
+                      : {
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                        }
+                  }
+                >
+                  {meme.caption}
+                </p>
+                {(captionOverflowing || captionExpanded) && (
+                  <button
+                    onClick={() => setCaptionExpanded(prev => !prev)}
+                    className="text-xs text-gray-500 font-semibold mt-1 hover:underline"
+                  >
+                    {captionExpanded ? "عرض أقل" : "عرض المزيد"}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
