@@ -91,6 +91,16 @@ export default function ReelsPage({
   const [activeId, setActiveId] = useState<string | null>(null);
   const prevActiveIdRef = useRef<string | null>(null);
 
+  // أي ريل دخل نطاق التحميل (auto) مرة واحدة بيفضل متسجل هنا للأبد - عشان
+  // لو المستخدم سكرول قدام وبعدين رجع تاني، الفيديو ميرجعش يتحمّل من الصفر.
+  // من غيرها، preload كان بيرجع "none"/"metadata" أول ما الريل يبعد شوية عن
+  // النشط، وده كان بيخلي المتصفح (في متصفحات كتير) يشيل الـbuffer اللي كان
+  // محمّله قبل كده، فيحصل تحميل تاني من الأول لما ترجعله.
+  const [everLoaded, setEverLoaded] = useState<Set<string>>(new Set());
+  // بافرينج: بيظهر لو الريل النشط لسه مش عنده بيانات كفاية يشتغل من غيرها
+  // توقف - عشان يبقى واضح إنه بيحمّل الجزء اللي يشغله بس مش الفيديو كامل
+  const [isBuffering, setIsBuffering] = useState(false);
+
   // --- تسجيل watch-time للريلز (أقوى إشارة تستخدمها خوارزمية الريلز -
   // completion rate / rewatch rate، راجع RANKING_ALGORITHMS.md). بنتابع
   // أطول نقطة وصلها المستخدم فعلياً في كل ريل (مش آخر currentTime بس،
@@ -218,6 +228,26 @@ export default function ReelsPage({
     Object.values(videoRefs.current).forEach((v) => { if (v) v.muted = isMuted; });
   }, [isMuted]);
 
+  // كل ما الريل النشط يتغير، بنضيف الريل النشط واللي جنبه (قبله وبعده)
+  // لمجموعة "اتحمّل قبل كده" - المجموعة دي بتفضل تكبر بس (مش بترجع تصغر)
+  // عشان أي ريل اتحمّل مرة ميرجعش يتقفل تحميله (preload="none") تاني لو
+  // المستخدم سكرول بعيد عنه وبعدين رجع تاني.
+  useEffect(() => {
+    if (!activeId) return;
+    const activeIndex = reels.findIndex(r => r.id === activeId);
+    if (activeIndex === -1) return;
+    const idsToAdd = [reels[activeIndex - 1], reels[activeIndex], reels[activeIndex + 1]]
+      .filter((m): m is Meme => !!m)
+      .map(m => m.id);
+    setEverLoaded(prev => {
+      if (idsToAdd.every(id => prev.has(id))) return prev;
+      const next = new Set(prev);
+      idsToAdd.forEach(id => next.add(id));
+      return next;
+    });
+  }, [activeId, reels]);
+
+
   // أول ما الريل النشط يتغير (المستخدم سكرول لريل تاني)، بنبعت watch-time
   // الريل اللي كان شغال قبل كده فوراً - ده اللحظة الطبيعية اللي فيها المستخدم
   // "خلّص" مع الفيديو ده (سواء كمّله أو عمله fast-skip)، بدل ما نستنى unmount.
@@ -234,6 +264,29 @@ export default function ReelsPage({
     return () => { flushWatchStats(prevActiveIdRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // مؤشر البافرينج: بيتابع الفيديو النشط بس، وبيبين لو المتصفح واقف
+  // مستني بيانات كفاية يشتغل بيها (بيانات جزئية بس، مش الفيديو كامل) -
+  // كده واضح إن اللي بيحصل هو استريمنج تدريجي وبيكمل في الخلفية وهو شغال.
+  useEffect(() => {
+    if (!activeId) return;
+    const video = videoRefs.current[activeId];
+    if (!video) return;
+
+    const onWaiting = () => setIsBuffering(true);
+    const onPlaying = () => setIsBuffering(false);
+    const onCanPlay = () => setIsBuffering(false);
+    setIsBuffering(video.readyState < 3);
+
+    video.addEventListener("waiting", onWaiting);
+    video.addEventListener("playing", onPlaying);
+    video.addEventListener("canplay", onCanPlay);
+    return () => {
+      video.removeEventListener("waiting", onWaiting);
+      video.removeEventListener("playing", onPlaying);
+      video.removeEventListener("canplay", onCanPlay);
+    };
+  }, [activeId]);
 
   const requireAuth = (action: () => void) => {
     if (!isRealUser) {
@@ -439,8 +492,9 @@ export default function ReelsPage({
         // في فيديوهات المستخدم لسه بعيد عنها
         const activeIndex = reels.findIndex(r => r.id === activeId);
         const distance = activeIndex === -1 ? index : index - activeIndex;
+        const withinLoadWindow = distance === 0 || distance === 1 || distance === -1;
         const preload: "auto" | "metadata" | "none" =
-          distance === 0 || distance === 1 ? "auto" : distance === -1 ? "metadata" : "none";
+          withinLoadWindow || everLoaded.has(meme.id) ? "auto" : "none";
 
         return (
         <div key={meme.id} className="relative w-full h-full snap-start snap-always flex items-center justify-center bg-black">
@@ -459,6 +513,14 @@ export default function ReelsPage({
             onPointerUp={handleVideoPointerUp(meme)}
             onPointerCancel={handleVideoPointerUp(meme)}
           />
+
+          {/* مؤشر بافرينج - بيبين بس على الريل النشط ولحد ما يبقى عنده
+              بيانات كفاية يشتغل بيها، مش لحد ما الفيديو كله يحمّل */}
+          {activeId === meme.id && isBuffering && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+              <Loader2 className="w-9 h-9 text-white/80 animate-spin" />
+            </div>
+          )}
 
           {/* تنبيه بصري: تقديم/ترجيع 10 ثواني أو سرعة 2x */}
           {gestureFeedback?.id === meme.id && (

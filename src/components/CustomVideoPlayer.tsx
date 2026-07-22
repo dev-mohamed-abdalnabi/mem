@@ -217,25 +217,35 @@ export default function CustomVideoPlayer({
   // تحميل كسول (lazy): مبنحطش src على الـ<video> إلا لما الحاوية تقرب من
   // الشاشة (rootMargin بيخلي التحميل يبدأ شوية قبل ما يبان فعلياً، عشان
   // ميحسّش المستخدم بأي تأخير وقت الوصول للفيديو). ده اللي بيمنع الموقع من
-  // إنه يحمّل عشرات فيديوهات الفيد كلها مرة واحدة عند فتح الصفحة - وهو
-  // السبب الرئيسي إن أي فيديو واحد كان بياخد وقت طويل يحمّل.
+  // إنه يحمّل عشرات فيديوهات الفيد كلها مرة واحدة عند فتح الصفحة.
+  //
+  // فرق مهم عن قبل: ده بقى مراقب مستمر (مش بيقفل نفسه أول ما يشتغل مرة).
+  // قبل كده أي فيديو يقرب من الشاشة مرة، بيفضل src متحط عليه ومحمّل
+  // (preload="auto") للأبد حتى لو المستخدم سكرول بعيد عنه خالص - وده كان
+  // بيخلي عشرات الفيديوهات القديمة تفضل بتاخد من نفس اتصالات النت
+  // المحدودة في الخلفية، فأي فيديو جديد قدام المستخدم ياخد وقت طويل عشان
+  // بيتزاحم معاهم. دلوقتي لو الفيديو بعد عن الشاشة كتير (وملوش تشغيل)،
+  // بنشيل الـsrc عنه تاني عشان يسيب الاتصال لغيره، ولو المستخدم رجعله
+  // تاني بيتحمّل من جديد وقتها بس.
   useEffect(() => {
-    if (!lazy || shouldLoad) return;
+    if (!lazy) return;
     const container = containerRef.current;
     if (!container) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          setShouldLoad(true);
-          observer.disconnect();
-        }
+        const isNear = entries[0].isIntersecting;
+        // منسبش فيديو شغال فعلاً يتقفل حتى لو حصل نطاق غريب - فيديو شغال
+        // بالتعريف قريب جداً من الشاشة أصلاً (نص شاشة على الأقل)
+        if (!isNear && isPlaying) return;
+        setShouldLoad(isNear);
       },
       { rootMargin: "600px 0px" }
     );
     observer.observe(container);
     return () => observer.disconnect();
-  }, [lazy, shouldLoad]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lazy, isPlaying]);
 
   // زي فيسبوك/إنستجرام بالظبط: الفيديو بيشتغل لوحده أول ما يدخل نص
   // الشاشة، ويقف تلقائي لو خرج برة - من غير ما المستخدم يحتاج يدوس زرار
