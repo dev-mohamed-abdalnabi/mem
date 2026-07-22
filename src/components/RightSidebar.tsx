@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, Flame, Bookmark, User, LogIn, Sparkles } from "lucide-react";
+import { Home, Flame, Bookmark, User, LogIn, Sparkles, Clapperboard, MessageCircle } from "lucide-react";
 import { Profile } from "../types";
 
 /**
@@ -29,6 +29,8 @@ export default function RightSidebar({
   const navItems = [
     { id: "feed", label: "الرئيسية", icon: Home },
     { id: "trending", label: "الترند", icon: Flame },
+    { id: "reels", label: "الريلز", icon: Clapperboard },
+    { id: "messages", label: "الرسايل", icon: MessageCircle },
     { id: "saves", label: "الحفظ", icon: Bookmark },
     { id: "profile", label: "الملف الشخصي", icon: User },
   ];
