@@ -344,7 +344,12 @@ export default function MemeCard({
           {/* عرض الميديا (صورة، فيديو، أو مجموعة صور) */}
           <div className="rounded-xl border border-gray-200 overflow-hidden mb-3 bg-gray-50 relative group">
             {meme.post_type === 'video' && meme.video_url ? (
-              <CustomVideoPlayer src={meme.video_url} className="w-full max-h-[500px]" memeId={meme.id} />
+              <CustomVideoPlayer
+                src={meme.video_url}
+                className="w-full max-h-[500px]"
+                memeId={meme.id}
+                aspectRatio={meme.width && meme.height ? meme.width / meme.height : undefined}
+              />
             ) : meme.post_type === 'multi-image' && meme.images && meme.images.length > 0 ? (
               <div className="relative bg-gray-900">
                 {/* تخطيط الصور المتعددة */}

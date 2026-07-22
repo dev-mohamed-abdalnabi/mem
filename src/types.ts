@@ -19,6 +19,11 @@ export interface Profile {
   updated_at: string;
   current_streak?: number;
   longest_streak?: number;
+  // الأسماء القديمة كلها (بتفضل موجودة دايماً في معلومات الحساب حتى لو
+  // المستخدم غيّر اسمه أكتر من مرة)
+  previous_usernames?: string[];
+  username_change_count?: number;
+  username_period_started_at?: string;
 }
 
 export interface Meme {

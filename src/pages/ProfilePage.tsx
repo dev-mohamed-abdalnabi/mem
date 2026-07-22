@@ -68,6 +68,9 @@ export default function ProfilePage({
   const infoBioRef = useRef<HTMLParagraphElement>(null);
 
   const [tempName, setTempName] = useState(profile.username);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const USERNAME_MAX_LEN = 20;
   
   // تبويبات الصفحة
   const [activeProfileTab, setActiveProfileTab] = useState<"posts" | "info">("posts");
@@ -139,13 +142,31 @@ export default function ProfilePage({
 
   const handleSaveProfile = async () => {
     if (!tempName.trim()) return;
+    setNameError(null);
+    setIsSavingProfile(true);
     try {
-      setCurrentUser(prev => ({ ...prev, username: tempName, bio: tempBio }));
-      setProfiles(prev => prev.map(p => p.id === currentUser.id ? { ...p, username: tempName, bio: tempBio } : p));
-      await dataService.updateProfile({ username: tempName, bio: tempBio });
+      const usernameChanged = tempName.trim() !== profile.username;
+      let updatedProfile: Profile = { ...currentUser, bio: tempBio };
+
+      if (usernameChanged) {
+        // بيعدي على فلتر الأحرف الممنوعة + حد الطول + حد المرتين في الشهر
+        // (الدالة change_username في قاعدة البيانات) - لو رفضت، بنعرض
+        // رسالة الخطأ الحقيقية بدل رسالة عامة.
+        const result = await dataService.changeUsername(tempName.trim());
+        updatedProfile = { ...updatedProfile, ...result };
+      }
+
+      // النبذة الشخصية بتتحدث عادي من غير قيود
+      await dataService.updateProfile({ bio: tempBio });
+
+      setCurrentUser(updatedProfile);
+      setProfiles(prev => prev.map(p => (p.id === currentUser.id ? updatedProfile : p)));
+      setTempName(updatedProfile.username);
       setIsEditing(false);
-    } catch (err) {
-      alert("فشل حفظ التعديلات");
+    } catch (err: any) {
+      setNameError(err?.message || "فشل حفظ التعديلات");
+    } finally {
+      setIsSavingProfile(false);
     }
   };
 
@@ -516,11 +537,28 @@ export default function ProfilePage({
           <div className="px-4">
             {isEditing ? (
               <div className="space-y-4 bg-white dark:bg-[#16181c] p-4 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
-                <input type="text" value={tempName} onChange={(e) => setTempName(e.target.value)} placeholder="الاسم" className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-2 px-3 outline-none text-gray-900 dark:text-white" />
+                <div>
+                  <input
+                    type="text"
+                    value={tempName}
+                    maxLength={USERNAME_MAX_LEN}
+                    onChange={(e) => { setTempName(e.target.value); setNameError(null); }}
+                    placeholder="الاسم"
+                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-2 px-3 outline-none text-gray-900 dark:text-white"
+                  />
+                  <div className="flex items-center justify-between mt-1 px-1">
+                    <span className={`text-xs ${nameError ? "text-red-500" : "text-gray-400"}`}>
+                      {nameError || "بحد أقصى مرتين تغيير في الشهر"}
+                    </span>
+                    <span className="text-xs text-gray-400 shrink-0">{tempName.length}/{USERNAME_MAX_LEN}</span>
+                  </div>
+                </div>
                 <textarea value={tempBio} onChange={(e) => setTempBio(e.target.value)} placeholder="النبذة الشخصية..." className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-2 px-3 outline-none resize-none h-20 text-gray-900 dark:text-white" />
                 <div className="flex justify-end gap-2 pt-2">
-                  <button onClick={() => setIsEditing(false)} className="px-5 py-2 rounded-full font-bold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">إلغاء</button>
-                  <button onClick={handleSaveProfile} className="px-5 py-2 bg-[#1d9bf0] text-white rounded-full font-bold">حفظ التغييرات</button>
+                  <button onClick={() => { setIsEditing(false); setTempName(profile.username); setNameError(null); }} className="px-5 py-2 rounded-full font-bold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">إلغاء</button>
+                  <button onClick={handleSaveProfile} disabled={isSavingProfile} className="px-5 py-2 bg-[#1d9bf0] text-white rounded-full font-bold disabled:opacity-60">
+                    {isSavingProfile ? "جاري الحفظ..." : "حفظ التغييرات"}
+                  </button>
                 </div>
               </div>
             ) : (
@@ -580,6 +618,14 @@ export default function ProfilePage({
                       <CalendarDays className="w-6 h-6 text-gray-400 dark:text-gray-500 shrink-0" />
                       <span className="text-[15px] text-gray-900 dark:text-white">انضم في <strong>{joinDate}</strong></span>
                     </li>
+                    {profile.previous_usernames && profile.previous_usernames.length > 0 && (
+                      <li className="flex items-center gap-3">
+                        <Clock className="w-6 h-6 text-gray-400 dark:text-gray-500 shrink-0" />
+                        <span className="text-[15px] text-gray-900 dark:text-white">
+                          الاسم السابق: <strong>{profile.previous_usernames[profile.previous_usernames.length - 1]}</strong>
+                        </span>
+                      </li>
+                    )}
                   </ul>
                 </div>
 

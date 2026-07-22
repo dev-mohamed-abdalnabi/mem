@@ -354,6 +354,43 @@ export const dataService = {
     return data as Profile;
   },
 
+  /**
+   * تغيير اسم المستخدم فقط (منفصل عن updateProfile العادية) - بيعدي على:
+   * 1) تحقق أولي هنا في الفرونت إند (طول الاسم / أحرف مسموحة) عشان نديله
+   *    رسالة خطأ سريعة من غير ما نستنى رحلة كاملة للسيرفر.
+   * 2) [مكان مخصص لفلتر AI] - لو حابب تضيف فلترة محتوى أذكى (مش بس قايمة
+   *    كلمات ثابتة)، ده المكان المناسب: نادِ على Edge Function خاصة بيك
+   *    هنا (مثلاً: `await supabase.functions.invoke("moderate-username", { body: { text: newUsername } })`)
+   *    وارفض التغيير لو رجعت النتيجة إنه مخالف، قبل ما نكمل للـ RPC تحت.
+   * 3) دالة `change_username` في قاعدة البيانات (supabase/username_management.sql)
+   *    وهي المصدر الحقيقي للتحقق (طول الاسم، فلتر كلمات ممنوعة، فرادة
+   *    الاسم، وحد أقصى مرتين تغيير كل 30 يوم) - مينفعش حد يتحايل عليها
+   *    حتى لو نادى الـ API مباشرة من برة الموقع.
+   */
+  changeUsername: async (newUsername: string): Promise<Profile> => {
+    const clean = newUsername.trim();
+    if (clean.length < 3 || clean.length > 20) {
+      throw new Error("الاسم لازم يكون من 3 لـ 20 حرف");
+    }
+    if (!/^[a-zA-Z0-9_.\u0600-\u06FF]+$/.test(clean)) {
+      throw new Error("الاسم يقبل بس حروف عربي/إنجليزي وأرقام و . _");
+    }
+
+    // --- [مكان فلتر الـ AI] ---
+    // مثال (لو عندك Edge Function اسمها moderate-username):
+    // const { data: modResult, error: modError } = await supabase.functions.invoke(
+    //   "moderate-username",
+    //   { body: { text: clean } }
+    // );
+    // if (!modError && modResult?.flagged) {
+    //   throw new Error("الاسم ده مش مسموح");
+    // }
+
+    const { data, error } = await supabase.rpc("change_username", { p_new_username: clean });
+    if (error) throw new Error(error.message || "فشل تغيير الاسم");
+    return data as Profile;
+  },
+
   getProfilesList: async (): Promise<Profile[]> => {
     const { data, error } = await supabase
       .from("profiles")

@@ -11,16 +11,29 @@ let currentlyPlayingVideo: HTMLVideoElement | null = null;
 // المدة اللي شريط التقدم/الكونترولز بتفضل ظاهرة بيها قبل ما تختفي لوحدها
 const CONTROLS_AUTO_HIDE_MS = 2500;
 
+// بوستر افتراضي بسيط (SVG صغير) بنستخدمه لما محدش بعت poster فعلي، عشان
+// المتصفح ميرسمش شكله الافتراضي (أيقونة تشغيل جوه بيضاوي رمادي) قبل ما
+// الفيديو يوصل - وده اللي كان بيبان زي "قالب المتصفح الافتراضي".
+const FALLBACK_POSTER =
+  "data:image/svg+xml;base64," +
+  btoa('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4" fill="#0b0b0f"/></svg>');
+
 interface CustomVideoPlayerProps {
   src: string;
   poster?: string;
   autoPlay?: boolean;
   className?: string;
   // اختياري: id البوست/الميم بتاع الفيديو ده - لو اتبعت، بيتسجل watch-time
-  // (أقوى إشارة تستخدمها خوارزمية الترتيب) بنفس المنطق المستخدم في صفحة
-  // الريلز. الفيديو هنا مش موجود دايماً جوه بوست حقيقي (ممكن يكون مثلاً
-  // preview جوه صفحة إنشاء منشور)، فسيبناها اختيارية بدل إجبارية.
   memeId?: string;
+  // نسبة العرض للارتفاع الحقيقية للفيديو لو متوفرة (meme.width / meme.height)
+  // - بنستخدمها عشان نحجز المساحة الصح من أول رندر، فمنعتمدش بس على
+  // max-height اللي كانت بتخلي الفيديو يتقص/يتاكل نصه على الشاشات الكبيرة
+  // لحد ما الـmetadata توصل وتحدد الحجم الحقيقي.
+  aspectRatio?: number;
+  // لو المكون ده جوه فيد بيسكرول (feed)، بنأجل تحميل الفيديو الفعلي (src)
+  // لحد ما يقرب من الشاشة عشان منحملش عشرات الفيديوهات مرة واحدة - وده اللي
+  // كان بيخلي أي فيديو واحد ياخد وقت طويل يحمّل.
+  lazy?: boolean;
 }
 
 export default function CustomVideoPlayer({
@@ -28,7 +41,9 @@ export default function CustomVideoPlayer({
   poster,
   autoPlay = true,
   className = "",
-  memeId
+  memeId,
+  aspectRatio,
+  lazy = true,
 }: CustomVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -36,6 +51,8 @@ export default function CustomVideoPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [computedAspect, setComputedAspect] = useState<number | undefined>(aspectRatio);
+  const [shouldLoad, setShouldLoad] = useState(!lazy);
   // بنحاول نشغّل بالصوت على طول (زي صفحة الريلز بالظبط) - ومنبدأش مكتوم
   // كقيمة افتراضية. لو المتصفح رفض الأوتوبلاي بالصوت (سياسة متصفحات
   // الموبايل بالذات بترفض غالباً من غير تفاعل قبلها من المستخدم)، ساعتها
@@ -128,14 +145,23 @@ export default function CustomVideoPlayer({
     const handleTimeUpdate = () => setCurrentTime(video.currentTime);
     const handleLoadedMetadata = () => {
       setDuration(video.duration);
-      setIsLoading(false);
+      // لو مفيش aspectRatio جاهزة متبعتة من برة (meme.width/height)، بنحسبها
+      // من أبعاد الفيديو الحقيقية نفسها - ده اللي بيمنع "أكل" نص الفيديو
+      // على الشاشات الكبيرة، لأن الحاوية بقت بتحجز المساحة الصح من الأول.
+      if (!aspectRatio && video.videoWidth && video.videoHeight) {
+        setComputedAspect(video.videoWidth / video.videoHeight);
+      }
     };
+    // أول فريم فعلي وصل (مش بس الـmetadata) - هنا بس بنشيل السكيلتون، عشان
+    // ميختفيش السكيلتون ويسيب فراغ أسود لحد ما فيه صورة فعلية تتعرض.
+    const handleLoadedData = () => setIsLoading(false);
     const handleLoadStart = () => setIsLoading(true);
 
     video.addEventListener("play", handlePlay);
     video.addEventListener("pause", handlePause);
     video.addEventListener("timeupdate", handleTimeUpdate);
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    video.addEventListener("loadeddata", handleLoadedData);
     video.addEventListener("loadstart", handleLoadStart);
 
     return () => {
@@ -143,6 +169,7 @@ export default function CustomVideoPlayer({
       video.removeEventListener("pause", handlePause);
       video.removeEventListener("timeupdate", handleTimeUpdate);
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("loadeddata", handleLoadedData);
       video.removeEventListener("loadstart", handleLoadStart);
       if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
       if (currentlyPlayingVideo === video) {
@@ -187,13 +214,36 @@ export default function CustomVideoPlayer({
     }
   }, [isMuted]);
 
+  // تحميل كسول (lazy): مبنحطش src على الـ<video> إلا لما الحاوية تقرب من
+  // الشاشة (rootMargin بيخلي التحميل يبدأ شوية قبل ما يبان فعلياً، عشان
+  // ميحسّش المستخدم بأي تأخير وقت الوصول للفيديو). ده اللي بيمنع الموقع من
+  // إنه يحمّل عشرات فيديوهات الفيد كلها مرة واحدة عند فتح الصفحة - وهو
+  // السبب الرئيسي إن أي فيديو واحد كان بياخد وقت طويل يحمّل.
+  useEffect(() => {
+    if (!lazy || shouldLoad) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "600px 0px" }
+    );
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [lazy, shouldLoad]);
+
   // زي فيسبوك/إنستجرام بالظبط: الفيديو بيشتغل لوحده أول ما يدخل نص
   // الشاشة، ويقف تلقائي لو خرج برة - من غير ما المستخدم يحتاج يدوس زرار
   // تشغيل يدوي.
   useEffect(() => {
     const container = containerRef.current;
     const video = videoRef.current;
-    if (!container || !video || !autoPlay) return;
+    if (!container || !video || !autoPlay || !shouldLoad) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -212,7 +262,7 @@ export default function CustomVideoPlayer({
     );
     observer.observe(container);
     return () => observer.disconnect();
-  }, [autoPlay]);
+  }, [autoPlay, shouldLoad]);
 
   const formatTime = (time: number) => {
     if (!isFinite(time)) return "0:00";
@@ -227,15 +277,23 @@ export default function CustomVideoPlayer({
     <div
       ref={containerRef}
       className={`relative bg-black rounded-lg overflow-hidden w-full ${className}`}
+      // بنحجز المساحة الصح من أول رندر بناءً على النسبة الحقيقية (لو
+      // معروفة) بدل ما نسيب الحاوية تعتمد بس على max-height، وده اللي كان
+      // بيخلي الفيديو "ياكل" جزء منه على الشاشات الكبيرة قبل ما الـmetadata
+      // توصل. لو النسبة لسه مش معروفة، بنفترض شكل عمودي معقول (4:5) كبداية.
+      style={{ aspectRatio: computedAspect || 4 / 5 }}
       onTouchStart={revealControls}
       onMouseMove={revealControls}
     >
-      {/* Video Element */}
+      {/* Video Element - مبنحطش src إلا لما الحاوية تقرب فعلياً من الشاشة
+          (شوف الـ IntersectionObserver فوق) عشان منحملش كل فيديوهات الفيد
+          مرة واحدة. مبيتشالش الـ<video> نفسه من الشجرة عشان نفضل نقدر
+          نراقب دخوله/خروجه من الشاشة. */}
       <video
         ref={videoRef}
-        src={src}
-        poster={poster}
-        preload="metadata"
+        src={shouldLoad ? src : undefined}
+        poster={poster || FALLBACK_POSTER}
+        preload={shouldLoad ? "auto" : "none"}
         className="w-full h-full object-contain"
         onClick={() => {
           setIsPlaying(!isPlaying);
@@ -246,15 +304,20 @@ export default function CustomVideoPlayer({
         loop
       />
 
-      {/* Loading Spinner */}
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-          <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+      {/* سكيلتون التحميل - بيفضل ظاهر لحد ما أول فريم فعلي من الفيديو يوصل،
+          بنفس ستايل باقي السكيلتونز في الموقع (shimmer) بدل ما نسيب شكل
+          المتصفح الافتراضي (بيضاوي رمادي) يبان أثناء التحميل. */}
+      {(isLoading || !shouldLoad) && (
+        <div className="absolute inset-0 bg-gray-800 dark:bg-gray-900 overflow-hidden">
+          <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-gray-700/40 via-gray-800/10 to-gray-700/40" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-10 h-10 border-[3px] border-white/15 border-t-white/70 rounded-full animate-spin" />
+          </div>
         </div>
       )}
 
       {/* Play Button Overlay */}
-      {!isPlaying && !isLoading && (
+      {!isPlaying && !isLoading && shouldLoad && (
         <div
           className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/40 transition-colors cursor-pointer"
           onClick={() => {

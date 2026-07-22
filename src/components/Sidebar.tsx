@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, Flame, Cpu, Trophy, Bookmark, ShieldCheck, Heart, Sparkles, MessageCircle } from "lucide-react";
+import { Home, Flame, Cpu, Trophy, Bookmark, ShieldCheck, Heart, Sparkles, MessageCircle, Clapperboard } from "lucide-react";
 import { Profile } from "../types";
 
 interface SidebarProps {
@@ -15,6 +15,7 @@ export default function Sidebar({ currentUser, activeTab, onNavigate, savedCount
   const menuItems = [
     { id: "feed", name: "الرئيسية الفكاهية", icon: Home, badge: null, desc: "أحدث الكوميكس والميمز" },
     { id: "trending", name: "التريند الشائع", icon: Flame, badge: "ساخن", desc: "أقوى الميمز في الـ 24 ساعة الماضية" },
+    { id: "reels", name: "الريلز", icon: Clapperboard, badge: null, desc: "فيديوهات قصيرة متتالية" },
 
     { id: "leaderboard", name: "لوحة الشرف", icon: Trophy, badge: "الشرف", desc: "أعظم صناع الكوميديا العربية" },
     { id: "saves", name: "الميمز المحفوظة", icon: Bookmark, badge: savedCount > 0 ? savedCount.toString() : null, desc: "الميمز المحفوظة لوقت لاحق" },
