@@ -236,7 +236,19 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
   };
 
   /**
-   * حظر حساب مستخدم
+   * حظر مستخدم بسبب - بناخد السبب من المشرف بسرعة (prompt) عشان الشاشة
+   * متتزنقش بمودال إضافي؛ الدالة دي هي اللي بتستخدم banAccount فعلياً
+   * (كانت موجودة قبل كده بس مفيش أي زرار في الواجهة بينده عليها أصلاً)
+   */
+  const promptBanUser = async (userId: string, username?: string) => {
+    if (!userId) return;
+    const reason = window.prompt(`اكتب سبب حظر ${username ? `"${username}"` : "المستخدم"}:`);
+    if (!reason || !reason.trim()) return;
+    await banAccount(userId, reason.trim());
+  };
+
+  /**
+   * حظر مستخدم بسبب
    */
   const banAccount = async (userId: string, reason: string) => {
     try {
@@ -246,6 +258,8 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
         reason,
         ban_type: "permanent"
       });
+
+      await logAdminAction("ban_account", "user", userId, { reason });
 
       setSuccess("تم حظر الحساب بنجاح!");
       loadBannedAccounts();
@@ -487,6 +501,13 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
                     >
                       رفض البلاغ
                     </button>
+                    <button
+                      onClick={() => promptBanUser(report.meme?.user_id)}
+                      className="bg-black text-white px-4 py-2 rounded-lg font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Lock className="w-4 h-4" />
+                      حظر الناشر
+                    </button>
                   </div>
                 </div>
               ))
@@ -565,6 +586,13 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
                     >
                       <Zap className="w-4 h-4" />
                       تعزيز
+                    </button>
+                    <button
+                      onClick={() => promptBanUser(meme.user_id, meme.profiles?.username)}
+                      className="bg-black text-white px-4 py-2 rounded-lg font-bold hover:bg-gray-800 transition-colors flex items-center gap-2"
+                    >
+                      <Lock className="w-4 h-4" />
+                      حظر صاحب المنشور
                     </button>
                   </div>
                 </div>

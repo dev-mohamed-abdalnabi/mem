@@ -314,6 +314,32 @@ export const dataService = {
     };
   },
 
+  /**
+   * التحقق هل الحساب محظور فعلياً دلوقتي - كان الحظر بيتسجل في الداتابيز
+   * من لوحة الأدمن بس مفيش أي إنفاذ فعلي بيمنع المستخدم المحظور من
+   * الاستمرار في استخدام الموقع عادي. الدالة دي بترجع تفاصيل الحظر لو
+   * موجود وسارِ (مش منتهي لو كان حظر مؤقت)، أو null لو مفيش حظر فعّال.
+   */
+  checkActiveBan: async (userId: string): Promise<{ reason: string; ban_type: string; expires_at: string | null } | null> => {
+    if (!userId || userId === "guest-user-temp") return null;
+
+    const { data, error } = await supabase
+      .from("banned_accounts")
+      .select("reason, ban_type, expires_at")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("banned_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    // لو حظر مؤقت وانتهت مدته، منعتبروش حظر فعّال
+    if (data.expires_at && new Date(data.expires_at).getTime() <= Date.now()) return null;
+
+    return data;
+  },
+
   updateProfile: async (profile: Partial<Profile>): Promise<Profile> => {
     const userId = await getAuthenticatedUserId();
 

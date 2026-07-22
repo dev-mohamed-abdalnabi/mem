@@ -2,6 +2,14 @@ import React, { useState, useEffect, useRef } from "react";
 import { Search, Bell, Trophy, User, Flame, LogOut, PlusCircle, Settings, LogIn, Sun, Moon, Bookmark, MessageCircle } from "lucide-react";
 import { Profile, Notification } from "../types";
 
+// تنسيق الأرقام الكبيرة بشكل شيك (1.2K / 3.4M) بدل ما تتكتب كاملة وتاخد مساحة زيادة في الهيدر
+function formatCompactNumber(num: number): string {
+  if (!num) return "0";
+  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (num >= 1_000) return (num / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
+  return String(num);
+}
+
 /**
  * واجهة الخصائص لمكون الهيدر
  */
@@ -141,20 +149,8 @@ export default function Header({
             title="لوحة الشرف"
           >
             <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
-            <span>{currentUser.total_points}</span>
+            <span>{formatCompactNumber(currentUser.total_points)}</span>
           </div>
-
-          {/* بادج سلسلة الأيام المتتالية (Streak) - بتظهر بس لو المستخدم عنده
-              سلسلة فعلية (يومين فأكتر)، عشان مانضايقش بادج فاضية لمستخدم جديد */}
-          {isRealUser && !!currentUser.current_streak && currentUser.current_streak >= 2 && (
-            <div
-              className="h-10 px-3 rounded-full bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-900 flex items-center gap-1 text-sm font-bold text-orange-600 dark:text-orange-400 select-none"
-              title={`سلسلة ${currentUser.current_streak} يوم متتالي - افتح التطبيق كل يوم عشان متخسرهاش`}
-            >
-              <span aria-hidden="true">🔥</span>
-              <span>{currentUser.current_streak}</span>
-            </div>
-          )}
         </div>
 
         {/* شريط البحث المركزي */}

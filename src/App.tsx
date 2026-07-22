@@ -245,6 +245,26 @@ export default function App() {
       setLoading(true);
       try {
         const dbCurrentUser = await dataService.getCurrentUser();
+
+        // إنفاذ الحظر فعلياً - كان بيتسجل في الداتابيز من لوحة الأدمن بس
+        // من غير أي تأثير حقيقي على المستخدم المحظور. لو الحساب ده محظور
+        // فعلاً، بنسجله خروج فوراً ونوريه رسالة بدل ما يكمل يستخدم الموقع.
+        if (dbCurrentUser && dbCurrentUser.id !== "guest-user-temp") {
+          const activeBan = await dataService.checkActiveBan(dbCurrentUser.id);
+          if (activeBan) {
+            await dataService.signOut();
+            window.alert(
+              `تم حظر حسابك.\nالسبب: ${activeBan.reason}` +
+              (activeBan.ban_type === "temporary" && activeBan.expires_at
+                ? `\nينتهي الحظر في: ${new Date(activeBan.expires_at).toLocaleDateString("ar-EG")}`
+                : "")
+            );
+            setCurrentUser(initialGuestProfile);
+            setLoading(false);
+            return;
+          }
+        }
+
         setCurrentUser(dbCurrentUser || initialGuestProfile);
         
         // تحميل الصفحة الأولى من الميمز (10 عناصر) - عن طريق خوارزمية الترتيب الحقيقية
