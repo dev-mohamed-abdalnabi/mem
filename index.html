@@ -16,6 +16,32 @@
   </head>
   <body>
     <div id="root"></div>
+    <!--
+      ماسك أخطاء مؤقت للتشخيص فقط: لو حصل خطأ قبل ما React يعمل mount
+      (زي خطأ في وقت تحميل موديول)، الـ ErrorBoundary جوه React مش بيلحق
+      يمسكه، فكان بيظهر شاشة سودة صامتة من غير أي رسالة. الكود ده بيلقط
+      أي خطأ من النوع ده ويطبعه كنص واضح على الشاشة نفسها (بدل console
+      اللي صعب توصله من الموبايل) عشان تقدر تاخد screenshot للخطأ الحقيقي.
+      ينفع تتمسح بعد ما نحل المشكلة.
+    -->
+    <script>
+      function showFatalError(msg) {
+        var root = document.getElementById('root');
+        if (root && !root.hasChildNodes()) {
+          root.innerHTML =
+            '<div style="min-height:100vh;background:#0f1419;color:#fff;padding:24px;' +
+            'font-family:monospace;font-size:13px;white-space:pre-wrap;direction:ltr;text-align:left;">' +
+            '⚠️ Startup error:\n\n' + msg + '</div>';
+        }
+      }
+      window.addEventListener('error', function (e) {
+        showFatalError((e.message || 'Unknown error') + '\n' + (e.filename || '') + ':' + (e.lineno || '') + ':' + (e.colno || ''));
+      });
+      window.addEventListener('unhandledrejection', function (e) {
+        var reason = e.reason;
+        showFatalError('Unhandled promise rejection: ' + (reason && reason.stack ? reason.stack : String(reason)));
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
