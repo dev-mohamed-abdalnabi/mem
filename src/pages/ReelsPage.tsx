@@ -3,6 +3,13 @@ import { Heart, MessageCircle, Bookmark, Share2, Loader2, Volume2, VolumeX, Fast
 import { Meme, Profile } from "../types";
 import { dataService } from "../services/dataService";
 
+// نفس البوستر الافتراضي المستخدم في CustomVideoPlayer (الفيد) - SVG بكسل
+// أسود صغير، بنحطه كـ poster لأي فيديو لسه مبدأش يحمّل عشان نمنع المتصفح
+// إنه يرسم شكله الافتراضي (أيقونة تشغيل جوه بيضاوي رمادي) في الريلز.
+const FALLBACK_POSTER =
+  "data:image/svg+xml;base64," +
+  btoa('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4" fill="#000000"/></svg>');
+
 interface ReelsPageProps {
   currentUser: Profile;
   isRealUser: boolean;
@@ -440,6 +447,7 @@ export default function ReelsPage({
           <video
             ref={(el) => { videoRefs.current[meme.id] = el; }}
             src={meme.video_url || ""}
+            poster={FALLBACK_POSTER}
             preload={preload}
             loop
             playsInline
