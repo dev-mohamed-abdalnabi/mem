@@ -79,6 +79,50 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
+// استقبال إشعار Push جاي من السيرفر (حتى لو المتصفح مقفول خالص، طول ما
+// المتصفح شغال في الخلفية أو الجهاز شغال، الـ OS بيصحي الـ Service Worker
+// ده تلقائياً عشان يعرض الإشعار)
+self.addEventListener("push", (event) => {
+  let data = { title: "إشعار جديد", body: "", url: "/" };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch (e) {
+    if (event.data) data.body = event.data.text();
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { url: data.url || "/" },
+      dir: "rtl",
+      lang: "ar",
+    })
+  );
+});
+
+// لما المستخدم يدوس على الإشعار، نفتحله التطبيق (أو نركز على تاب مفتوح
+// أصلاً بدل ما نفتح نسخة جديدة)
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    (async () => {
+      const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of allClients) {
+        if ("focus" in client) {
+          client.focus();
+          if ("navigate" in client) client.navigate(targetUrl);
+          return;
+        }
+      }
+      await self.clients.openWindow(targetUrl);
+    })()
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 

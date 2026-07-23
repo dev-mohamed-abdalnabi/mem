@@ -537,20 +537,31 @@ export default function MemeCard({
             <form onSubmit={handleReportSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">سبب البلاغ</label>
-                <select
-                  value={reportReason}
-                  onChange={(e) => setReportReason(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-right outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                >
-                  <option value="">اختر السبب</option>
-                  <option value="محتوى مسيء">محتوى مسيء</option>
-                  <option value="عنف أو إيذاء">عنف أو إيذاء</option>
-                  <option value="محتوى جنسي">محتوى جنسي</option>
-                  <option value="انتهاك الخصوصية">انتهاك الخصوصية</option>
-                  <option value="محتوى مزعج">محتوى مزعج</option>
-                  <option value="محتوى كاذب">محتوى كاذب</option>
-                  <option value="أخرى">أخرى</option>
-                </select>
+                <div className="space-y-1.5" role="radiogroup" aria-label="سبب البلاغ">
+                  {["محتوى مسيء", "عنف أو إيذاء", "محتوى جنسي", "انتهاك الخصوصية", "محتوى مزعج", "محتوى كاذب", "أخرى"].map((reason) => (
+                    <button
+                      key={reason}
+                      type="button"
+                      role="radio"
+                      aria-checked={reportReason === reason}
+                      onClick={() => setReportReason(reason)}
+                      className={`w-full flex items-center justify-between text-right px-3 py-2 rounded-lg border transition-colors ${
+                        reportReason === reason
+                          ? "border-red-500 bg-red-50 text-red-700 font-bold"
+                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <span>{reason}</span>
+                      <span
+                        className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                          reportReason === reason ? "border-red-500" : "border-gray-300"
+                        }`}
+                      >
+                        {reportReason === reason && <span className="w-2 h-2 rounded-full bg-red-500" />}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="flex gap-2 pt-4">
