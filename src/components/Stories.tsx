@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, X, ChevronLeft, ChevronRight, Type, Video, Eye, MoreVertical, Trash2, EyeOff, Volume2, VolumeX } from "lucide-react";
+import { Plus, X, ChevronLeft, ChevronRight, Type, Video, Eye, MoreVertical, Trash2, EyeOff } from "lucide-react";
 import { Story, Profile } from "../types";
 import { dataService } from "../services/dataService";
 import { socialService } from "../services/socialService";
@@ -17,14 +17,6 @@ interface StoriesProps {
 
 // أقصى مدة مسموحة لفيديو الحالة (بالثواني)
 const MAX_STORY_VIDEO_SECONDS = 60;
-
-// بوستر افتراضي بسيط (بكسل غامق شفاف) - من غير ما نحط poster خالص، المتصفح
-// بيرسم شكله الافتراضي (دايرة سودة بسهم تشغيل جواها على خلفية رمادية) لحد
-// ما الفيديو يوصل، وده اللي كان بيبان "غريب" وكإنه مش من تصميم التطبيق.
-// نفس التقنية المستخدمة في CustomVideoPlayer بالظبط.
-const STORY_VIDEO_FALLBACK_POSTER =
-  "data:image/svg+xml;base64," +
-  btoa('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4" fill="#000000"/></svg>');
 
 // مدة عرض حالة الصورة/النص الواحدة بستايل واتساب (بالميلي ثانية) قبل ما تتقدم تلقائي
 const STORY_IMAGE_DURATION_MS = 5000;
@@ -133,28 +125,6 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
   const progressElapsedRef = useRef<number>(0);
   const isPausedRef = useRef<boolean>(false);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
-  // بيفضل true لحد ما أول فريم فعلي من فيديو الحالة يوصل - بنستخدمها عشان
-  // نعرض سكيلتون بسيط بستايل التطبيق بدل ما نسيب المساحة سودا فاضية أو
-  // شكل المتصفح الافتراضي يبان قبل التحميل
-  const [isStoryVideoLoading, setIsStoryVideoLoading] = useState(false);
-  // بنصفّر الحالة دي لـ true فوراً (قبل أي رسم على الشاشة) أول ما نتنقل
-  // لحالة فيديو جديدة - قبل كده كانت بتتصفر بس جوه onLoadStart، وده حدث
-  // بيتأخر شوية على النت البطيء، فكان بيفضل فريم أو أكتر يبان فيها عنصر
-  // الـ<video> عاري (وشكل التشغيل الافتراضي بتاع المتصفح/النظام بيبان
-  // فوقه) قبل ما سكيلتون التطبيق يظهر فوقه.
-  useLayoutEffect(() => {
-    if (selectedStory?.media_type === 'video') {
-      setIsStoryVideoLoading(true);
-    }
-  }, [selectedStory?.id, selectedStory?.media_type]);
-  // فيديو الحالة كان بيحاول يشتغل بالصوت على طول من غير muted، وسياسة
-  // الأوتوبلاي في متصفحات الموبايل بترفض تشغيل فيديو بصوت من غير تفاعل
-  // مباشر قبلها. الرفض ده كان بيتبلع (catch فاضي) من غير أي fallback،
-  // فالفيديو كان بيفضل واقف تماماً وميبقاش بيحمّل حتى، والمتصفح كان بيعرض
-  // شكله الافتراضي (دايرة تشغيل رمادية) مكان الحالة بدل تصميمنا. دلوقتي
-  // بنكتم ونعيد المحاولة تلقائي لو الرفض بسبب سياسة الأوتوبلاي بالظبط،
-  // ونديله زرار كتم/صوت زي باقي فيديوهات التطبيق.
-  const [isMuted, setIsMuted] = useState(false);
   const rafRef = useRef<number | null>(null);
   // سحب الحالة لتحت لقفلها (زي فيسبوك وواتساب) - بنتابع مكان بداية اللمس
   // وبنحرك شاشة الحالة كلها مع الإصبع، وبنقفل لو السحب عدى مسافة معينة
@@ -360,24 +330,6 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStory, selectedStoryIndex, currentUserStories]);
 
-  // بنشغّل فيديو الحالة يدوياً (بدل ما نعتمد على خاصية autoPlay) عشان نقدر
-  // نمسك رفض المتصفح (NotAllowedError) لما يحاول يشغّل بصوت من غير كتم -
-  // وقتها بنكتم ونعيد المحاولة، بدل ما نسيب الفيديو واقف والمتصفح يعرض
-  // شكله الافتراضي (دايرة تشغيل رمادية) مكانه.
-  useEffect(() => {
-    if (selectedStory?.media_type !== "video") return;
-    const v = videoElRef.current;
-    if (!v) return;
-    v.muted = isMuted;
-    v.play().catch((err) => {
-      if (err?.name === "NotAllowedError" && !v.muted) {
-        v.muted = true;
-        setIsMuted(true);
-        v.play().catch(() => {});
-      }
-    });
-  }, [selectedStory?.id, selectedStory?.media_type, isMuted]);
-
   // بنحدّث الـ ref بس لما isPaused يتغيّر، من غير ما نعيد تشغيل عداد
   // التقدم؛ لو سبناه dependency في الـ effect اللي تحت، كل دوسة/تطة
   // كانت بترجّع الشريط لصفر وتبوّظ التقدم (المشكلة الأصلية).
@@ -407,7 +359,6 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
     progressStartRef.current = performance.now();
 
     const isVideo = selectedStory.media_type === "video";
-    setIsStoryVideoLoading(isVideo);
 
     const tick = (now: number) => {
       if (isPausedRef.current) {
@@ -784,17 +735,6 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
               </div>
             )}
 
-            {/* كتم/تشغيل الصوت - بيظهر بس لو الحالة فيديو */}
-            {selectedStory?.media_type === "video" && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setIsMuted(v => !v); }}
-                className="text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition-all"
-                title={isMuted ? "تشغيل الصوت" : "كتم الصوت"}
-              >
-                {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-              </button>
-            )}
-
             <button
               onClick={(e) => { e.stopPropagation(); closeStoryViewer(); }}
               className="text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition-all"
@@ -818,8 +758,6 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
                   key={selectedStory.id}
                   ref={(el) => { videoElRef.current = el; }}
                   src={selectedStory?.media_url}
-                  poster={STORY_VIDEO_FALLBACK_POSTER}
-                  muted={isMuted}
                   autoPlay
                   initial={{ opacity: 0, scale: 0.96 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -828,9 +766,6 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
                   className="w-full h-full object-contain"
                   playsInline
                   onEnded={handleVideoEnded}
-                  onLoadStart={() => setIsStoryVideoLoading(true)}
-                  onLoadedData={() => setIsStoryVideoLoading(false)}
-                  onPlaying={() => setIsStoryVideoLoading(false)}
                 />
               ) : (
                 <motion.img
@@ -845,15 +780,6 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
                 />
               )}
             </AnimatePresence>
-
-            {/* سكيلتون تحميل فيديو الحالة - بنفس ستايل سبينر باقي الفيديوهات
-                في التطبيق، بدل ما نسيب شكل المتصفح الافتراضي (دايرة سودة
-                وسهم تشغيل جواها) يبان لحد ما الفيديو يوصل */}
-            {selectedStory?.media_type === 'video' && isStoryVideoLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black pointer-events-none">
-                <div className="w-10 h-10 border-[3px] border-white/15 border-t-white/70 rounded-full animate-spin" />
-              </div>
-            )}
 
             {/* منطقة لمس شفافة للتنقل - يمين/شمال زي واتساب وفيسبوك */}
             <button
