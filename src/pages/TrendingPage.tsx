@@ -17,7 +17,7 @@ interface TrendingPageProps {
   handleDeleteMeme: (id: string) => Promise<void>;
   setSelectedProfileId: (id: string | null) => void;
   setActiveTab: (tab: string) => void;
-  setLightboxImage: (url: string | null) => void;
+  setLightboxImage: (url: string | null, meme?: Meme | null) => void;
 }
 
 /**
@@ -83,7 +83,8 @@ export default function TrendingPage({
               onDeleteMeme={handleDeleteMeme} 
               onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }} 
               isFollowingCreator={followingIds.includes(m.user_id)} 
-              onImageClick={setLightboxImage} 
+              onImageClick={setLightboxImage}
+
             />  
           </div>  
         ))

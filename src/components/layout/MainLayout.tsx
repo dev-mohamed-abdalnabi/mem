@@ -20,6 +20,11 @@ interface MainLayoutProps {
   authTab: "signin" | "signup"; // التبويب النشط في مودال الدخول
   lightboxImage: string | null; // رابط الصورة في اللايت بوكس
   lightboxMediaType: 'image' | 'video' | null; // نوع الوسائط في اللايت بوكس
+  lightboxMeme?: Meme | null; // البوست اللي بتاعه الصورة/الفيديو المفتوح، عشان أزرار التفاعل تشتغل فعلياً
+  onLightboxLikeToggle?: (memeId: string) => void;
+  onLightboxSaveToggle?: (memeId: string) => void;
+  onLightboxShareCompleted?: (memeId: string) => void;
+  onLightboxOpenComments?: (meme: Meme) => void;
   onNavigate: (tab: string, options?: { profileId?: string }) => void; // وظيفة التنقل بين التبويبات
   onSearch: (query: string) => void; // وظيفة البحث
   onUserSwitch: (profile: Profile) => void; // وظيفة تبديل المستخدم
@@ -50,6 +55,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   authTab,
   lightboxImage,
   lightboxMediaType,
+  lightboxMeme,
+  onLightboxLikeToggle,
+  onLightboxSaveToggle,
+  onLightboxShareCompleted,
+  onLightboxOpenComments,
   onNavigate,
   onSearch,
   onUserSwitch,
@@ -84,7 +94,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         <Lightbox
           mediaUrl={lightboxImage}
           mediaType={lightboxMediaType || 'image'}
+          meme={lightboxMeme || null}
           onClose={onCloseLightbox}
+          onLikeToggle={onLightboxLikeToggle}
+          onSaveToggle={onLightboxSaveToggle}
+          onShareCompleted={onLightboxShareCompleted}
+          onOpenComments={onLightboxOpenComments}
         />
       )}
 

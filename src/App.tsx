@@ -92,6 +92,10 @@ export default function App() {
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin"); // تبويب مودال الدخول
   const [lightboxImage, setLightboxImage] = useState<string | null>(null); // صورة اللايت بوكس
   const [lightboxMediaType, setLightboxMediaType] = useState<'image' | 'video' | null>(null); // نوع ميديا اللايت بوكس
+  // البوست اللي بتاعه الصورة/الفيديو المفتوح في اللايت بوكس (لو موجود) - عشان
+  // أزرار الإعجاب/الحفظ/التعليق/المشاركة جوه اللايت بوكس تشتغل على البوست
+  // الحقيقي بدل ما تكون واجهة وهمية مالهاش أي تأثير فعلي
+  const [lightboxMeme, setLightboxMeme] = useState<Meme | null>(null);
   const [selectedMemeForComments, setSelectedMemeForComments] = useState<Meme | null>(null); // المنشور المختار لعرض التعليقات
   const [highlightedMemeId, setHighlightedMemeId] = useState<string | null>(null); // البوست اللي جاي من لينك مشاركة، عشان نوصله له وننده عليه بالضوء
   const [searchQuery, setSearchQuery] = useState(""); // نص البحث
@@ -160,11 +164,12 @@ export default function App() {
    * وتسجل خطوة history بس لما المودال بيتفتح فعلياً (مش لما يتقفل، عشان
    * الإغلاق بيحصل من خلال زرار الرجوع نفسه أو زرار X).
    */
-  const openLightboxGuarded = useCallback((url: string | null) => {
+  const openLightboxGuarded = useCallback((url: string | null, meme?: Meme | null) => {
     if (url) {
       window.history.pushState({ modal: "lightbox" }, "", window.location.href);
     }
     setLightboxImage(url);
+    setLightboxMeme(meme || null);
   }, []);
 
   const openAuthModalGuarded = useCallback((show: boolean) => {
@@ -372,6 +377,7 @@ export default function App() {
       if (lightboxImage) {
         setLightboxImage(null);
         setLightboxMediaType(null);
+        setLightboxMeme(null);
         window.history.pushState({ tab: activeTab }, "", window.location.href);
         return;
       }
@@ -493,8 +499,22 @@ export default function App() {
       return;
     }
 
+    // بنحدث الواجهة فوراً (optimistic update) بدل ما ننتظر رد السيرفر - كان
+    // الزرار حاسس إنه "متأخر" جداً لأنه كان بيستنى الـ await بالكامل قبل ما
+    // يلوّن القلب أو يزوّد العداد. دلوقتي بنلوّن على طول، وبس لو الطلب فشل
+    // فعلياً بنرجّع الحالة القديمة زي ما هي.
+    let previousState: { liked_by_me?: boolean; likes_count: number } | null = null;
+    setMemes(prev => prev.map(m => {
+      if (m.id !== memeId) return m;
+      previousState = { liked_by_me: m.liked_by_me, likes_count: m.likes_count };
+      const nowLiked = !m.liked_by_me;
+      return { ...m, liked_by_me: nowLiked, likes_count: Math.max(0, m.likes_count + (nowLiked ? 1 : -1)) };
+    }));
+
     try {
       const result = await dataService.toggleLike(memeId, currentUser.id);
+      // بنستبدل بالقيم الحقيقية الراجعة من السيرفر عشان أي فرق بسيط (مثلاً
+      // لايك من مستخدم تاني وصل في نفس اللحظة) يتصحح تلقائي.
       setMemes(prev => prev.map(m => 
         m.id === memeId 
           ? { ...m, liked_by_me: result.liked, likes_count: result.likesCount }
@@ -506,6 +526,11 @@ export default function App() {
       pushService.promptForPermissionOnce(currentUser.id);
     } catch (error) {
       console.error("Error toggling like:", error);
+      // فشل الطلب - نرجّع الحالة القديمة بدل ما نسيب الواجهة على قيمة غلط
+      if (previousState) {
+        const restored = previousState;
+        setMemes(prev => prev.map(m => m.id === memeId ? { ...m, ...restored } : m));
+      }
     }
   }, [currentUser.id]);
 
@@ -517,6 +542,14 @@ export default function App() {
       return;
     }
 
+    // نفس فكرة اللايك: تحديث فوري للواجهة، ورجوع للحالة القديمة بس لو فشل الطلب فعلياً.
+    let previousSaved: boolean | undefined;
+    setMemes(prev => prev.map(m => {
+      if (m.id !== memeId) return m;
+      previousSaved = m.saved_by_me;
+      return { ...m, saved_by_me: !m.saved_by_me };
+    }));
+
     try {
       const result = await dataService.toggleSave(memeId, currentUser.id);
       setMemes(prev => prev.map(m =>
@@ -524,6 +557,7 @@ export default function App() {
       ));
     } catch (error) {
       console.error("Error toggling save:", error);
+      setMemes(prev => prev.map(m => m.id === memeId ? { ...m, saved_by_me: previousSaved } : m));
     }
   }, [currentUser.id]);
 
@@ -616,7 +650,7 @@ export default function App() {
       handleDeleteMeme,
       setSelectedProfileId,
       setActiveTab: navigateToTab,
-      setLightboxImage: openLightboxGuarded,
+      setLightboxImage: (url: string | null, meme?: Meme | null) => openLightboxGuarded(url, meme),
       // زرار الرسايل في البروفايل (كان ديمو من غير أي وظيفة) - دلوقتي بيفتح
       // محادثة حقيقية مع صاحب البروفايل عن طريق نظام الرسايل الجديد
       onMessageUser: (userId: string) => {
@@ -739,6 +773,25 @@ export default function App() {
       authTab={authTab}
       lightboxImage={lightboxImage}
       lightboxMediaType={lightboxMediaType}
+      lightboxMeme={lightboxMeme}
+      onLightboxLikeToggle={handleLikeToggle}
+      onLightboxSaveToggle={handleSaveToggle}
+      onLightboxShareCompleted={(memeId: string) => {
+        const now = Date.now();
+        const lastSharedAt = lastShareAtRef.current.get(memeId) || 0;
+        const SHARE_COOLDOWN_MS = 10000;
+        if (now - lastSharedAt < SHARE_COOLDOWN_MS) return;
+        lastShareAtRef.current.set(memeId, now);
+        dataService.recordShare(memeId)
+          .then(newCount => setMemes(prev => prev.map(m => m.id === memeId ? { ...m, shares_count: newCount } : m)))
+          .catch(error => console.error("Error recording share:", error));
+      }}
+      onLightboxOpenComments={(meme: Meme) => {
+        setLightboxImage(null);
+        setLightboxMediaType(null);
+        setLightboxMeme(null);
+        openCommentsGuarded(meme);
+      }}
       onNavigate={navigateToTab}
       onSearch={setSearchQuery}
       onUserSwitch={setCurrentUser}
@@ -774,7 +827,7 @@ export default function App() {
         }
       }}
       setSelectedProfileId={setSelectedProfileId}
-      onCloseLightbox={() => { setLightboxImage(null); setLightboxMediaType(null); }}
+      onCloseLightbox={() => { setLightboxImage(null); setLightboxMediaType(null); setLightboxMeme(null); }}
       unreadMessagesCount={unreadMessagesCount}
     >
       {/* تنبيه احتفالي مؤقت لما سلسلة الأيام تزيد - بيختفي لوحده بعد ٤ ثواني.

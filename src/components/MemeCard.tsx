@@ -26,7 +26,7 @@ interface MemeCardProps {
   onDeleteMeme: (memeId: string) => void; // وظيفة حذف الميم
   onUserProfileClick: (userId: string) => void; // وظيفة الانتقال لبروفايل المستخدم
   isFollowingCreator: boolean; // هل يتابع المستخدم صاحب الميم
-  onImageClick?: (url: string) => void; // وظيفة تكبير الصورة
+  onImageClick?: (url: string, meme: Meme) => void; // وظيفة تكبير الصورة
   onOpenComments?: (meme: Meme) => void; // وظيفة فتح التعليقات في صفحة كاملة
 }
 
@@ -356,27 +356,27 @@ export default function MemeCard({
                 {meme.images.length === 2 ? (
                   <div className="grid grid-cols-2 gap-0.5 aspect-square">
                     {meme.images.map((img, idx) => (
-                      <div key={idx} className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(img)}>
+                      <div key={idx} className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(img, meme)}>
                         <img loading="lazy" decoding="async" src={img} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt={`صورة ${idx + 1}`} />
                       </div>
                     ))}
                   </div>
                 ) : meme.images.length === 3 ? (
                   <div className="grid gap-0.5 aspect-square" style={{ gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr' }}>
-                    <div className="col-span-1 row-span-2 relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(meme.images![0])}>
+                    <div className="col-span-1 row-span-2 relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(meme.images![0], meme)}>
                       <img loading="lazy" decoding="async" src={meme.images[0]} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt="صورة 1" />
                     </div>
-                    <div className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(meme.images![1])}>
+                    <div className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(meme.images![1], meme)}>
                       <img loading="lazy" decoding="async" src={meme.images[1]} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt="صورة 2" />
                     </div>
-                    <div className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(meme.images![2])}>
+                    <div className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(meme.images![2], meme)}>
                       <img loading="lazy" decoding="async" src={meme.images[2]} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt="صورة 3" />
                     </div>
                   </div>
                 ) : meme.images.length === 4 ? (
                   <div className="grid grid-cols-2 gap-0.5 aspect-square">
                     {meme.images.map((img, idx) => (
-                      <div key={idx} className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(img)}>
+                      <div key={idx} className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(img, meme)}>
                         <img loading="lazy" decoding="async" src={img} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt={`صورة ${idx + 1}`} />
                       </div>
                     ))}
@@ -384,7 +384,7 @@ export default function MemeCard({
                 ) : (
                   <div className="grid grid-cols-2 gap-0.5 aspect-square">
                     {meme.images.slice(0, 4).map((img, idx) => (
-                      <div key={idx} className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(img)}>
+                      <div key={idx} className="relative overflow-hidden bg-gray-800 cursor-pointer group/img" onClick={() => onImageClick?.(img, meme)}>
                         <img loading="lazy" decoding="async" src={img} className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300" alt={`صورة ${idx + 1}`} />
                         {idx === 3 && meme.images!.length > 4 && (
                           <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
@@ -397,7 +397,7 @@ export default function MemeCard({
                 )}
               </div>
             ) : meme.image_url ? (
-              <img loading="lazy" decoding="async" src={meme.image_url} className="w-full max-h-[500px] object-contain" onClick={() => onImageClick?.(meme.image_url!)} />
+              <img loading="lazy" decoding="async" src={meme.image_url} className="w-full max-h-[500px] object-contain" onClick={() => onImageClick?.(meme.image_url!, meme)} />
             ) : null}
           </div>
 

@@ -30,7 +30,7 @@ interface FeedPageProps {
   handleDeleteMeme: (id: string) => Promise<void>;
   setSelectedProfileId: (id: string | null) => void;
   setActiveTab: (tab: string) => void;
-  setLightboxImage: (url: string | null) => void;
+  setLightboxImage: (url: string | null, meme?: Meme | null) => void;
   onOpenComments?: (meme: Meme) => void;
   highlightedMemeId?: string | null; // بوست جاي من لينك مشاركة، بنوصله له وننده عليه بالضوء
   onHighlightConsumed?: () => void; // بتتنادى بعد ما التظليل يخلص عشان الحالة تتصفر
@@ -176,7 +176,7 @@ export default function FeedPage({
                 onDeleteMeme={handleDeleteMeme}
                 onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }}
                 isFollowingCreator={followingIds.includes(meme.user_id)}
-                onImageClick={(url: string) => setLightboxImage(url)}
+                onImageClick={(url: string, meme: Meme) => setLightboxImage(url, meme)}
                 onOpenComments={onOpenComments}
               />
             </div>

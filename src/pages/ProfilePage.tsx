@@ -24,7 +24,7 @@ interface ProfilePageProps {
   handleDeleteMeme: (id: string) => Promise<void>;
   setSelectedProfileId: (id: string | null) => void;
   setActiveTab: (tab: string) => void;
-  setLightboxImage: (url: string | null) => void;
+  setLightboxImage: (url: string | null, meme?: Meme | null) => void;
 }
 
 // تنسيق الأرقام الكبيرة بشكل شيك (1.2K / 3.4M) بدل ما تتكتب كاملة وتبوظ التصميم
