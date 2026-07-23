@@ -10,6 +10,7 @@ import { FeedLoadingSkeleton } from "../components/LoadingSkeletons";
  */
 interface FeedPageProps {
   isRealUser: boolean;
+  authChecked: boolean;
   loading: boolean;
   loadingMore: boolean; // حالة تحميل المزيد
   hasMore: boolean; // هل توجد صفحات أخرى
@@ -46,6 +47,7 @@ interface FeedPageProps {
  */
 export default function FeedPage({
   isRealUser,
+  authChecked,
   loading,
   loadingMore,
   hasMore,
@@ -115,7 +117,7 @@ export default function FeedPage({
     <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto pb-20 lg:pb-8 px-4 md:px-0">
       
       {/* قصص المستخدمين (Stories) */}
-      {isRealUser && (
+      {authChecked && isRealUser && (
         <Stories
           currentUser={currentUser}
           onStoryViewerChange={onStoryViewerChange}
@@ -123,8 +125,20 @@ export default function FeedPage({
         />
       )}
 
+      {/* لسه بنتأكد من حالة الدخول - تأثير شبح (skeleton) بدل ما نفترض إنه
+          زائر ونوريه بانر/زرار تسجيل دخول يختفي فجأة أول ما بياناته توصل */}
+      {!authChecked && (
+        <div className="lg:hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm flex items-center gap-4 animate-pulse">
+          <div className="flex-1 space-y-2">
+            <div className="h-3.5 w-32 bg-gray-200 dark:bg-gray-700 rounded-full" />
+            <div className="h-3 w-44 bg-gray-100 dark:bg-gray-800 rounded-full" />
+          </div>
+          <div className="h-8 w-20 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+        </div>
+      )}
+
       {/* رسالة ترحيب للزوار (للجوال فقط) */}
-      {!isRealUser && (
+      {authChecked && !isRealUser && (
         <div className="lg:hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-4">
           <div className="text-right">
             <h4 className="font-bold text-sm text-gray-900 dark:text-white">أهلاً بك كزائر 👋</h4>

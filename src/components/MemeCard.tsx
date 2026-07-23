@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { 
   Heart, MessageCircle, Share2, Bookmark, 
   Trash2, AlertOctagon, Check, Frown, ShieldAlert, PlusCircle, ChevronRight, ChevronLeft,
@@ -84,6 +85,39 @@ export default function MemeCard({
   const [showFeedbackMenu, setShowFeedbackMenu] = useState(false);
   const [feedbackGiven, setFeedbackGiven] = useState<"hide" | "not_interested" | "snooze_author" | null>(null);
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  // تأكيد قبل الحذف - عشان محدش يمسح بوست بالغلط بضغطة واحدة
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // زرار المنيو (⋯) وموضعه - بنستخدم portal عشان مينيو الخيارات يترسم فوق
+  // كل حاجة (document.body) مش جوه كارت البوست؛ لو رسمناه جوه الكارت
+  // عادي، أي كارت غلطه (overflow-hidden) بيقص المينيو ويخليه يبان "متاكل"
+  // خصوصاً لما البوست يكون قصير والمينيو يفضل مساحة تحته أقل من ارتفاعه.
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+
+  const openPostMenu = () => {
+    const btn = menuButtonRef.current;
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      const menuWidth = 224; // w-56
+      const left = Math.min(Math.max(8, rect.right - menuWidth), window.innerWidth - menuWidth - 8);
+      setMenuPosition({ top: rect.bottom + 6, left });
+    }
+    setShowFeedbackMenu(true);
+  };
+
+  // لو المستخدم عمل سكرول أو غيّر حجم الشاشة والمينيو مفتوح، بنقفله بدل ما
+  // نسيبه في مكانه القديم (لأنه بقى في portal منفصل عن الكارت، مش هيتحرك
+  // معاه تلقائي مع السكرول)
+  useEffect(() => {
+    if (!showFeedbackMenu) return;
+    const closeOnScroll = () => setShowFeedbackMenu(false);
+    window.addEventListener("scroll", closeOnScroll, true);
+    window.addEventListener("resize", closeOnScroll);
+    return () => {
+      window.removeEventListener("scroll", closeOnScroll, true);
+      window.removeEventListener("resize", closeOnScroll);
+    };
+  }, [showFeedbackMenu]);
 
   const handleNegativeFeedback = async (type: "hide" | "not_interested" | "snooze_author") => {
     setShowFeedbackMenu(false);
@@ -267,50 +301,94 @@ export default function MemeCard({
               )}
             </div>
             <div className="flex items-center gap-2 relative">
-              {(currentUser.id === creator.id || currentUser.role === "admin") && (
-                <button onClick={() => onDeleteMeme(meme.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
-              )}
-              <button onClick={() => setShowReportModal(true)} className="text-gray-400 hover:text-gray-600"><AlertOctagon className="w-4 h-4" /></button>
-              {currentUser.id !== "guest-user-temp" && currentUser.id !== creator.id && (
-                <button
-                  onClick={() => setShowFeedbackMenu(v => !v)}
-                  disabled={feedbackSubmitting}
-                  className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                  title="خيارات المنشور"
-                >
-                  <MoreHorizontal className="w-4 h-4" />
-                </button>
-              )}
-              {showFeedbackMenu && (
+              <button
+                ref={menuButtonRef}
+                onClick={() => (showFeedbackMenu ? setShowFeedbackMenu(false) : openPostMenu())}
+                disabled={feedbackSubmitting}
+                className="text-gray-400 hover:text-gray-600 disabled:opacity-50 p-1"
+                title="خيارات المنشور"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+              {showFeedbackMenu && menuPosition && createPortal(
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowFeedbackMenu(false)} />
-                  <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden text-right">
+                  <div className="fixed inset-0 z-[200]" onClick={() => setShowFeedbackMenu(false)} />
+                  <div
+                    className="fixed w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-[201] overflow-hidden text-right"
+                    style={{ top: menuPosition.top, left: menuPosition.left }}
+                  >
+                    {(currentUser.id === creator.id || currentUser.role === "admin") && (
+                      <button
+                        onClick={() => { setShowFeedbackMenu(false); setShowDeleteConfirm(true); }}
+                        className="w-full flex items-center gap-2 justify-end px-4 py-3 text-sm text-red-600 hover:bg-red-50"
+                      >
+                        <span>حذف المنشور</span>
+                        <Trash2 className="w-4 h-4 shrink-0" />
+                      </button>
+                    )}
                     <button
-                      onClick={() => handleNegativeFeedback("not_interested")}
-                      className="w-full flex items-center gap-2 justify-end px-4 py-3 text-sm text-gray-800 hover:bg-gray-50"
-                    >
-                      <span>مش مهتم بمحتوى زي ده</span>
-                      <Frown className="w-4 h-4 text-gray-500 shrink-0" />
-                    </button>
-                    <button
-                      onClick={() => handleNegativeFeedback("hide")}
+                      onClick={() => { setShowFeedbackMenu(false); setShowReportModal(true); }}
                       className="w-full flex items-center gap-2 justify-end px-4 py-3 text-sm text-gray-800 hover:bg-gray-50 border-t border-gray-100"
                     >
-                      <span>إخفاء المنشور ده</span>
-                      <EyeOff className="w-4 h-4 text-gray-500 shrink-0" />
+                      <span>الإبلاغ عن المنشور</span>
+                      <AlertOctagon className="w-4 h-4 text-gray-500 shrink-0" />
                     </button>
-                    <button
-                      onClick={() => handleNegativeFeedback("snooze_author")}
-                      className="w-full flex items-center gap-2 justify-end px-4 py-3 text-sm text-gray-800 hover:bg-gray-50 border-t border-gray-100"
-                    >
-                      <span>اسكت {creator.username} لمدة أسبوعين</span>
-                      <BellOff className="w-4 h-4 text-gray-500 shrink-0" />
-                    </button>
+                    {currentUser.id !== "guest-user-temp" && currentUser.id !== creator.id && (
+                      <>
+                        <button
+                          onClick={() => handleNegativeFeedback("not_interested")}
+                          className="w-full flex items-center gap-2 justify-end px-4 py-3 text-sm text-gray-800 hover:bg-gray-50 border-t border-gray-100"
+                        >
+                          <span>مش مهتم بمحتوى زي ده</span>
+                          <Frown className="w-4 h-4 text-gray-500 shrink-0" />
+                        </button>
+                        <button
+                          onClick={() => handleNegativeFeedback("hide")}
+                          className="w-full flex items-center gap-2 justify-end px-4 py-3 text-sm text-gray-800 hover:bg-gray-50 border-t border-gray-100"
+                        >
+                          <span>إخفاء المنشور ده</span>
+                          <EyeOff className="w-4 h-4 text-gray-500 shrink-0" />
+                        </button>
+                        <button
+                          onClick={() => handleNegativeFeedback("snooze_author")}
+                          className="w-full flex items-center gap-2 justify-end px-4 py-3 text-sm text-gray-800 hover:bg-gray-50 border-t border-gray-100"
+                        >
+                          <span>اسكت {creator.username} لمدة أسبوعين</span>
+                          <BellOff className="w-4 h-4 text-gray-500 shrink-0" />
+                        </button>
+                      </>
+                    )}
                   </div>
-                </>
+                </>,
+                document.body
               )}
             </div>
           </div>
+
+          {/* تأكيد الحذف - عشان محدش يمسح بوست بالغلط بضغطة واحدة من غير قصد */}
+          {showDeleteConfirm && createPortal(
+            <div className="fixed inset-0 z-[300] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowDeleteConfirm(false)}>
+              <div className="bg-white rounded-2xl p-5 w-full max-w-sm text-right shadow-xl" onClick={(e) => e.stopPropagation()}>
+                <h3 className="font-bold text-gray-900 text-base mb-1.5">حذف المنشور؟</h3>
+                <p className="text-sm text-gray-500 mb-5">هيتم حذف المنشور ده نهائياً ومش هينفع ترجعه تاني.</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowDeleteConfirm(false); onDeleteMeme(meme.id); }}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-sm transition-colors"
+                  >
+                    حذف نهائياً
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-2.5 rounded-xl text-sm transition-colors"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
 
           {/* نص المنشور - سطرين بس، والباقي ورا "عرض المزيد" */}
           {meme.caption && (
