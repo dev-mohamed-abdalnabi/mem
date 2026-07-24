@@ -9,7 +9,6 @@ interface ProfilePageProps {
   currentUser: Profile;
   isOwnProfile: boolean;
   isRealUser: boolean;
-  authChecked: boolean;
   userMemes: Meme[];
   followingIds: string[];
   setCurrentUser: React.Dispatch<React.SetStateAction<Profile>>;
@@ -41,7 +40,6 @@ export default function ProfilePage({
   currentUser,
   isOwnProfile,
   isRealUser,
-  authChecked,
   userMemes,
   followingIds,
   setCurrentUser,
@@ -364,33 +362,6 @@ export default function ProfilePage({
       )}
 
       {/* الهيدر العلوي */}
-      {isOwnProfile && !authChecked ? (
-        // لسه بنتأكد من حالة الدخول - تأثير شبح (skeleton) بدل ما نفترض إنه
-        // زائر ونوريه "تسجيل الدخول" واسم "زائر_مجهول" يختفوا فجأة أول ما
-        // بياناته الحقيقية توصل (كان ده بيحصل مع كل ريفرش حتى لو كان
-        // المستخدم فعلاً مسجل دخول)
-        <div className="px-4 pt-4 pb-2 animate-pulse">
-          <div className="flex justify-between items-start mb-3">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-200 dark:bg-gray-800" />
-            <div className="pt-2">
-              <div className="h-8 w-28 bg-gray-200 dark:bg-gray-800 rounded-full" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className="h-5 w-40 bg-gray-200 dark:bg-gray-800 rounded-full" />
-            <div className="h-3.5 w-28 bg-gray-100 dark:bg-gray-800/60 rounded-full" />
-          </div>
-          <div className="grid grid-cols-4 mt-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-2xl py-3">
-            {[0, 1, 2, 3].map(i => (
-              <div key={i} className={`flex flex-col items-center gap-1.5 ${i > 0 ? "border-r border-gray-200 dark:border-gray-800" : ""}`}>
-                <div className="w-[18px] h-[18px] rounded-full bg-gray-200 dark:bg-gray-700" />
-                <div className="h-3.5 w-6 bg-gray-200 dark:bg-gray-700 rounded-full" />
-                <div className="h-2.5 w-10 bg-gray-100 dark:bg-gray-800 rounded-full" />
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
       <div className="px-4 pt-4 pb-2">
         <div className="flex justify-between items-start mb-3">
           
@@ -515,7 +486,6 @@ export default function ProfilePage({
           ))}
         </div>
       </div>
-      )}
 
       {/* شريط التبويبات */}
       <div className="flex w-full border-b border-gray-200 dark:border-gray-800 mt-2">

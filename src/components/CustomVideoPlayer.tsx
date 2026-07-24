@@ -65,9 +65,6 @@ export default function CustomVideoPlayer({
   // وبعدين يختفي لوحده تلقائياً.
   const [showControls, setShowControls] = useState(true);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
-  // بنستخدمها عشان نمنع onTimeUpdate إنه يكتب فوق موضع السحب وإحنا لسه
-  // ماسكين شريط التقدم (نفس الفكرة المستخدمة في صفحة الريلز)
-  const isSeekingRef = useRef(false);
 
   const scheduleHideControls = () => {
     if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
@@ -145,7 +142,7 @@ export default function CustomVideoPlayer({
       }
       flushWatch();
     };
-    const handleTimeUpdate = () => { if (!isSeekingRef.current) setCurrentTime(video.currentTime); };
+    const handleTimeUpdate = () => setCurrentTime(video.currentTime);
     const handleLoadedMetadata = () => {
       setDuration(video.duration);
       // لو مفيش aspectRatio جاهزة متبعتة من برة (meme.width/height)، بنحسبها
@@ -351,35 +348,20 @@ export default function CustomVideoPlayer({
           showControls ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
-        {/* Progress Bar - بيدعم السحب (مش دوسة واحدة بس) عشان يبقى دقيق، وبنفس
-            لون شريط تقدم الحالات بالظبط (أبيض صريح inline، مش كلاس bg-white -
-            عندنا قاعدة CSS عامة بتحول أي bg-white للون الكارت في الوضع الداكن) */}
+        {/* Progress Bar */}
         <div
-          className="mb-2 -my-2 py-2 touch-none cursor-pointer"
-          onPointerDown={(e) => {
+          className="mb-2 h-1 bg-white/20 rounded-full overflow-hidden cursor-pointer"
+          onClick={(e) => {
             e.stopPropagation();
-            isSeekingRef.current = true;
-            e.currentTarget.setPointerCapture(e.pointerId);
             const rect = e.currentTarget.getBoundingClientRect();
-            const percent = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-            setCurrentTime(percent * duration);
-            if (videoRef.current) videoRef.current.currentTime = percent * duration;
+            const percent = (e.clientX - rect.left) / rect.width;
+            if (videoRef.current) {
+              videoRef.current.currentTime = percent * duration;
+            }
             revealControls();
           }}
-          onPointerMove={(e) => {
-            if (!isSeekingRef.current) return;
-            e.stopPropagation();
-            const rect = e.currentTarget.getBoundingClientRect();
-            const percent = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-            setCurrentTime(percent * duration);
-            if (videoRef.current) videoRef.current.currentTime = percent * duration;
-          }}
-          onPointerUp={(e) => { e.stopPropagation(); isSeekingRef.current = false; }}
-          onPointerCancel={(e) => { e.stopPropagation(); isSeekingRef.current = false; }}
         >
-          <div className="h-[3px] rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.35)" }}>
-            <div className="h-full rounded-full" style={{ width: `${progressPercent}%`, backgroundColor: "#ffffff" }} />
-          </div>
+          <div className="h-full bg-red-500" style={{ width: `${progressPercent}%` }} />
         </div>
 
         <div className="flex items-center justify-between gap-2">
