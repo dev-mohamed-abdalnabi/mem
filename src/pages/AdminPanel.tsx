@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { AlertTriangle, Users, Trash2, Eye, EyeOff, Pin, Zap, Lock, LogOut, BarChart3, Activity, TrendingUp, MessageSquare, Check, X } from "lucide-react";
 import { supabase } from "../supabaseClient";
 import { Profile } from "../types";
+import { useDialog } from "../components/DialogProvider";
 
 interface AdminPanelProps {
   currentUser: Profile;
@@ -51,6 +52,7 @@ interface Meme {
  * تتحكم في جميع جوانب الموقع من البلاغات والحسابات والمنشورات
  */
 export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProps) {
+  const { promptDialog } = useDialog();
   // --- حالات المكون (States) ---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setLocalActiveTab] = useState<"reports" | "users" | "memes" | "logs" | "stats">("reports");
@@ -242,7 +244,10 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
    */
   const promptBanUser = async (userId: string, username?: string) => {
     if (!userId) return;
-    const reason = window.prompt(`اكتب سبب حظر ${username ? `"${username}"` : "المستخدم"}:`);
+    const reason = await promptDialog(
+      `اكتب سبب حظر ${username ? `"${username}"` : "المستخدم"}:`,
+      { title: "حظر مستخدم", placeholder: "سبب الحظر..." }
+    );
     if (!reason || !reason.trim()) return;
     await banAccount(userId, reason.trim());
   };

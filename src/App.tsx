@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 
 
 // استيراد الأنواع والخدمات
 import { Profile, Meme, Notification } from "./types";
+import { pushService } from "./services/pushService";
+import { useDialog } from "./components/DialogProvider";
 import { dataService } from "./services/dataService";
 
 // استيراد مكونات الواجهة
@@ -20,7 +22,6 @@ const Leaderboard = lazy(() => import("./components/Leaderboard"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel")); // لوحة تحكم المشرف
 const MessagesPage = lazy(() => import("./pages/MessagesPage")); // نظام الرسايل الخاصة (زي الماسنجر)
 import { messagesService } from "./services/messagesService";
-import { pushService } from "./services/pushService";
 
 /**
  * البيانات الافتراضية للمستخدم الزائر
@@ -64,6 +65,7 @@ function getSavedProfileId(): string | null {
 }
 
 export default function App() {
+  const { alertDialog } = useDialog();
   // --- حالات التطبيق (States) ---
   // بنبدأ بآخر تبويب كان محفوظ (لو موجود) بدل ما نرجع للفيد دايماً؛ التبويبات
   // اللي مش آمنة تترجع لوحدها من غير سياق (زي "user-profile" من غير معرف
@@ -75,7 +77,6 @@ export default function App() {
   }); // التبويب النشط
 
   const [currentUser, setCurrentUser] = useState<Profile>(initialGuestProfile); // المستخدم الحالي
-  const [streakToast, setStreakToast] = useState<number | null>(null); // رقم السلسلة لما تزيد النهاردة (عشان نظهره في تنبيه احتفالي مؤقت)
   const [memes, setMemes] = useState<Meme[]>([]); // قائمة الميمز المعروضة
   const [profiles, setProfiles] = useState<Profile[]>([]); // قائمة البروفايلات
   const [notifications, setNotifications] = useState<Notification[]>([]); // الإشعارات
@@ -264,11 +265,12 @@ export default function App() {
           const activeBan = await dataService.checkActiveBan(dbCurrentUser.id);
           if (activeBan) {
             await dataService.signOut();
-            window.alert(
-              `تم حظر حسابك.\nالسبب: ${activeBan.reason}` +
+            await alertDialog(
+              `السبب: ${activeBan.reason}` +
               (activeBan.ban_type === "temporary" && activeBan.expires_at
                 ? `\nينتهي الحظر في: ${new Date(activeBan.expires_at).toLocaleDateString("ar-EG")}`
-                : "")
+                : ""),
+              "تم حظر حسابك"
             );
             setCurrentUser(initialGuestProfile);
             setAuthChecked(true);
@@ -301,23 +303,6 @@ export default function App() {
           const totalUnread = await messagesService.getTotalUnreadCount();
           setUnreadMessagesCount(totalUnread);
 
-          // تسجيل الفتح اليومي لحساب سلسلة الأيام المتتالية (Streak). بتتنادى
-          // مرة واحدة هنا بس (مش هتتكرر لو المستخدم قلب بين التبويبات)، والداتابيز
-          // نفسها بتتأكد إن الحساب ميتكررش لو فتح التطبيق كذا مرة في نفس اليوم.
-          const streakResult = await dataService.recordDailyActivity();
-          if (streakResult) {
-            setCurrentUser(prev => ({
-              ...prev,
-              current_streak: streakResult.current_streak,
-              longest_streak: streakResult.longest_streak,
-            }));
-            // لو السلسلة زادت فعلاً النهاردة (يوم جديد اتحسب، مش نفس اليوم القديم)
-            // وعندها قيمة تستاهل احتفال (يوم تاني فأكتر)، بنوريه Toast بسيط.
-            if (streakResult.streak_increased && streakResult.current_streak >= 2) {
-              setStreakToast(streakResult.current_streak);
-              setTimeout(() => setStreakToast(null), 4000);
-            }
-          }
         }
 
         // فتح البوست مباشرة لو الرابط جاي من مشاركة (?meme=<id>). كان اللينك
@@ -840,19 +825,6 @@ export default function App() {
       onCloseLightbox={() => { setLightboxImage(null); setLightboxMediaType(null); setLightboxMeme(null); }}
       unreadMessagesCount={unreadMessagesCount}
     >
-      {/* تنبيه احتفالي مؤقت لما سلسلة الأيام تزيد - بيختفي لوحده بعد ٤ ثواني.
-          الهدف إن المستخدم يحس بمكسب صغير فوري كل ما يفتح التطبيق يوم جديد،
-          وده أهم محرك نفسي في أنظمة الـ streaks (تعزيز فوري بعد الفعل مباشرة). */}
-      {streakToast !== null && (
-        <div
-          role="status"
-          className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-orange-500 text-white font-bold px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-sm animate-slide-up"
-        >
-          <span aria-hidden="true">🔥</span>
-          <span>سلسلة {streakToast} يوم متتالي! كمّل كده</span>
-        </div>
-      )}
-
       <Suspense fallback={<div className="w-full flex items-center justify-center py-20 text-gray-400 text-sm">جاري التحميل...</div>}>
         {renderContent()}
       </Suspense>
