@@ -601,10 +601,10 @@ export default function ReelsPage({
             onPointerUp={handleBarPointerUp}
             onPointerCancel={handleBarPointerUp}
           >
-            <div className="h-1 bg-white/25 rounded-full overflow-hidden">
+            <div className="h-[3px] rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.35)" }}>
               <div
-                className="h-full bg-white rounded-full"
-                style={{ width: `${meme.id === activeId ? progress : 0}%` }}
+                className="h-full rounded-full"
+                style={{ width: `${meme.id === activeId ? progress : 0}%`, backgroundColor: "#ffffff" }}
               />
             </div>
           </div>

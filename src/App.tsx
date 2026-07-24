@@ -80,6 +80,12 @@ export default function App() {
   const [profiles, setProfiles] = useState<Profile[]>([]); // قائمة البروفايلات
   const [notifications, setNotifications] = useState<Notification[]>([]); // الإشعارات
   const [loading, setLoading] = useState(true); // حالة التحميل الأولية
+  // بنفرق بين "لسه مش عارفين المستخدم مين" و"عارفين إنه زائر فعلاً" - قبل
+  // كده currentUser كان بيبدأ كـ"زائر" افتراضياً لحد ما نتأكد من السيرفر،
+  // فكانت واجهات زي البروفايل وبانر "أهلاً بك كزائر" بتلمع لحظة ظهور
+  // "مش مسجل" حتى للمستخدم المسجل فعلاً، لحد ما بيانات حسابه توصل. دلوقتي
+  // بنستنى authChecked=true قبل ما نعرض أي حالة "زائر" فعلياً.
+  const [authChecked, setAuthChecked] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false); // حالة تحميل المزيد من البيانات
   // بنتتبع آخر وقت اتسجلت فيه مشاركة لكل بوست، عشان نمنع تكرار العداد لو
   // المستخدم دوس زرار المشاركة كذا مرة ورا بعض بسرعة
@@ -265,12 +271,14 @@ export default function App() {
                 : "")
             );
             setCurrentUser(initialGuestProfile);
+            setAuthChecked(true);
             setLoading(false);
             return;
           }
         }
 
         setCurrentUser(dbCurrentUser || initialGuestProfile);
+        setAuthChecked(true);
         
         // تحميل الصفحة الأولى من الميمز (10 عناصر) - عن طريق خوارزمية الترتيب الحقيقية
         const dbMemes = await dataService.getMemes("approved", undefined, dbCurrentUser?.id || initialGuestProfile.id, 0, 10);
@@ -354,6 +362,7 @@ export default function App() {
         console.warn("خطأ في تحميل البيانات:", e); 
       } finally { 
         setLoading(false); 
+        setAuthChecked(true);
       }
     };
 
@@ -615,6 +624,7 @@ export default function App() {
   const renderContent = () => {
     const commonProps = {
       currentUser,
+      authChecked,
       followingIds,
       handleLikeToggle,
       handleSaveToggle,
