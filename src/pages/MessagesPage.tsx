@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowRight, Send, Image as ImageIcon, Search, MessageCircle, Loader2, X, Check, CheckCheck, Plus } from "lucide-react";
 import { Profile, ConversationListItem, DBMessage } from "../types";
 import { messagesService } from "../services/messagesService";
-import { useDialog } from "../components/DialogProvider";
 
 interface MessagesPageProps {
   currentUser: Profile;
@@ -43,7 +42,6 @@ export default function MessagesPage({
   initialOtherUserId,
   onInitialConversationConsumed,
 }: MessagesPageProps) {
-  const { alertDialog } = useDialog();
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [listSearch, setListSearch] = useState("");
@@ -204,7 +202,7 @@ export default function MessagesPage({
       chatInputRef.current?.focus();
     } catch (e) {
       console.error("خطأ في إرسال الرسالة:", e);
-      await alertDialog("حصل خطأ في إرسال الرسالة، حاول تاني.");
+      alert("حصل خطأ في إرسال الرسالة، حاول تاني.");
     } finally {
       setSending(false);
     }
@@ -222,7 +220,7 @@ export default function MessagesPage({
       refreshConversations();
     } catch (e: any) {
       console.error("خطأ في بدء المحادثة:", e);
-      await alertDialog(e?.message || "حصل خطأ، حاول تاني.");
+      alert(e?.message || "حصل خطأ، حاول تاني.");
     }
   };
 

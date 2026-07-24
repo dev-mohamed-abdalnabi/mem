@@ -4,7 +4,6 @@ import { Plus, X, ChevronLeft, ChevronRight, Type, Video, Eye, MoreVertical, Tra
 import { Story, Profile } from "../types";
 import { dataService } from "../services/dataService";
 import { socialService } from "../services/socialService";
-import { useDialog } from "./DialogProvider";
 
 interface StoriesProps {
   currentUser: Profile;
@@ -100,7 +99,6 @@ function relativeTimeAr(dateStr: string): string {
 }
 
 export default function Stories({ currentUser, onStoryViewerChange, onUserProfileClick }: StoriesProps) {
-  const { alertDialog, confirmDialog } = useDialog();
   const [stories, setStories] = useState<Story[]>([]);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
@@ -452,7 +450,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
       closeStoryViewer();
       await loadStories();
     } catch (e: any) {
-      await alertDialog(e?.message || "مقدرناش نخفي الحالة، حاول تاني.");
+      alert(e?.message || "مقدرناش نخفي الحالة، حاول تاني.");
     } finally {
       setBusyAction(false);
     }
@@ -461,8 +459,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
   // زرار الحذف النهائي للحالة
   const handleDeleteStory = async () => {
     if (!selectedStory || busyAction) return;
-    const ok = await confirmDialog("متأكد إنك عايز تمسح الحالة دي نهائياً؟", { danger: true });
-    if (!ok) return;
+    if (!confirm("متأكد إنك عايز تمسح الحالة دي نهائياً؟")) return;
     setBusyAction(true);
     try {
       await socialService.deleteStory(selectedStory.id);
@@ -470,7 +467,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
       closeStoryViewer();
       await loadStories();
     } catch (e: any) {
-      await alertDialog(e?.message || "مقدرناش نمسح الحالة، حاول تاني.");
+      alert(e?.message || "مقدرناش نمسح الحالة، حاول تاني.");
     } finally {
       setBusyAction(false);
     }
@@ -481,7 +478,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
     if (!file) return;
 
     if (!isRealUser) {
-      await alertDialog("سجل دخول الأول يا بطل عشان ترفع حالة!");
+      alert("سجل دخول الأول يا بطل عشان ترفع حالة!");
       return;
     }
 
@@ -498,7 +495,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
         video.src = URL.createObjectURL(file);
       });
       if (!durationOk) {
-        await alertDialog("فيديو الحالة لازم يكون دقيقة أو أقل.");
+        alert("فيديو الحالة لازم يكون دقيقة أو أقل.");
         return;
       }
     }
@@ -515,7 +512,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
       setCreateMode(null);
     } catch (e) {
       console.error("Story upload error:", e);
-      await alertDialog("فشل رفع الحالة، اتأكد إنك عامل تسجيل دخول حقيقي.");
+      alert("فشل رفع الحالة، اتأكد إنك عامل تسجيل دخول حقيقي.");
     } finally {
       setLoading(false);
       setUploadStage("");
@@ -524,11 +521,11 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
 
   const handleTextStory = async () => {
     if (!textContent.trim()) {
-      await alertDialog("اكتب نص الحالة الأول!");
+      alert("اكتب نص الحالة الأول!");
       return;
     }
     if (!isRealUser) {
-      await alertDialog("سجل دخول الأول يا بطل عشان ترفع حالة!");
+      alert("سجل دخول الأول يا بطل عشان ترفع حالة!");
       return;
     }
 
@@ -587,7 +584,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
       });
     } catch (e) {
       console.error("Text story error:", e);
-      await alertDialog("فشل إنشاء حالة النص");
+      alert("فشل إنشاء حالة النص");
       setLoading(false);
     }
   };
@@ -595,7 +592,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
   const handleReact = async (emoji: string) => {
     if (!selectedStory) return;
     if (!isRealUser) {
-      await alertDialog("سجل دخول الأول عشان تتفاعل مع الحالة!");
+      alert("سجل دخول الأول عشان تتفاعل مع الحالة!");
       return;
     }
     setMyReactions(prev => ({ ...prev, [selectedStory.id]: emoji }));

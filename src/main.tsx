@@ -2,7 +2,6 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
-import { DialogProvider } from './components/DialogProvider.tsx';
 import './index.css';
 
 // أول ما الصفحة تفتح، ولسه محدش دوس على زرار "فاتح/داكن" (يعني مفيش
@@ -47,9 +46,7 @@ if ("serviceWorker" in navigator) {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <DialogProvider>
-        <App />
-      </DialogProvider>
+      <App />
     </ErrorBoundary>
   </StrictMode>,
 );

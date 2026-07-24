@@ -433,6 +433,24 @@ export const dataService = {
     return true;
   },
 
+  /**
+   * بتتنادى مرة واحدة بس لكل جلسة/يوم لما المستخدم يفتح التطبيق فعلياً (مش
+   * كل ريكوست بيانات عادي)، عشان تحسب سلسلة الأيام المتتالية (Streak) - نفس
+   * فكرة سناب/دولينجو اللي بتخلي المستخدم يرجع كل يوم عشان مايخسرش السلسلة.
+   * الحساب الفعلي والتحقق كله في الداتابيز (RPC)، هنا بس بننادي وبنرجع
+   * النتيجة عشان نعرضها في الهيدر.
+   */
+  recordDailyActivity: async (): Promise<{ current_streak: number; longest_streak: number; streak_increased: boolean } | null> => {
+    try {
+      const { data, error } = await supabase.rpc("record_daily_activity");
+      if (error) throw error;
+      return Array.isArray(data) ? data[0] : data;
+    } catch (e) {
+      console.warn("تعذر تسجيل السلسلة اليومية:", e);
+      return null;
+    }
+  },
+
   uploadMemeFile: async (file: File, bucket: string = "memes"): Promise<string> => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime'];
     if (!allowedTypes.includes(file.type)) throw new Error("نوع الملف غير مدعوم.");

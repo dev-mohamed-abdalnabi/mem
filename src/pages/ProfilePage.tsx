@@ -3,7 +3,6 @@ import { Camera, MessageCircle, Award, Clock, X, Check, CalendarDays, Users, Use
 import { Profile, Meme } from "../types";
 import MemeCard from "../components/MemeCard";
 import { dataService } from "../services/dataService";
-import { useDialog } from "../components/DialogProvider";
 
 interface ProfilePageProps {
   profile: Profile;
@@ -59,7 +58,7 @@ export default function ProfilePage({
   setSelectedProfileId,
   setLightboxImage,
 }: ProfilePageProps) {
-  const { alertDialog } = useDialog();
+  
   const [isEditing, setIsEditing] = useState(false);
   const [tempBio, setTempBio] = useState(profile.bio || "");
   // --- إظهار/إخفاء النبذة الطويلة (عرض المزيد) - نفس منطق caption البوست ---
@@ -286,7 +285,7 @@ export default function ProfilePage({
       // كانت رسالة التنبيه ثابتة دايماً "فشل رفع الصورة، حاول تاني" مهما كان
       // سبب الخطأ الحقيقي (صلاحيات، حجم، نوع ملف...)، فالمستخدم ما كانش يعرف
       // يشخّص المشكلة. دلوقتي بنعرض رسالة الخطأ الفعلية لو موجودة.
-      await alertDialog(err?.message || "فشل رفع الصورة، حاول تاني.");
+      alert(err?.message || "فشل رفع الصورة، حاول تاني.");
     } finally {
       setIsUploadingAvatar(false);
     }
