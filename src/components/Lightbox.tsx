@@ -148,7 +148,7 @@ export default function Lightbox({ mediaUrl, mediaType = 'image', meme, onClose,
     if (!meme) return;
     onShareCompleted?.(meme.id);
     try {
-      const result = await shareMemeLink(meme.id, meme.caption);
+      const result = await shareMemeLink(meme);
       if (result === "copied") {
         setShareCopied(true);
         setTimeout(() => setShareCopied(false), 3000);

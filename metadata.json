@@ -1,6 +1,0 @@
-{
-  "name": "mem",
-  "description": "منصة ميمز عربية متكاملة بأسلوب الفيسبوك تتضمن نظام مستويات ونقاط، ومصمم ميمز احترافي مدمج.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

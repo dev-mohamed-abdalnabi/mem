@@ -839,8 +839,8 @@ export default function App() {
           onClose={() => setSelectedMemeForComments(null)}
           onLikeToggle={handleLikeToggle}
           onSaveToggle={handleSaveToggle}
-          onShare={(id) => {
-            shareMemeLink(id, selectedMemeForComments.caption).catch(() => {});
+          onShare={() => {
+            shareMemeLink(selectedMemeForComments).catch(() => {});
           }}
           onUserProfileClick={(id) => {
             navigateToTab("user-profile", { profileId: id });

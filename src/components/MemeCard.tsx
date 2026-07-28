@@ -231,7 +231,7 @@ export default function MemeCard({
    */
   const handleShareClick = async () => {
     onShareCompleted(meme.id);
-    const result = await shareMemeLink(meme.id, meme.caption);
+    const result = await shareMemeLink(meme);
     if (result === "copied") {
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
