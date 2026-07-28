@@ -68,6 +68,17 @@ export default function CustomVideoPlayer({
   // بنستخدمها عشان نمنع onTimeUpdate إنه يكتب فوق موضع السحب وإحنا لسه
   // ماسكين شريط التقدم (نفس الفكرة المستخدمة في صفحة الريلز)
   const isSeekingRef = useRef(false);
+  // أثناء السحب، بنحدّث شكل الشريط والوقت فوراً مع كل حركة إصبع (مفيش تأخير
+  // بصري خالص)، لكن بنأجل تحديث video.currentTime الفعلي لمرة واحدة بالكتير
+  // كل فريم (requestAnimationFrame) بدل ما نعمله مع كل حدث pointermove -
+  // اللي بيطلق عشرات المرات في الثانية. لو الفيديو مش متحمل بالكامل، كل
+  // تحديث currentTime بيبدأ طلب seek جديد على الشبكة، فلو بعتنا عشرات
+  // الطلبات دي فوق بعض وإحنا لسه بنسحب، الفيديو بيفضل "يلحق" بآخر نقطة
+  // كانت متسجلة مش النقطة اللي إصبعك عليها فعلاً دلوقتي - وده اللي كان
+  // بيحس المستخدم إنه بطيء/بيروح مكان غلط. يوتيوب وأي بلاير احترافي بيعمل
+  // بالظبط الحل ده: تحديث بصري فوري + seek فعلي مُقلل (throttled).
+  const pendingSeekTimeRef = useRef<number | null>(null);
+  const seekRafRef = useRef<number | null>(null);
 
   const scheduleHideControls = () => {
     if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
@@ -175,6 +186,7 @@ export default function CustomVideoPlayer({
       video.removeEventListener("loadeddata", handleLoadedData);
       video.removeEventListener("loadstart", handleLoadStart);
       if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+      if (seekRafRef.current != null) cancelAnimationFrame(seekRafRef.current);
       if (currentlyPlayingVideo === video) {
         currentlyPlayingVideo = null;
       }
@@ -286,6 +298,35 @@ export default function CustomVideoPlayer({
 
   const progressPercent = duration ? (currentTime / duration) * 100 : 0;
 
+  // بيحدّث الوقت المعروض فوراً (بصري)، وبيأجل تحديث video.currentTime
+  // الفعلي لآخر فريم متاح بس - شوف الشرح فوق عند تعريف pendingSeekTimeRef
+  const scrubTo = (time: number) => {
+    setCurrentTime(time);
+    pendingSeekTimeRef.current = time;
+    if (seekRafRef.current == null) {
+      seekRafRef.current = requestAnimationFrame(() => {
+        seekRafRef.current = null;
+        if (videoRef.current && pendingSeekTimeRef.current != null) {
+          videoRef.current.currentTime = pendingSeekTimeRef.current;
+        }
+      });
+    }
+  };
+
+  // لما المستخدم يسيب إصبعه، بنلغي أي فريم متأجل ونثبت الموضع النهائي فوراً
+  // ودقيق بالظبط على المكان اللي وقف عنده - عشان مايبقاش فيه فرق بين آخر
+  // مكان باين وآخر seek فعلي حصل.
+  const commitSeek = () => {
+    if (seekRafRef.current != null) {
+      cancelAnimationFrame(seekRafRef.current);
+      seekRafRef.current = null;
+    }
+    if (videoRef.current && pendingSeekTimeRef.current != null) {
+      videoRef.current.currentTime = pendingSeekTimeRef.current;
+    }
+    pendingSeekTimeRef.current = null;
+  };
+
   return (
     <div
       ref={containerRef}
@@ -362,8 +403,7 @@ export default function CustomVideoPlayer({
             e.currentTarget.setPointerCapture(e.pointerId);
             const rect = e.currentTarget.getBoundingClientRect();
             const percent = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-            setCurrentTime(percent * duration);
-            if (videoRef.current) videoRef.current.currentTime = percent * duration;
+            scrubTo(percent * duration);
             revealControls();
           }}
           onPointerMove={(e) => {
@@ -371,11 +411,10 @@ export default function CustomVideoPlayer({
             e.stopPropagation();
             const rect = e.currentTarget.getBoundingClientRect();
             const percent = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-            setCurrentTime(percent * duration);
-            if (videoRef.current) videoRef.current.currentTime = percent * duration;
+            scrubTo(percent * duration);
           }}
-          onPointerUp={(e) => { e.stopPropagation(); isSeekingRef.current = false; }}
-          onPointerCancel={(e) => { e.stopPropagation(); isSeekingRef.current = false; }}
+          onPointerUp={(e) => { e.stopPropagation(); isSeekingRef.current = false; commitSeek(); }}
+          onPointerCancel={(e) => { e.stopPropagation(); isSeekingRef.current = false; commitSeek(); }}
         >
           <div className="h-[3px] rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.35)" }}>
             <div className="h-full rounded-full" style={{ width: `${progressPercent}%`, backgroundColor: "#ffffff" }} />

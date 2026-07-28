@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Heart, MessageCircle, Bookmark, Share2, Loader2, Volume2, VolumeX, FastForward, Rewind } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Share2, Loader2, Volume2, VolumeX } from "lucide-react";
 import { Meme, Profile } from "../types";
 import { dataService } from "../services/dataService";
 
@@ -22,16 +22,14 @@ interface ReelsPageProps {
 }
 
 // إعدادات اللمس: كام مللي ثانية بين ضغطتين عشان تتحسب "دبل تاب"، وقد إيه
-// الزمن اللي لازم تستناه عشان الضغطة تتحول لـ "ضغط مطول" (2x)، وكام ثانية
-// نتقدم/نرجع بيها في كل دبل تاب.
+// الزمن اللي لازم تستناه عشان الضغطة تتحول لـ "ضغط مطول" (2x)
 const DOUBLE_TAP_MS = 280;
 const LONG_PRESS_MS = 350;
-const SEEK_SECONDS = 10;
 // لو الإصبع اتحرك أكتر من كذا بكسل، بنعتبرها سحب (سكرول) مش ضغطة -
 // عشان مايحصلش تشغيل/إيقاف أو 2x غلط وانت بس بتسكرول بين الريلز
 const DRAG_CANCEL_PX = 10;
 
-type GestureFeedback = { id: string; type: "back" | "forward" | "speed" } | null;
+type GestureFeedback = { id: string; type: "speed" } | { id: string; type: "like"; x: number; y: number } | null;
 
 interface TapState {
   startX: number;
@@ -39,7 +37,6 @@ interface TapState {
   isDragging: boolean;
   isLongPress: boolean;
   lastTapTime: number;
-  lastTapSide: "left" | "right" | null;
   longPressTimer: ReturnType<typeof setTimeout> | null;
   singleTapTimer: ReturnType<typeof setTimeout> | null;
 }
@@ -143,6 +140,17 @@ export default function ReelsPage({
   // نسبة تقدم الفيديو النشط (0-100) عشان شريط التقدم القابل للسحب
   const [progress, setProgress] = useState(0);
   const isSeekingRef = useRef(false);
+  // نفس فكرة CustomVideoPlayer: تحديث بصري فوري + seek فعلي مُقلل لفريم واحد
+  // بالكتير في المرة، عشان السحب مايحسش إنه بطيء أو بيروح مكان غلط
+  const pendingSeekMemeIdRef = useRef<string | null>(null);
+  const pendingSeekTimeRef = useRef<number | null>(null);
+  const seekRafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (seekRafRef.current != null) cancelAnimationFrame(seekRafRef.current);
+    };
+  }, []);
   // تنبيه بصري مؤقت (رجوع/تقديم 10 ثواني أو 2x) فوق الريل الحالي
   const [gestureFeedback, setGestureFeedback] = useState<GestureFeedback>(null);
   const gestureHideTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -153,7 +161,7 @@ export default function ReelsPage({
     if (!state) {
       state = {
         startX: 0, startY: 0, isDragging: false, isLongPress: false,
-        lastTapTime: 0, lastTapSide: null, longPressTimer: null, singleTapTimer: null,
+        lastTapTime: 0, longPressTimer: null, singleTapTimer: null,
       };
       tapStatesRef.current.set(id, state);
     }
@@ -302,7 +310,7 @@ export default function ReelsPage({
     if (autoHide && fb) {
       gestureHideTimerRef.current = setTimeout(() => {
         setGestureFeedback((cur) => (cur?.id === fb.id ? null : cur));
-      }, 550);
+      }, 900);
     }
   };
 
@@ -360,22 +368,18 @@ export default function ReelsPage({
     }
 
     const rect = e.currentTarget.getBoundingClientRect();
-    const side: "left" | "right" = (e.clientX - rect.left) < rect.width / 2 ? "left" : "right";
     const now = Date.now();
-    const isDoubleTap = now - state.lastTapTime < DOUBLE_TAP_MS && state.lastTapSide === side;
+    const isDoubleTap = now - state.lastTapTime < DOUBLE_TAP_MS;
 
     if (isDoubleTap) {
       if (state.singleTapTimer) clearTimeout(state.singleTapTimer);
       state.lastTapTime = 0;
-      state.lastTapSide = null;
-      const dur = video.duration || 0;
-      const delta = side === "right" ? SEEK_SECONDS : -SEEK_SECONDS;
-      video.currentTime = Math.min(Math.max(0, video.currentTime + delta), dur || video.currentTime + delta);
-      if (dur) setProgress((video.currentTime / dur) * 100);
-      showGestureFeedback({ id: meme.id, type: side === "right" ? "forward" : "back" }, true);
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      handleDoubleTapLike(meme);
+      showGestureFeedback({ id: meme.id, type: "like", x, y }, true);
     } else {
       state.lastTapTime = now;
-      state.lastTapSide = side;
       state.singleTapTimer = setTimeout(() => {
         video.paused ? video.play().catch(() => {}) : video.pause();
       }, DOUBLE_TAP_MS);
@@ -394,8 +398,34 @@ export default function ReelsPage({
     if (!video || !video.duration) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const percent = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const time = percent * video.duration;
     setProgress(percent * 100);
-    video.currentTime = percent * video.duration;
+    pendingSeekMemeIdRef.current = meme.id;
+    pendingSeekTimeRef.current = time;
+    if (seekRafRef.current == null) {
+      seekRafRef.current = requestAnimationFrame(() => {
+        seekRafRef.current = null;
+        const targetId = pendingSeekMemeIdRef.current;
+        const targetVideo = targetId ? videoRefs.current[targetId] : null;
+        if (targetVideo && pendingSeekTimeRef.current != null) {
+          targetVideo.currentTime = pendingSeekTimeRef.current;
+        }
+      });
+    }
+  };
+
+  const commitSeek = () => {
+    if (seekRafRef.current != null) {
+      cancelAnimationFrame(seekRafRef.current);
+      seekRafRef.current = null;
+    }
+    const targetId = pendingSeekMemeIdRef.current;
+    const targetVideo = targetId ? videoRefs.current[targetId] : null;
+    if (targetVideo && pendingSeekTimeRef.current != null) {
+      targetVideo.currentTime = pendingSeekTimeRef.current;
+    }
+    pendingSeekTimeRef.current = null;
+    pendingSeekMemeIdRef.current = null;
   };
 
   const handleBarPointerDown = (meme: Meme) => (e: React.PointerEvent<HTMLDivElement>) => {
@@ -407,7 +437,7 @@ export default function ReelsPage({
     if (!isSeekingRef.current) return;
     seekFromPointer(meme, e);
   };
-  const handleBarPointerUp = () => { isSeekingRef.current = false; };
+  const handleBarPointerUp = () => { isSeekingRef.current = false; commitSeek(); };
 
   /**
    * باگ كانت الأزرار (لايك/حفظ/مشاركة) "مش شغالة" فعلياً: كانت العملية بتتسجل
@@ -426,6 +456,25 @@ export default function ReelsPage({
       ));
       handleLikeToggle(meme.id).catch(() => {
         // ارجاع الحالة زي ما كانت لو العملية فشلت فعلياً في السيرفر
+        setReels(prev => prev.map(m => m.id === meme.id
+          ? { ...m, liked_by_me: meme.liked_by_me, likes_count: meme.likes_count }
+          : m
+        ));
+      });
+    });
+  };
+
+  // لايك بالدبل تاب (زي إنستجرام/تيك توك بالظبط): بيعمل لايك بس، مش
+  // toggle - يعني لو الميم لايكها فعلاً، الدبل تاب التاني مش بيشيل اللايك،
+  // بس بيورّي قلب الأنيميشن تاني عادي (نفس سلوك التطبيقين المعروفين)
+  const handleDoubleTapLike = (meme: Meme) => {
+    requireAuth(() => {
+      if (meme.liked_by_me) return;
+      setReels(prev => prev.map(m => m.id === meme.id
+        ? { ...m, liked_by_me: true, likes_count: m.likes_count + 1 }
+        : m
+      ));
+      handleLikeToggle(meme.id).catch(() => {
         setReels(prev => prev.map(m => m.id === meme.id
           ? { ...m, liked_by_me: meme.liked_by_me, likes_count: meme.likes_count }
           : m
@@ -522,22 +571,20 @@ export default function ReelsPage({
             </div>
           )}
 
-          {/* تنبيه بصري: تقديم/ترجيع 10 ثواني أو سرعة 2x */}
+          {/* تنبيه بصري: قلب اللايك بالدبل تاب (زي إنستجرام) أو سرعة 2x بالضغط المطول */}
           {gestureFeedback?.id === meme.id && (
-            <div
-              className={`absolute inset-y-0 z-20 flex items-center pointer-events-none ${
-                gestureFeedback.type === "back" ? "left-6" : gestureFeedback.type === "forward" ? "right-6" : "inset-x-0 justify-center"
-              }`}
-            >
-              {gestureFeedback.type === "speed" ? (
+            gestureFeedback.type === "speed" ? (
+              <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
                 <span className="bg-black/60 text-white font-bold text-base px-4 py-2 rounded-full">2x</span>
-              ) : (
-                <span className="bg-black/60 text-white p-3 rounded-full flex flex-col items-center gap-1">
-                  {gestureFeedback.type === "forward" ? <FastForward className="w-6 h-6" /> : <Rewind className="w-6 h-6" />}
-                  <span className="text-[10px] font-bold">10 ثواني</span>
-                </span>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div
+                className="absolute z-20 pointer-events-none animate-ping-once"
+                style={{ left: gestureFeedback.x, top: gestureFeedback.y, transform: "translate(-50%, -50%)" }}
+              >
+                <Heart className="w-24 h-24 text-white fill-white drop-shadow-lg" />
+              </div>
+            )
           )}
 
           {/* زرار كتم/تشغيل الصوت زي التيك توك والريلز */}
