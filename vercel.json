@@ -5,7 +5,7 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!assets/|icons/|manifest.webmanifest|sw.js|logo.png|.well-known/).*)",
       "destination": "/"
     }
   ]

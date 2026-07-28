@@ -35,8 +35,13 @@
         }
       }
       window.addEventListener('error', function (e) {
+        var target = e.target;
+        if (target && (target.tagName === 'SCRIPT' || target.tagName === 'LINK')) {
+          showFatalError('Failed to load: ' + (target.src || target.href) + '\nThis usually means the server returned HTML instead of the JS/CSS file (bad rewrite rule, or a stale cached page pointing at deleted asset files). Try a hard refresh.');
+          return;
+        }
         showFatalError((e.message || 'Unknown error') + '\n' + (e.filename || '') + ':' + (e.lineno || '') + ':' + (e.colno || ''));
-      });
+      }, true);
       window.addEventListener('unhandledrejection', function (e) {
         var reason = e.reason;
         showFatalError('Unhandled promise rejection: ' + (reason && reason.stack ? reason.stack : String(reason)));
