@@ -143,9 +143,17 @@ async function compressVideo(file: File, maxDimension = 1280): Promise<File> {
     video.muted = true; // مكتوم وقت الرسم على الـ canvas بس - الصوت الحقيقي بيتسجل من الـ audio track منفصل
     video.playsInline = true;
 
+    // بعض فيديوهات كاميرا الموبايل (خصوصاً المسجلة بترميز HEVC/H.265 على أندرويد)
+    // بتكون مدعومة بشكل محدود جداً في عنصر <video> على المتصفح. في الحالة دي
+    // حدث onloadedmetadata ولا onerror ممكن مايحصلش خالص، فكنا بننتظر للأبد
+    // من غير أي رسالة خطأ - وده كان يظهر للمستخدم كـ"الفيديو مش بيترفع" بينما
+    // هو فعلياً عالق جوه خطوة الضغط قبل ما يوصل للرفع أصلاً. دلوقتي بنحط مهلة
+    // (8 ثواني) ولو الميتاداتا معرفتش تتحمل خلالها، بنرفع الفيديو الأصلي زي ما
+    // هو من غير ضغط بدل ما نفضل عالقين.
     await new Promise<void>((resolve, reject) => {
-      video.onloadedmetadata = () => resolve();
-      video.onerror = () => reject(new Error("تعذر تحميل بيانات الفيديو"));
+      const metadataTimeout = setTimeout(() => reject(new Error("مهلة تحميل بيانات الفيديو انتهت (احتمال ترميز غير مدعوم)")), 8000);
+      video.onloadedmetadata = () => { clearTimeout(metadataTimeout); resolve(); };
+      video.onerror = () => { clearTimeout(metadataTimeout); reject(new Error("تعذر تحميل بيانات الفيديو")); };
     });
 
     const longSide = Math.max(video.videoWidth, video.videoHeight);
@@ -210,9 +218,20 @@ async function compressVideo(file: File, maxDimension = 1280): Promise<File> {
     await video.play();
     drawFrame();
 
-    await new Promise<void>((resolve) => {
-      video.onended = () => resolve();
-    });
+    // فيديوهات متصورة طازة بكاميرا الموبايل (خصوصاً أندرويد Chrome) غالباً بيكون
+    // فيها الـ metadata بتاعة المدة (duration) مكسورة (Infinity/NaN) لحظة الالتقاط
+    // مباشرة، لأن الملف لسه مكتملش "إغلاق" بالشكل اللي يخلي المتصفح يحسب مدته صح.
+    // في الحالة دي حدث onended ممكن مايحصلش خالص، فكنا بننتظر له للأبد والرفع
+    // كان حاسس المستخدم إنه "مش بيرفع" فعلياً كان عالق جوه الضغط. دلوقتي بنحط
+    // سقف أمان زمني (على أساس مدة الفيديو لو معروفة، أو قيمة افتراضية لو مش
+    // معروفة) عشان العملية توقف وتكمل برضو حتى لو onended ماحصلش.
+    const safetyTimeoutMs = isFinite(video.duration) && video.duration > 0
+      ? Math.min(video.duration * 1000 + 5000, 120000)
+      : 60000;
+    await Promise.race([
+      new Promise<void>((resolve) => { video.onended = () => resolve(); }),
+      new Promise<void>((resolve) => { setTimeout(resolve, safetyTimeoutMs); }),
+    ]);
     stopped = true;
     recorder.stop();
     video.pause();
