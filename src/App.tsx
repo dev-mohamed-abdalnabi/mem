@@ -5,6 +5,7 @@ import { Profile, Meme, Notification } from "./types";
 import { pushService } from "./services/pushService";
 import { useDialog } from "./components/DialogProvider";
 import { dataService } from "./services/dataService";
+import { shareMemeLink } from "./utils/share";
 
 // استيراد مكونات الواجهة
 import MainLayout from "./components/layout/MainLayout";
@@ -824,6 +825,8 @@ export default function App() {
       setSelectedProfileId={setSelectedProfileId}
       onCloseLightbox={() => { setLightboxImage(null); setLightboxMediaType(null); setLightboxMeme(null); }}
       unreadMessagesCount={unreadMessagesCount}
+      followingIds={followingIds}
+      onFollowToggle={handleFollowToggle}
     >
       <Suspense fallback={<div className="w-full flex items-center justify-center py-20 text-gray-400 text-sm">جاري التحميل...</div>}>
         {renderContent()}
@@ -837,8 +840,7 @@ export default function App() {
           onLikeToggle={handleLikeToggle}
           onSaveToggle={handleSaveToggle}
           onShare={(id) => {
-            const shareLink = `${window.location.origin}/?meme=${id}`;
-            navigator.clipboard.writeText(shareLink);
+            shareMemeLink(id, selectedMemeForComments.caption).catch(() => {});
           }}
           onUserProfileClick={(id) => {
             navigateToTab("user-profile", { profileId: id });

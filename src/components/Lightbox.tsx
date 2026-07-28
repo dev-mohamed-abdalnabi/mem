@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X, Download, Heart, MessageCircle, Share2, Bookmark, Link as LinkIcon } from "lucide-react";
 import { Meme } from "../types";
+import { shareMemeLink } from "../utils/share";
 
 interface LightboxProps {
   mediaUrl: string | null;
@@ -143,14 +144,18 @@ export default function Lightbox({ mediaUrl, mediaType = 'image', meme, onClose,
     onOpenComments(meme);
   };
 
-  const handleShareClick = () => {
+  const handleShareClick = async () => {
     if (!meme) return;
     onShareCompleted?.(meme.id);
-    const shareLink = `${window.location.origin}/?meme=${meme.id}`;
-    navigator.clipboard.writeText(shareLink).then(() => {
-      setShareCopied(true);
-      setTimeout(() => setShareCopied(false), 3000);
-    }).catch(() => { /* تجاهل صامت لو الحافظة مش متاحة */ });
+    try {
+      const result = await shareMemeLink(meme.id, meme.caption);
+      if (result === "copied") {
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 3000);
+      }
+    } catch {
+      /* تجاهل صامت لو الحافظة/المشاركة مش متاحة */
+    }
   };
 
   // --- معالجات اللمس: تكبير بإصبعين، سحب للتنقل جوه الصورة المكبرة، سحب لتحت للقفل ---

@@ -9,6 +9,7 @@ import PostDetailModal from "./PostDetailModal";
 import { Meme, Comment, Profile } from "../types";
 import { dataService } from "../services/dataService";
 import CustomVideoPlayer from "./CustomVideoPlayer";
+import { shareMemeLink } from "../utils/share";
 
 /**
  * واجهة الخصائص لمكون بطاقة الميم (MemeCard)
@@ -225,15 +226,16 @@ export default function MemeCard({
   };
 
   /**
-   * نسخ رابط المنشور للمشاركة
+   * مشاركة المنشور - بتفتح شيت المشاركة الأصلي بتاع الموبايل (واتساب/تيليجرام..)
+   * لو متاح، أو بتنسخ الرابط للكليب بورد كـ fallback
    */
-  const handleShareClick = () => {
+  const handleShareClick = async () => {
     onShareCompleted(meme.id);
-    const shareLink = `${window.location.origin}/?meme=${meme.id}`;
-    navigator.clipboard.writeText(shareLink).then(() => {
+    const result = await shareMemeLink(meme.id, meme.caption);
+    if (result === "copied") {
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 4000);
-    });
+    }
   };
 
   /**

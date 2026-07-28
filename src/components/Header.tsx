@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Search, Bell, Trophy, User, Flame, LogOut, PlusCircle, Settings, LogIn, Sun, Moon, Bookmark, MessageCircle } from "lucide-react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Search, Bell, Trophy, User, Flame, LogOut, PlusCircle, Settings, LogIn, Sun, Moon, Bookmark, MessageCircle, X } from "lucide-react";
 import { Profile, Notification } from "../types";
 
 // تنسيق الأرقام الكبيرة بشكل شيك (1.2K / 3.4M) بدل ما تتكتب كاملة وتاخد مساحة زيادة في الهيدر
@@ -53,8 +53,26 @@ export default function Header({
   const [showUserDropdown, setShowUserDropdown] = useState(false); // إظهار قائمة المستخدم
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false); // إظهار قائمة الإشعارات
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // تأكيد تسجيل الخروج
+  const [showSearchResults, setShowSearchResults] = useState(false); // إظهار نتائج بحث اليوزرز (ديسكتوب)
+  const [showMobileSearch, setShowMobileSearch] = useState(false); // إظهار شاشة البحث كاملة (موبايل)
 
   const dropdownContainerRef = useRef<HTMLDivElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * نتايج بحث اليوزرز - بنفلتر من قائمة البروفايلات المتاحة أصلاً في الميموري
+   * (availableProfiles) بدل ما نعمل نداء API جديد؛ مفيش داعي لأي round-trip
+   * زيادة عشان القائمة أصلاً محملة كاملة في التطبيق (بتتستخدم في لوحة الشرف
+   * والرسايل). بنقارن username بعد شيل المسافات وبأحرف صغيرة عشان البحث
+   * يشتغل صح بالعربي والإنجليزي مع أو من غير @.
+   */
+  const matchingUsers = useMemo(() => {
+    const q = searchQuery.trim().replace(/^@/, "").toLowerCase();
+    if (!q) return [];
+    return availableProfiles
+      .filter((p) => p.username?.toLowerCase().includes(q))
+      .slice(0, 6);
+  }, [searchQuery, availableProfiles]);
 
   // حالة الوضع الداكن (Dark Mode)
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -89,7 +107,19 @@ export default function Header({
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setSearchQuery(val);
+    setShowSearchResults(val.trim().length > 0);
     onSearch(val);
+  };
+
+  /**
+   * الانتقال لبروفايل من نتايج البحث - بيقفل نتايج البحث (ديسكتوب) وشاشة
+   * البحث (موبايل) ومسحش نص البحث نفسه، عشان لو المستخدم رجع يقدر يلاقي
+   * نفس النتائج تاني من غير ما يكتب تاني
+   */
+  const handleUserResultClick = (userId: string) => {
+    onNavigate("user-profile", { profileId: userId });
+    setShowSearchResults(false);
+    setShowMobileSearch(false);
   };
 
   /**
@@ -107,6 +137,9 @@ export default function Header({
         setShowUserDropdown(false);
         setShowNotificationsDropdown(false);
         setShowLogoutConfirm(false);
+      }
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
       }
     };
 
@@ -153,23 +186,59 @@ export default function Header({
           </div>
         </div>
 
-        {/* شريط البحث المركزي */}
-        <div className="flex-1 max-md relative hidden md:block">
+        {/* شريط البحث المركزي (ديسكتوب) */}
+        <div ref={searchContainerRef} className="flex-1 max-md relative hidden md:block">
           <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
             <Search className="w-4 h-4" />
           </div>
           <input
             type="text"
-            placeholder="ابحث عن ميمز, هاشتاج, أو نكتة..."
+            placeholder="ابحث عن ميمز, هاشتاج, أو يوزر..."
             value={searchQuery}
             onChange={handleSearchChange}
+            onFocus={() => setShowSearchResults(searchQuery.trim().length > 0)}
             className="w-full h-10 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-gray-900 border-2 border-transparent focus:border-gray-300 dark:focus:border-gray-600 rounded-full py-2 pr-10 pl-4 text-sm text-gray-900 dark:text-white outline-none transition-all placeholder:text-gray-500 dark:placeholder:text-gray-400"
           />
+
+          {/* نتايج بحث اليوزرز - بتظهر فوق الفيد اللي بيتفلتر تلقائي تحت */}
+          {showSearchResults && matchingUsers.length > 0 && (
+            <div className="absolute top-full mt-2 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl py-2 shadow-2xl z-50 max-h-80 overflow-y-auto">
+              <p className="px-4 pb-1 text-[10px] font-bold text-gray-400 dark:text-gray-500">يوزرز</p>
+              {matchingUsers.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => handleUserResultClick(p.id)}
+                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-right transition-colors"
+                >
+                  {p.avatar_url ? (
+                    <img loading="lazy" decoding="async" src={p.avatar_url} alt={p.username} className="w-8 h-8 rounded-full object-cover bg-gray-100 dark:bg-gray-700" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs font-black text-gray-500">
+                      {p.username?.[0]?.toUpperCase() || "M"}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0 text-right">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{p.username}</p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500">{formatCompactNumber(p.followers_count)} متابع</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* الإجراءات والقوائم المنسدلة */}
         <div ref={dropdownContainerRef} className="flex items-center gap-2">
-          
+
+          {/* زرار البحث (موبايل فقط - شريط البحث الأساسي متخبي في الشاشات الصغيرة) */}
+          <button
+            onClick={() => setShowMobileSearch(true)}
+            className={`${unifiedIconClass} md:hidden`}
+            title="بحث"
+          >
+            <Search className="w-5 h-5" />
+          </button>
+
           {/* زر نشر ميم جديد */}
           <button
             onClick={() => onNavigate("create-post")}
@@ -402,6 +471,67 @@ export default function Header({
           </div>
         </div>
       </div>
+
+      {/* شاشة البحث الكاملة (موبايل فقط) - بتفتح فوق كل حاجة لما المستخدم يدوس زرار البحث */}
+      {showMobileSearch && (
+        <div className="fixed inset-0 z-[60] bg-white dark:bg-gray-900 md:hidden flex flex-col" dir="rtl">
+          <div className="flex items-center gap-3 p-4 border-b border-gray-100 dark:border-gray-800">
+            <div className="flex-1 relative">
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
+                <Search className="w-4 h-4" />
+              </div>
+              <input
+                autoFocus
+                type="text"
+                placeholder="ابحث عن ميمز, هاشتاج, أو يوزر..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+                className="w-full h-11 bg-gray-100 dark:bg-gray-800 rounded-full py-2 pr-9 pl-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray-500 dark:placeholder:text-gray-400"
+              />
+            </div>
+            <button
+              onClick={() => setShowMobileSearch(false)}
+              className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300 shrink-0"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {matchingUsers.length > 0 && (
+            <div className="overflow-y-auto py-2">
+              <p className="px-4 pb-1 text-[10px] font-bold text-gray-400 dark:text-gray-500">يوزرز</p>
+              {matchingUsers.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => handleUserResultClick(p.id)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 text-right transition-colors"
+                >
+                  {p.avatar_url ? (
+                    <img loading="lazy" decoding="async" src={p.avatar_url} alt={p.username} className="w-10 h-10 rounded-full object-cover bg-gray-100 dark:bg-gray-700" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-sm font-black text-gray-500">
+                      {p.username?.[0]?.toUpperCase() || "M"}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0 text-right">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{p.username}</p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500">{formatCompactNumber(p.followers_count)} متابع</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {searchQuery.trim() && (
+            <button
+              onClick={() => { onNavigate("feed"); setShowMobileSearch(false); }}
+              className="mx-4 mt-2 text-right text-sm text-blue-600 dark:text-blue-400 font-bold py-2"
+            >
+              عرض نتائج الميمز عن "{searchQuery}" في الفيد
+            </button>
+          )}
+        </div>
+      )}
     </header>
   );
 }

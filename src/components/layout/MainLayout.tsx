@@ -38,6 +38,8 @@ interface MainLayoutProps {
   setSelectedProfileId: (id: string | null) => void; // وظيفة تحديد بروفايل مستخدم
   onCloseLightbox: () => void; // وظيفة إغلاق اللايت بوكس
   unreadMessagesCount?: number; // عدد الرسايل الغير مقروءة
+  followingIds?: string[]; // معرفات اللي المستخدم بيتابعهم - لودجت اقتراحات المتابعة
+  onFollowToggle?: (followerId: string, followingId: string) => void; // متابعة/إلغاء متابعة - لودجت اقتراحات المتابعة
 }
 
 /**
@@ -72,7 +74,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   onSignOutReal,
   setSelectedProfileId,
   onCloseLightbox,
-  unreadMessagesCount = 0
+  unreadMessagesCount = 0,
+  followingIds = [],
+  onFollowToggle
 }) => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 flex flex-col antialiased" dir="rtl">
@@ -142,7 +146,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           {/* القائمة الجانبية (Sidebar) */}
           <RightSidebar
             isRealUser={isRealUser} 
+            currentUser={currentUser}
             profiles={profiles}
+            followingIds={followingIds}
+            onFollowToggle={onFollowToggle}
             onShowAuthModal={onShowAuthModal}
             setSelectedProfileId={setSelectedProfileId} 
             setActiveTab={onNavigate}

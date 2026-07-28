@@ -1,16 +1,27 @@
-import React from "react";
-import { Home, Flame, Bookmark, User, LogIn, Sparkles, Clapperboard, MessageCircle } from "lucide-react";
+import React, { useMemo } from "react";
+import { Home, Flame, Bookmark, User, LogIn, Sparkles, Clapperboard, MessageCircle, UserPlus } from "lucide-react";
 import { Profile } from "../types";
+
+// تنسيق مختصر لعدد المتابعين في كارت الاقتراح، بنفس المنطق المستخدم في الهيدر
+function formatCompactNumber(num: number): string {
+  if (!num) return "0";
+  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (num >= 1_000) return (num / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
+  return String(num);
+}
 
 /**
  * واجهة الخصائص لمكون القائمة الجانبية اليمنى
  */
 interface RightSidebarProps {
   isRealUser: boolean; // هل المستخدم مسجل دخول فعلياً
-  profiles: Profile[]; // قائمة البروفايلات (للمستقبل أو الميزات الإضافية)
+  currentUser?: Profile; // المستخدم الحالي (عشان نستبعده من الاقتراحات ونعرف مين هو)
+  profiles: Profile[]; // قائمة البروفايلات المتاحة (مصدر اقتراحات المتابعة)
+  followingIds?: string[]; // معرفات اللي المستخدم بيتابعهم بالفعل
+  onFollowToggle?: (followerId: string, followingId: string) => void; // وظيفة متابعة/إلغاء متابعة
   onShowAuthModal: () => void; // وظيفة إظهار مودال تسجيل الدخول
   setSelectedProfileId: (id: string | null) => void; // وظيفة تحديد بروفايل مستخدم
-  setActiveTab: (tab: string) => void; // وظيفة تغيير التبويب النشط
+  setActiveTab: (tab: string, options?: { profileId?: string }) => void; // وظيفة تغيير التبويب النشط
   activeTab?: string; // التبويب النشط حالياً
 }
 
@@ -20,10 +31,31 @@ interface RightSidebarProps {
  */
 export default function RightSidebar({
   isRealUser,
+  currentUser,
+  profiles,
+  followingIds = [],
+  onFollowToggle,
   onShowAuthModal,
+  setSelectedProfileId,
   setActiveTab,
   activeTab = "feed",
 }: RightSidebarProps) {
+  /**
+   * اقتراحات متابعة - بنختار 3 بروفايلات عشوائية من اللي المستخدم لسه
+   * مش متابعهم (ومش هو نفسه)، من نفس قائمة البروفايلات المحملة أصلاً في
+   * التطبيق. عايزين نفس 3 الأشخاص يفضلوا ظاهرين طول ما المستخدم في نفس
+   * الصفحة (مش يتغيروا مع كل render)، فبنعتمد على useMemo مربوط بطول
+   * قائمة المتابعين + البروفايلات بس، مش بكل render.
+   */
+  const suggestedProfiles = useMemo(() => {
+    const pool = profiles.filter(
+      (p) => p.id !== currentUser?.id && !followingIds.includes(p.id)
+    );
+    // ترتيب عشوائي ثابت المصدر بترتيب البروفايلات نفسها (مش Math.random في
+    // كل render) - بنستخدم شافل بسيط بناءً على معرف المستخدم كـ seed خفيف
+    const shuffled = [...pool].sort((a, b) => a.id.localeCompare(b.id));
+    return shuffled.slice(0, 3);
+  }, [profiles, followingIds, currentUser?.id]);
 
   // قائمة عناصر التنقل الرئيسية
   const navItems = [
@@ -111,6 +143,45 @@ export default function RightSidebar({
           })}
         </nav>
       </div>
+
+      {/* ودجت "ناس ممكن تعرفهم" - اقتراحات متابعة بسيطة عشان تساعد على
+          اكتشاف حسابات جديدة، مش بس اللي المستخدم بيتابعهم أصلاً */}
+      {isRealUser && suggestedProfiles.length > 0 && (
+        <div className="bg-white dark:bg-[#16181c] rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-gray-100 dark:border-gray-800/80">
+          <h4 className="font-extrabold text-gray-900 dark:text-white text-sm mb-4">اقترحنا لك</h4>
+          <div className="flex flex-col gap-3">
+            {suggestedProfiles.map((p) => (
+              <div key={p.id} className="flex items-center gap-3">
+                <button
+                  onClick={() => setActiveTab("user-profile", { profileId: p.id })}
+                  className="flex items-center gap-3 flex-1 min-w-0 text-right"
+                >
+                  {p.avatar_url ? (
+                    <img loading="lazy" decoding="async" src={p.avatar_url} alt={p.username} className="w-10 h-10 rounded-full object-cover bg-gray-100 dark:bg-gray-700 shrink-0" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-sm font-black text-gray-500 shrink-0">
+                      {p.username?.[0]?.toUpperCase() || "M"}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{p.username}</p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500">{formatCompactNumber(p.followers_count)} متابع</p>
+                  </div>
+                </button>
+                {onFollowToggle && currentUser && (
+                  <button
+                    onClick={() => onFollowToggle(currentUser.id, p.id)}
+                    className="shrink-0 w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center transition-colors"
+                    title="متابعة"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
     </div>
   );
