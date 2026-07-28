@@ -29,7 +29,7 @@ const LONG_PRESS_MS = 350;
 // عشان مايحصلش تشغيل/إيقاف أو 2x غلط وانت بس بتسكرول بين الريلز
 const DRAG_CANCEL_PX = 10;
 
-type GestureFeedback = { id: string; type: "speed" } | { id: string; type: "like"; x: number; y: number } | null;
+type GestureFeedback = { id: string; type: "speed" | "like" } | null;
 
 interface TapState {
   startX: number;
@@ -367,17 +367,14 @@ export default function ReelsPage({
       return;
     }
 
-    const rect = e.currentTarget.getBoundingClientRect();
     const now = Date.now();
     const isDoubleTap = now - state.lastTapTime < DOUBLE_TAP_MS;
 
     if (isDoubleTap) {
       if (state.singleTapTimer) clearTimeout(state.singleTapTimer);
       state.lastTapTime = 0;
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
       handleDoubleTapLike(meme);
-      showGestureFeedback({ id: meme.id, type: "like", x, y }, true);
+      showGestureFeedback({ id: meme.id, type: "like" }, true);
     } else {
       state.lastTapTime = now;
       state.singleTapTimer = setTimeout(() => {
@@ -579,10 +576,9 @@ export default function ReelsPage({
               </div>
             ) : (
               <div
-                className="absolute z-20 pointer-events-none animate-heart-pop-fast"
-                style={{ left: gestureFeedback.x, top: gestureFeedback.y, transform: "translate(-50%, -50%)" }}
+                className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none animate-heart-pop-fast"
               >
-                <Heart className="w-14 h-14 text-red-500 fill-red-500 drop-shadow-lg" />
+                <Heart className="w-20 h-20 text-red-500 fill-red-500 drop-shadow-lg" />
               </div>
             )
           )}
