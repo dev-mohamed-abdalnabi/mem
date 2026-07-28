@@ -247,7 +247,12 @@ async function getAuthenticatedUserId(): Promise<string> {
 export const dataService = {
   extractTagsFromCaption,
 
-  signUp: async (email: string, password: string, username: string, avatarUrl?: string): Promise<Profile> => {
+  /**
+   * رقم الموبايل هنا اختياري وغير مُتحقق منه وقت التسجيل (phone_verified = false
+   * دايماً في البداية) - قصدنا نجمّعه من غير أي تكلفة SMS، وهيتم التحقق الفعلي
+   * منه لاحقاً بس وقت أي عملية حساسة (زي استرجاع الحساب) مش عند كل تسجيل.
+   */
+  signUp: async (email: string, password: string, username: string, phone?: string, avatarUrl?: string): Promise<Profile> => {
     const defaultAvatar = avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
     const { data: authData, error: signupError } = await supabase.auth.signUp({
       email,
@@ -257,6 +262,15 @@ export const dataService = {
 
     if (signupError) throw signupError;
     if (!authData.user) throw new Error("تعذّر إنشاء حساب.");
+
+    // بنسجل الرقم بعد إنشاء الحساب (الـ trigger اللي بيعمل صف profiles جديد
+    // مش عارف عن الرقم، فبنعمل update منفصل بعدها).
+    if (phone && phone.trim()) {
+      await supabase
+        .from("profiles")
+        .update({ phone: phone.trim(), phone_verified: false })
+        .eq("id", authData.user.id);
+    }
 
     const { data: profData, error } = await supabase
       .from("profiles")
@@ -281,6 +295,20 @@ export const dataService = {
 
     if (profileError || !profData) throw new Error("تعذر العثور على ملف المستخدم.");
     return profData as Profile;
+  },
+
+  /**
+   * تسجيل الدخول بجوجل (OAuth) - مفيش باسورد ولا فورم، Supabase بيحول
+   * المستخدم لصفحة جوجل وبعد الموافقة بيرجعله على redirectTo مع سيشن جاهزة.
+   * لازم تفعّل Google provider من Supabase Dashboard (Auth > Providers) وتحط
+   * الـ Client ID/Secret بتاعين Google Cloud Console هناك.
+   */
+  signInWithGoogle: async (): Promise<void> => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) throw error;
   },
 
   signOut: async (): Promise<void> => {

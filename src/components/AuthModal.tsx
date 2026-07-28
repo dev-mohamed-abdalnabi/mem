@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Mail, Lock, User, Sparkles, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { X, Mail, Lock, User, Phone, Sparkles, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { dataService } from "../services/dataService"; // تأكد من صحة المسار حسب مشروعك
 
 interface AuthModalProps {
@@ -23,10 +23,12 @@ export default function AuthModal({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
-  
+  const [phone, setPhone] = useState(""); // اختياري - مش هيتحقق منه الآن
+
   // حالات الخطأ والتحميل
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   if (!isOpen) return null;
 
@@ -40,8 +42,8 @@ export default function AuthModal({
         // تسجيل الدخول الحقيقي ومزامنة البيانات
         await dataService.signIn(email, password);
       } else {
-        // إنشاء حساب جديد حقيقي
-        await dataService.signUp(email, password, username);
+        // إنشاء حساب جديد حقيقي (الرقم اختياري وبيتسجل من غير تحقق)
+        await dataService.signUp(email, password, username, phone);
       }
       
       // لو العملية نجحت، بنعمل ريفريش للصفحة عشان الـ App يلقط الحساب الجديد ويقفل المودال
@@ -52,6 +54,19 @@ export default function AuthModal({
       setError(err.message || "حدث خطأ ما، يرجى المحاولة مرة أخرى.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      // ده بيحول المستخدم لصفحة جوجل، فمفيش حاجة تانية نعملها هنا بعد الاستدعاء
+      await dataService.signInWithGoogle();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "تعذر تسجيل الدخول بجوجل، حاول تاني.");
+      setGoogleLoading(false);
     }
   };
 
@@ -119,6 +134,34 @@ export default function AuthModal({
           </div>
         )}
 
+        {/* زرار المتابعة بجوجل */}
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={googleLoading || loading}
+          className="w-full flex items-center justify-center gap-2.5 py-3 mb-4 bg-white dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {googleLoading ? (
+            <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <>
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47c-.28 1.5-1.13 2.78-2.4 3.63v3.02h3.88c2.27-2.09 3.57-5.17 3.57-8.84z"/>
+                <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.95-2.9l-3.88-3.02c-1.08.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11C3.25 21.3 7.31 24 12 24z"/>
+                <path fill="#FBBC05" d="M5.27 14.27a7.2 7.2 0 0 1 0-4.54V6.62H1.27a12 12 0 0 0 0 10.76l4-3.11z"/>
+                <path fill="#EA4335" d="M12 4.77c1.76 0 3.34.6 4.59 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.27 6.62l4 3.11C6.22 6.88 8.87 4.77 12 4.77z"/>
+              </svg>
+              <span>المتابعة بجوجل</span>
+            </>
+          )}
+        </button>
+
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
+          <span className="text-[11px] font-bold text-gray-400">أو</span>
+          <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
+        </div>
+
         {/* فورم الإدخال */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           
@@ -135,6 +178,25 @@ export default function AuthModal({
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full pr-10 pl-4 py-3 bg-gray-50 dark:bg-gray-800/40 border border-gray-200/80 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#16181c] transition-all"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* رقم الموبايل - اختياري، مش بيتحقق منه دلوقتي */}
+          {activeTab === "signup" && (
+            <div className="relative">
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 mr-1">
+                رقم الموبايل <span className="text-gray-400 font-normal">(اختياري)</span>
+              </label>
+              <div className="relative flex items-center">
+                <Phone className="absolute right-3.5 text-gray-400 w-4 h-4" />
+                <input
+                  type="tel"
+                  placeholder="01xxxxxxxxx"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full pr-10 pl-4 py-3 bg-gray-50 dark:bg-gray-800/40 border border-gray-200/80 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-[#16181c] transition-all text-left dir-ltr"
                 />
               </div>
             </div>
