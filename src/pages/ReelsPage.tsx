@@ -310,7 +310,7 @@ export default function ReelsPage({
     if (autoHide && fb) {
       gestureHideTimerRef.current = setTimeout(() => {
         setGestureFeedback((cur) => (cur?.id === fb.id ? null : cur));
-      }, 900);
+      }, 450);
     }
   };
 
@@ -579,10 +579,10 @@ export default function ReelsPage({
               </div>
             ) : (
               <div
-                className="absolute z-20 pointer-events-none animate-ping-once"
+                className="absolute z-20 pointer-events-none animate-heart-pop-fast"
                 style={{ left: gestureFeedback.x, top: gestureFeedback.y, transform: "translate(-50%, -50%)" }}
               >
-                <Heart className="w-24 h-24 text-white fill-white drop-shadow-lg" />
+                <Heart className="w-14 h-14 text-red-500 fill-red-500 drop-shadow-lg" />
               </div>
             )
           )}

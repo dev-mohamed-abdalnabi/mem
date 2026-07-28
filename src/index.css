@@ -401,3 +401,28 @@ body.modal-open {
 .animate-ping-once {
   animation: ping-once 0.9s ease-out forwards;
 }
+
+/* ===== قلب اللايك بالدبل تاب في الريلز (زي تيك توك: صغير وسريع) ===== */
+@keyframes heart-pop-fast {
+  0% { transform: scale(0.4); opacity: 0; }
+  30% { transform: scale(1.15); opacity: 1; }
+  55% { transform: scale(0.95); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+.animate-heart-pop-fast {
+  animation: heart-pop-fast 0.45s ease-out forwards;
+}
+
+/* ===== قلب اللايك بالدبل تاب في الريلز (زي التيك توك: أسرع وأصغر من
+   أنيميشن تفاعل الحالات) ===== */
+@keyframes heart-pop-fast {
+  0% { transform: scale(0.4); opacity: 0; }
+  25% { transform: scale(1.15); opacity: 1; }
+  40% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+.animate-heart-pop-fast {
+  animation: heart-pop-fast 0.5s ease-out forwards;
+}
