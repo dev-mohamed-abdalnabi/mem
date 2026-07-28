@@ -397,6 +397,7 @@ export default function CustomVideoPlayer({
             عندنا قاعدة CSS عامة بتحول أي bg-white للون الكارت في الوضع الداكن) */}
         <div
           className="mb-2 -my-2 py-2 touch-none cursor-pointer"
+          dir="ltr"
           onPointerDown={(e) => {
             e.stopPropagation();
             isSeekingRef.current = true;

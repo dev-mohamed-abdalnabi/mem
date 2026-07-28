@@ -639,6 +639,7 @@ export default function ReelsPage({
           {/* شريط تقدم قابل للسحب - بيتقدم/يترجع بيه، زي تيك توك */}
           <div
             className="absolute bottom-0 inset-x-0 z-20 pt-3 pb-1.5 px-3 touch-none"
+            dir="ltr"
             onPointerDown={handleBarPointerDown(meme)}
             onPointerMove={handleBarPointerMove(meme)}
             onPointerUp={handleBarPointerUp}
