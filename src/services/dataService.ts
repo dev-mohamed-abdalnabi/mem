@@ -253,7 +253,7 @@ export const dataService = {
    * منه لاحقاً بس وقت أي عملية حساسة (زي استرجاع الحساب) مش عند كل تسجيل.
    */
   signUp: async (email: string, password: string, username: string, phone?: string, avatarUrl?: string): Promise<Profile> => {
-    const defaultAvatar = avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`;
+    const defaultAvatar = avatarUrl || `https://api.dicebear.com/10.x/initials/svg?backgroundType=gradientLinear&fontSize=40&seed=${username}`;
     const { data: authData, error: signupError } = await supabase.auth.signUp({
       email,
       password,
@@ -329,7 +329,7 @@ export const dataService = {
     return {
       id: "guest-user-temp",
       username: "زائر_مجهول",
-      avatar_url: "https://api.dicebear.com/7.x/bottts/svg?seed=guest",
+      avatar_url: "https://api.dicebear.com/10.x/initials/svg?backgroundType=gradientLinear&fontSize=40&seed=guest",
       bio: "يتصفح كزائر.",
       website: "",
       role: "user",

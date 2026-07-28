@@ -335,11 +335,41 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
     markViewed(story);
   };
 
+  /**
+   * التنقل لحالات الشخص اللي جنب الحالي في الشريط (يمين = التالي، شمال =
+   * السابق) - زي انستجرام بالظبط. قبل كده لما تخلص حالات شخص، العارض كان
+   * بيتقفل على طول بدل ما يكمل لحالات اللي بعده، وكان مفيش أي حاجة بتحصل
+   * لو دست شمال وانت في أول حالة لشخص (الزرار كان disabled).
+   */
+  const goToAdjacentUser = (direction: 1 | -1) => {
+    if (!selectedStory) return;
+    const authorPos = sortedUserIds.indexOf(selectedStory.user_id);
+    const nextAuthorId = authorPos === -1 ? undefined : sortedUserIds[authorPos + direction];
+
+    if (!nextAuthorId) {
+      // خلصنا آخر شخص في الشريط وإحنا رايحين قدام - نقفل زي واتساب.
+      // لو إحنا في أول شخص ورايحين ورا، نفضل واقفين مكاننا من غير ما نقفل.
+      if (direction === 1) closeStoryViewer();
+      return;
+    }
+
+    const nextAuthorStories = userStories[nextAuthorId] || [];
+    if (nextAuthorStories.length === 0) {
+      if (direction === 1) closeStoryViewer();
+      return;
+    }
+
+    const nextIndexInAuthor = direction === 1 ? 0 : nextAuthorStories.length - 1;
+    openStory(nextAuthorStories[nextIndexInAuthor], nextIndexInAuthor);
+  };
+
   const goToIndex = (nextIndex: number) => {
-    if (nextIndex < 0) return;
+    if (nextIndex < 0) {
+      goToAdjacentUser(-1);
+      return;
+    }
     if (nextIndex >= currentUserStories.length) {
-      // خلصت حالات الشخص ده، نقفل العارض زي واتساب
-      closeStoryViewer();
+      goToAdjacentUser(1);
       return;
     }
     const next = currentUserStories[nextIndex];
@@ -862,7 +892,6 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
             <button
               onClick={(e) => { e.stopPropagation(); goToIndex(selectedStoryIndex - 1); }}
               className="absolute left-0 top-0 bottom-0 w-1/3 flex items-center justify-start pl-2 opacity-0 hover:opacity-100 transition-opacity"
-              disabled={selectedStoryIndex === 0}
             >
               {selectedStoryIndex > 0 && (
                 <span className="bg-white/20 text-white p-2 rounded-full"><ChevronLeft className="w-5 h-5" /></span>

@@ -6,6 +6,7 @@ import { pushService } from "./services/pushService";
 import { useDialog } from "./components/DialogProvider";
 import { dataService } from "./services/dataService";
 import { shareMemeLink } from "./utils/share";
+import { supabase } from "./supabaseClient";
 
 // استيراد مكونات الواجهة
 import MainLayout from "./components/layout/MainLayout";
@@ -30,7 +31,7 @@ import { messagesService } from "./services/messagesService";
 const initialGuestProfile: Profile = {
   id: "guest-user-temp",
   username: "زائر_مجهول",
-  avatar_url: "https://api.dicebear.com/7.x/bottts/svg?seed=guest",
+  avatar_url: "https://api.dicebear.com/10.x/initials/svg?backgroundType=gradientLinear&fontSize=40&seed=guest",
   bio: "يتصفح كزائر. سجل حساب لرفع صور حقيقية ومزامنة نقاطك! 🚀",
   website: "",
   role: "user",
@@ -354,6 +355,31 @@ export default function App() {
 
     loadInitialData();
   }, []);
+
+  /**
+   * لما التسجيل بيتم عن طريق OAuth (زي جوجل)، جوجل بيرجّع المستخدم للموقع
+   * وSupabase بيسجل الـ session من رابط الـ redirect نفسه - العملية دي غير
+   * متزامنة، وكانت بتحصل أحياناً بعد ما useEffect اللي فوق يكون خلص شغله
+   * وحط currentUser = زائر. النتيجة: تسجيل الدخول ينجح فعلياً بس الواجهة
+   * فضلت شايفة المستخدم "زائر". هنا بنسمع لحدث SIGNED_IN، ولو حصل وإحنا
+   * لسه شايفين المستخدم كزائر، بنعمل reload مرة واحدة عشان يعيد تحميل
+   * البيانات من الأول وهو شايف الـ session الصح (بعد الـ reload، Supabase
+   * بيقرأ الـ session من التخزين المحلي على طول من غير أي race condition).
+   */
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") {
+        const alreadyReloaded = sessionStorage.getItem("oauth_reload_done");
+        if (!alreadyReloaded && currentUser.id === "guest-user-temp") {
+          sessionStorage.setItem("oauth_reload_done", "1");
+          window.location.reload();
+        }
+      } else if (event === "SIGNED_OUT") {
+        sessionStorage.removeItem("oauth_reload_done");
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [currentUser.id]);
 
   /**
    * التعامل مع زرار الرجوع (Back) في الموبايل والمتصفح.

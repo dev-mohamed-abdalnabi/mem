@@ -171,7 +171,7 @@ export default function PostDetailModal({
   const renderComment = (c: Comment, isReply: boolean, parentId?: string) => (
     <div key={c.id} className={`flex gap-3 ${isReply ? "mr-8 mt-3" : ""}`}>
       <img loading="lazy" decoding="async" 
-        src={c.profiles?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${c.profiles?.username}`} 
+        src={c.profiles?.avatar_url || `https://api.dicebear.com/10.x/initials/svg?backgroundType=gradientLinear&fontSize=40&seed=${c.profiles?.username}`} 
         className={`rounded-full object-cover shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${isReply ? "w-6 h-6" : "w-8 h-8"}`}
         onClick={() => c.profiles?.id && onUserProfileClick(c.profiles.id)}
         alt=""
@@ -280,7 +280,7 @@ export default function PostDetailModal({
         <div className="hidden md:flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-3">
             <img loading="lazy" decoding="async" 
-              src={creator.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${creator.username}`} 
+              src={creator.avatar_url || `https://api.dicebear.com/10.x/initials/svg?backgroundType=gradientLinear&fontSize=40&seed=${creator.username}`} 
               className="w-10 h-10 rounded-full object-cover" 
               onClick={() => onUserProfileClick(creator.id)}
             />
@@ -298,7 +298,7 @@ export default function PostDetailModal({
           <div className="p-4 border-b bg-gray-50/50">
             <div className="flex gap-3">
               <img loading="lazy" decoding="async" 
-                src={creator.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${creator.username}`} 
+                src={creator.avatar_url || `https://api.dicebear.com/10.x/initials/svg?backgroundType=gradientLinear&fontSize=40&seed=${creator.username}`} 
                 className="w-8 h-8 rounded-full shrink-0" 
               />
               <div className="min-w-0">

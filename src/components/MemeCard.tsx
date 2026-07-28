@@ -283,7 +283,7 @@ export default function MemeCard({
         <div className="flex flex-col items-center gap-2 shrink-0">
           <div className="relative">
             <div className="cursor-pointer hover:opacity-80" onClick={() => onUserProfileClick(creator.id)}>
-              <img loading="lazy" decoding="async" src={creator.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${creator.username}`} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-100" />
+              <img loading="lazy" decoding="async" src={creator.avatar_url || `https://api.dicebear.com/10.x/initials/svg?backgroundType=gradientLinear&fontSize=40&seed=${creator.username}`} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-100" />
             </div>
             {!isFollowingCreator && currentUser.id !== creator.id && (
               <button onClick={() => onFollowToggle(currentUser.id, creator.id)} className="absolute -bottom-1 -left-1 bg-black text-white rounded-full w-4 h-4 flex items-center justify-center border-2 border-white"><PlusCircle className="w-3 h-3" /></button>
@@ -512,7 +512,7 @@ export default function MemeCard({
           {commentsList.map((c) => (
             <div key={c.id} className="flex items-start gap-2 text-right">
               <img loading="lazy" decoding="async"
-                src={c.profiles?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${c.profiles?.username}`}
+                src={c.profiles?.avatar_url || `https://api.dicebear.com/10.x/initials/svg?backgroundType=gradientLinear&fontSize=40&seed=${c.profiles?.username}`}
                 className="w-8 h-8 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => c.profiles?.id && onUserProfileClick(c.profiles.id)}
                 alt=""
