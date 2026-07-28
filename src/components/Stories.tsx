@@ -520,11 +520,20 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
       const durationOk = await new Promise<boolean>((resolve) => {
         const video = document.createElement("video");
         video.preload = "metadata";
+        // بعض فيديوهات كاميرا الموبايل (HEVC غالباً) ممكن onloadedmetadata
+        // ولا onerror ميحصلش خالص ليها هنا برضو، فبنحط مهلة عشان نضمن إن
+        // فحص المدة ده مايوقفش الرفع كله للأبد - لو المهلة خلصت بنسيب المدة
+        // "مش معروفة" ونكمل الرفع عادي بدل ما نمنعه بلا داعي.
+        const metaTimeout = setTimeout(() => {
+          window.URL.revokeObjectURL(video.src);
+          resolve(true);
+        }, 8000);
         video.onloadedmetadata = () => {
+          clearTimeout(metaTimeout);
           window.URL.revokeObjectURL(video.src);
           resolve(video.duration <= MAX_STORY_VIDEO_SECONDS);
         };
-        video.onerror = () => resolve(false);
+        video.onerror = () => { clearTimeout(metaTimeout); resolve(true); };
         video.src = URL.createObjectURL(file);
       });
       if (!durationOk) {
@@ -543,9 +552,13 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
       await loadStories();
       setShowCreateModal(false);
       setCreateMode(null);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Story upload error:", e);
-      await alertDialog("فشل رفع الحالة، اتأكد إنك عامل تسجيل دخول حقيقي.");
+      // كنا بنعرض رسالة عامة تقول "مش عامل تسجيل دخول حقيقي" لأي خطأ مهما كان
+      // سببه الفعلي (حجم ملف، نوع ملف، RLS، تايم آوت، إلخ)، وده كان بيضلل
+      // التشخيص تمامًا ويوهم المستخدم إن المشكلة في حسابه بينما هي حاجة تانية
+      // خالص. دلوقتي بنعرض رسالة الخطأ الحقيقية.
+      await alertDialog(e?.message ? `فشل رفع الحالة: ${e.message}` : "فشل رفع الحالة، حاول تاني.");
     } finally {
       setLoading(false);
       setUploadStage("");
