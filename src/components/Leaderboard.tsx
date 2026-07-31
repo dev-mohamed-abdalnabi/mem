@@ -1,6 +1,7 @@
 import React from "react";
 import { Trophy, Award, Crown, User, Star, Zap, Flame, Target } from "lucide-react";
 import { Profile } from "../types";
+import { formatCompactNumber } from "../utils/format";
 
 interface LeaderboardProps {
   profiles: Profile[];
@@ -138,7 +139,7 @@ export default function Leaderboard({
                     <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-xl border border-gray-300 dark:border-gray-700 shadow-sm dark:shadow-none">
                       <Flame className="w-3.5 h-3.5 text-orange-500 dark:text-orange-400 fill-orange-500 dark:fill-orange-400" />
                       <span className="text-xs font-black text-gray-900 dark:text-white font-mono tracking-tight">
-                        {prof.total_points}
+                        {formatCompactNumber(prof.total_points)}
                       </span>
                     </div>
                     <span className="text-[8px] text-gray-400 dark:text-gray-500 font-bold block mt-0.5">نقاط التفاعل</span>

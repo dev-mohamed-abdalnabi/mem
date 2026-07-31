@@ -1,14 +1,7 @@
 import React, { useMemo } from "react";
 import { Home, Flame, Bookmark, User, LogIn, Sparkles, Clapperboard, MessageCircle, UserPlus } from "lucide-react";
 import { Profile } from "../types";
-
-// تنسيق مختصر لعدد المتابعين في كارت الاقتراح، بنفس المنطق المستخدم في الهيدر
-function formatCompactNumber(num: number): string {
-  if (!num) return "0";
-  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
-  if (num >= 1_000) return (num / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
-  return String(num);
-}
+import { formatCompactNumber } from "../utils/format";
 
 /**
  * واجهة الخصائص لمكون القائمة الجانبية اليمنى

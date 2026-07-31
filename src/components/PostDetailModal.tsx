@@ -3,6 +3,7 @@ import { X, Heart, MessageCircle, Share2, Bookmark, Send, Loader2 } from "lucide
 import { Meme, Comment, Profile } from "../types";
 import { dataService } from "../services/dataService";
 import CustomVideoPlayer from "./CustomVideoPlayer";
+import { formatRelativeTime } from "../utils/format";
 
 interface PostDetailModalProps {
   meme: Meme;
@@ -284,9 +285,12 @@ export default function PostDetailModal({
               className="w-10 h-10 rounded-full object-cover" 
               onClick={() => onUserProfileClick(creator.id)}
             />
-            <span className="font-bold hover:underline cursor-pointer" onClick={() => onUserProfileClick(creator.id)}>
-              {creator.username}
-            </span>
+            <div>
+              <span className="font-bold hover:underline cursor-pointer block" onClick={() => onUserProfileClick(creator.id)}>
+                {creator.username}
+              </span>
+              <span className="text-xs text-gray-400">{formatRelativeTime(meme.created_at)}</span>
+            </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <X className="w-6 h-6" />
@@ -302,6 +306,9 @@ export default function PostDetailModal({
                 className="w-8 h-8 rounded-full shrink-0" 
               />
               <div className="min-w-0">
+                <span className="md:hidden font-bold text-sm hover:underline cursor-pointer" onClick={() => onUserProfileClick(creator.id)}>
+                  {creator.username}
+                </span>
                 <p
                   ref={captionRef}
                   className="text-sm leading-relaxed whitespace-pre-wrap"

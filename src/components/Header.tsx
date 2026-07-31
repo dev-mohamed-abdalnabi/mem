@@ -1,14 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Search, Bell, Trophy, User, Flame, LogOut, PlusCircle, Settings, LogIn, Sun, Moon, Bookmark, MessageCircle, X } from "lucide-react";
 import { Profile, Notification } from "../types";
-
-// تنسيق الأرقام الكبيرة بشكل شيك (1.2K / 3.4M) بدل ما تتكتب كاملة وتاخد مساحة زيادة في الهيدر
-function formatCompactNumber(num: number): string {
-  if (!num) return "0";
-  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
-  if (num >= 1_000) return (num / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
-  return String(num);
-}
+import { formatCompactNumber, formatRelativeTime } from "../utils/format";
 
 /**
  * واجهة الخصائص لمكون الهيدر
@@ -336,7 +329,7 @@ export default function Header({
                             {notif.type === "follow" && "بدأ بمتابعتك 👤"}
                           </p>
                           <span className="text-[10px] text-gray-400 dark:text-gray-500 block mt-1.5 font-mono">
-                            {new Date(notif.created_at).toLocaleTimeString("ar-EG", { hour: 'numeric', minute: '2-digit' })}
+                            {formatRelativeTime(notif.created_at)}
                           </span>
                         </div>
                         {!notif.is_read && <div className="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400 mt-2 flex-shrink-0"></div>}
@@ -391,7 +384,7 @@ export default function Header({
                       <p className="font-extrabold text-gray-900 dark:text-white text-sm mt-0.5">{currentUser.username}</p>
                       <div className="flex items-center gap-2 mt-2">
                         <span className="text-[11px] bg-blue-50 text-blue-700 border border-blue-100 dark:bg-gray-800 dark:text-blue-400 dark:border-gray-600 px-3 py-1 rounded-full font-extrabold shadow-sm">
-                          Level: {currentUser.meme_level}
+                          المستوى: {currentUser.meme_level}
                         </span>
                       </div>
                     </div>

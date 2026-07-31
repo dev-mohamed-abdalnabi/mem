@@ -5,6 +5,7 @@ import { Story, Profile } from "../types";
 import { dataService } from "../services/dataService";
 import { socialService } from "../services/socialService";
 import { useDialog } from "./DialogProvider";
+import { formatRelativeTime as relativeTimeAr } from "../utils/format";
 
 interface StoriesProps {
   currentUser: Profile;
@@ -78,25 +79,6 @@ function buildStoryRingBackground(uStories: Story[], viewedStoryIds: Set<string>
     stops.push(`transparent ${end}deg ${start + segDeg}deg`);
   }
   return `conic-gradient(from -90deg, ${stops.join(", ")})`;
-}
-
-/**
- * توقيت نسبي حقيقي بالعربي بدل ما كانت كل الحالات مكتوب عليها "قبل قليل"
- * بشكل ثابت مهما كان وقتها الفعلي.
- */
-function relativeTimeAr(dateStr: string): string {
-  const date = new Date(dateStr);
-  const diffMs = Date.now() - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-
-  if (diffSec < 60) return "الآن";
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `من ${diffMin} ${diffMin === 1 ? "دقيقة" : "دقايق"}`;
-  const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `من ${diffHour} ${diffHour === 1 ? "ساعة" : "ساعات"}`;
-  const diffDay = Math.floor(diffHour / 24);
-  if (diffDay < 2) return "امبارح";
-  return date.toLocaleDateString("ar-EG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 }
 
 export default function Stories({ currentUser, onStoryViewerChange, onUserProfileClick }: StoriesProps) {

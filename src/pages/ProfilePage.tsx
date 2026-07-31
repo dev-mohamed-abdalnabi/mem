@@ -4,6 +4,7 @@ import { Profile, Meme } from "../types";
 import MemeCard from "../components/MemeCard";
 import { dataService } from "../services/dataService";
 import { useDialog } from "../components/DialogProvider";
+import { formatCompactNumber } from "../utils/format";
 
 interface ProfilePageProps {
   profile: Profile;
@@ -27,14 +28,6 @@ interface ProfilePageProps {
   setSelectedProfileId: (id: string | null) => void;
   setActiveTab: (tab: string) => void;
   setLightboxImage: (url: string | null, meme?: Meme | null) => void;
-}
-
-// تنسيق الأرقام الكبيرة بشكل شيك (1.2K / 3.4M) بدل ما تتكتب كاملة وتبوظ التصميم
-function formatCompactNumber(num: number): string {
-  if (!num) return "0";
-  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
-  if (num >= 1_000) return (num / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
-  return String(num);
 }
 
 export default function ProfilePage({

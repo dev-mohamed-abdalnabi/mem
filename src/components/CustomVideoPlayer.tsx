@@ -422,7 +422,7 @@ export default function CustomVideoPlayer({
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2" dir="ltr">
           <button
             onClick={(e) => {
               e.stopPropagation();

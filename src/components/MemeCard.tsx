@@ -10,6 +10,7 @@ import { Meme, Comment, Profile } from "../types";
 import { dataService } from "../services/dataService";
 import CustomVideoPlayer from "./CustomVideoPlayer";
 import { shareMemeLink } from "../utils/share";
+import { formatRelativeTime } from "../utils/format";
 
 /**
  * واجهة الخصائص لمكون بطاقة الميم (MemeCard)
@@ -297,7 +298,7 @@ export default function MemeCard({
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-1.5">
               <span className="font-bold text-sm text-gray-900 hover:underline cursor-pointer" onClick={() => onUserProfileClick(creator.id)}>{creator.username}</span>
-              <span className="text-gray-400 text-xs">{new Date(meme.created_at).toLocaleDateString("ar-EG")}</span>
+              <span className="text-gray-400 text-xs" title={new Date(meme.created_at).toLocaleString("ar-EG")}>{formatRelativeTime(meme.created_at)}</span>
               {(meme as any).status === "pending" && (
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">قيد المراجعة</span>
               )}

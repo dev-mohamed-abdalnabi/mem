@@ -387,18 +387,18 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
   if (!isAuthenticated) {
     return (
       <div className="w-full max-w-md mx-auto px-4 py-12">
-        <div className="bg-white border border-red-200 rounded-2xl p-8 shadow-lg text-right">
+        <div className="bg-white dark:bg-[#16181c] border border-red-200 dark:border-red-500/30 rounded-2xl p-8 shadow-lg text-right">
           <div className="flex items-center justify-center gap-2 mb-6">
-            <Lock className="w-6 h-6 text-red-600" />
-            <h2 className="text-2xl font-black text-gray-900">لوحة تحكم المشرف</h2>
+            <Lock className="w-6 h-6 text-red-600 dark:text-red-400" />
+            <h2 className="text-2xl font-black text-gray-900 dark:text-white">لوحة تحكم المشرف</h2>
           </div>
 
-          <p className="text-sm text-gray-600 mb-6 text-center">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 text-center">
             الوصول محصور على حسابات الأدمن/المشرف فقط. لازم تكون مسجل دخول بحساب صلاحياته admin أو moderator.
           </p>
 
           <form onSubmit={handleAdminLogin} className="flex flex-col gap-4">
-            {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">{error}</div>}
+            {error && <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400 px-4 py-2 rounded-lg text-sm">{error}</div>}
 
             <button
               type="submit"
@@ -422,17 +422,17 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
           onClick={() => {
             setIsAuthenticated(false);
           }}
-          className="flex items-center gap-2 text-red-600 hover:text-red-700 font-bold"
+          className="flex items-center gap-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-bold"
         >
           <LogOut className="w-5 h-5" />
           تسجيل خروج
         </button>
-        <h1 className="text-3xl font-black text-gray-900">لوحة تحكم المشرف</h1>
+        <h1 className="text-3xl font-black text-gray-900 dark:text-white">لوحة تحكم المشرف</h1>
       </div>
 
       {/* رسائل النجاح والخطأ */}
-      {success && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6 font-bold">{success}</div>}
-      {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 font-bold">{error}</div>}
+      {success && <div className="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 text-green-700 dark:text-green-400 px-4 py-3 rounded-lg mb-6 font-bold">{success}</div>}
+      {error && <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg mb-6 font-bold">{error}</div>}
 
       {/* التبويبات */}
       <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
@@ -451,7 +451,7 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
               className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${
                 activeTab === tab.id
                   ? "bg-red-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
               }`}
             >
               <Icon className="w-5 h-5" />
@@ -462,25 +462,25 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
       </div>
 
       {/* محتوى التبويبات */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6">
+      <div className="bg-white dark:bg-[#16181c] border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
         {loading ? (
           <div className="text-center py-12">
-            <div className="inline-block w-8 h-8 border-4 border-gray-200 border-t-red-600 rounded-full animate-spin"></div>
-            <p className="text-gray-600 mt-4">جاري التحميل...</p>
+            <div className="inline-block w-8 h-8 border-4 border-gray-200 dark:border-gray-800 border-t-red-600 rounded-full animate-spin"></div>
+            <p className="text-gray-600 dark:text-gray-400 mt-4">جاري التحميل...</p>
           </div>
         ) : activeTab === "reports" ? (
           <div className="space-y-4">
             <h2 className="text-xl font-black mb-4">البلاغات المفتوحة ({reports.length})</h2>
             {reports.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">لا توجد بلاغات معلقة</p>
+              <p className="text-gray-500 dark:text-gray-400 text-center py-8">لا توجد بلاغات معلقة</p>
             ) : (
               reports.map((report) => (
-                <div key={report.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                <div key={report.id} className="border border-gray-200 dark:border-gray-800 rounded-xl p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <p className="font-bold text-gray-900">السبب: {report.reason}</p>
-                      <p className="text-sm text-gray-600 mt-1">من: {report.reporter?.username}</p>
-                      <p className="text-xs text-gray-400 mt-1">{new Date(report.created_at).toLocaleDateString("ar-EG")}</p>
+                      <p className="font-bold text-gray-900 dark:text-white">السبب: {report.reason}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">من: {report.reporter?.username}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{new Date(report.created_at).toLocaleDateString("ar-EG")}</p>
                     </div>
                   </div>
 
@@ -502,7 +502,7 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
                     </button>
                     <button
                       onClick={() => resolveReport(report.id, report.meme_id, "dismiss")}
-                      className="flex-1 bg-gray-300 text-gray-900 px-4 py-2 rounded-lg font-bold hover:bg-gray-400 transition-colors"
+                      className="flex-1 bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-2 rounded-lg font-bold hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors"
                     >
                       رفض البلاغ
                     </button>
@@ -522,13 +522,13 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
           <div className="space-y-4">
             <h2 className="text-xl font-black mb-4">الحسابات المحظورة ({bannedAccounts.length})</h2>
             {bannedAccounts.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">لا توجد حسابات محظورة</p>
+              <p className="text-gray-500 dark:text-gray-400 text-center py-8">لا توجد حسابات محظورة</p>
             ) : (
               bannedAccounts.map((ban) => (
-                <div key={ban.id} className="border border-gray-200 rounded-xl p-4 flex items-center justify-between">
+                <div key={ban.id} className="border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center justify-between">
                   <div>
-                    <p className="font-bold text-gray-900">السبب: {ban.reason}</p>
-                    <p className="text-sm text-gray-600">{ban.ban_type === "permanent" ? "حظر دائم" : "حظر مؤقت"}</p>
+                    <p className="font-bold text-gray-900 dark:text-white">السبب: {ban.reason}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{ban.ban_type === "permanent" ? "حظر دائم" : "حظر مؤقت"}</p>
                   </div>
                   <button
                     onClick={() => unbanAccount(ban.id)}
@@ -544,14 +544,14 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
           <div className="space-y-4">
             <h2 className="text-xl font-black mb-4">المنشورات ({memes.length})</h2>
             {memes.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">لا توجد منشورات</p>
+              <p className="text-gray-500 dark:text-gray-400 text-center py-8">لا توجد منشورات</p>
             ) : (
               memes.map((meme) => (
-                <div key={meme.id} className="border border-gray-200 rounded-xl p-4">
+                <div key={meme.id} className="border border-gray-200 dark:border-gray-800 rounded-xl p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <p className="font-bold text-gray-900">{meme.profiles?.username}</p>
-                      <p className="text-sm text-gray-600 mt-1">{meme.caption?.substring(0, 100)}</p>
+                      <p className="font-bold text-gray-900 dark:text-white">{meme.profiles?.username}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{meme.caption?.substring(0, 100)}</p>
                     </div>
                   </div>
 
@@ -608,12 +608,12 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
           <div className="space-y-4">
             <h2 className="text-xl font-black mb-4">سجل الأنشطة ({adminLogs.length})</h2>
             {adminLogs.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">لا توجد سجلات</p>
+              <p className="text-gray-500 dark:text-gray-400 text-center py-8">لا توجد سجلات</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-right text-sm">
                   <thead>
-                    <tr className="border-b border-gray-200">
+                    <tr className="border-b border-gray-200 dark:border-gray-800">
                       <th className="px-4 py-2 font-bold">الإجراء</th>
                       <th className="px-4 py-2 font-bold">النوع</th>
                       <th className="px-4 py-2 font-bold">الوقت</th>
@@ -621,10 +621,10 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
                   </thead>
                   <tbody>
                     {adminLogs.map((log) => (
-                      <tr key={log.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <tr key={log.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
                         <td className="px-4 py-2">{log.action}</td>
                         <td className="px-4 py-2">{log.target_type}</td>
-                        <td className="px-4 py-2 text-gray-600">{new Date(log.created_at).toLocaleDateString("ar-EG")}</td>
+                        <td className="px-4 py-2 text-gray-600 dark:text-gray-400">{new Date(log.created_at).toLocaleDateString("ar-EG")}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -642,10 +642,10 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
             ].map((stat, i) => {
               const Icon = stat.icon;
               const colorClass = {
-                blue: "bg-blue-100 text-blue-600",
-                green: "bg-green-100 text-green-600",
-                red: "bg-red-100 text-red-600",
-                yellow: "bg-yellow-100 text-yellow-600"
+                blue: "bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400",
+                green: "bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400",
+                red: "bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400",
+                yellow: "bg-yellow-100 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
               }[stat.color];
 
               return (
