@@ -95,6 +95,10 @@ export default function App() {
   const lastShareAtRef = useRef<Map<string, number>>(new Map());
   const [hasMore, setHasMore] = useState(true); // هل توجد بيانات إضافية للتحميل
   const [page, setPage] = useState(0); // رقم الصفحة الحالية للتحميل التدريجي
+  // seed للترتيب العشوائي في الفيد: بيتولّد قيمة جديدة كل مرة نجيب صفحة أولى
+  // (فتح التطبيق / تغيير فلتر أو بحث) عشان الترتيب يتغيّر فورًا بدل ما يستنى
+  // مدة زمنية ثابتة. بيفضل هو هو مع "تحميل المزيد" عشان السكرول ما يتكسرش.
+  const [feedSeed, setFeedSeed] = useState(() => `${Date.now()}-${Math.random()}`);
   
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(getSavedProfileId); // معرف البروفايل المختار
   const [showAuthModal, setShowAuthModal] = useState(false); // إظهار مودال الدخول
@@ -285,7 +289,7 @@ export default function App() {
         setAuthChecked(true);
         
         // تحميل الصفحة الأولى من الميمز (10 عناصر) - عن طريق خوارزمية الترتيب الحقيقية
-        const dbMemes = await dataService.getMemes("approved", undefined, dbCurrentUser?.id || initialGuestProfile.id, 0, 10);
+        const dbMemes = await dataService.getMemes("approved", undefined, dbCurrentUser?.id || initialGuestProfile.id, 0, 10, undefined, undefined, feedSeed);
         setMemes(dbMemes);
         setPage(1); // الاستعداد للصفحة التالية
         setHasMore(dbMemes.length === 10);
@@ -463,7 +467,8 @@ export default function App() {
         page, 
         10,
         selectedTag,
-        searchQuery
+        searchQuery,
+        feedSeed
       );
 
       if (nextMemes.length < 10) {
@@ -481,7 +486,7 @@ export default function App() {
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, hasMore, page, currentUser.id, selectedTag, searchQuery]);
+  }, [loadingMore, hasMore, page, currentUser.id, selectedTag, searchQuery, feedSeed]);
 
   /**
    * كانت الفلترة بالتاج/البحث بتحصل محلياً بس على الـ caption، ومحدش كان بيوصل selectedTag
@@ -494,8 +499,10 @@ export default function App() {
     const timeout = setTimeout(async () => {
       setLoading(true);
       try {
-        const dbMemes = await dataService.getMemes("approved", undefined, currentUser.id, 0, 10, selectedTag, searchQuery);
+        const newSeed = `${Date.now()}-${Math.random()}`;
+        const dbMemes = await dataService.getMemes("approved", undefined, currentUser.id, 0, 10, selectedTag, searchQuery, newSeed);
         if (cancelled) return;
+        setFeedSeed(newSeed);
         setMemes(dbMemes);
         setPage(1);
         setHasMore(dbMemes.length === 10);

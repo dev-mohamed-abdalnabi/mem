@@ -641,14 +641,19 @@ export const dataService = {
    * العادي (get_ranked_feed مع p_post_type='video') واللي بقت فيها عشوائية
    * خفيفة حقيقية من جوه الداتابيز، فكل ريفريش بيدّي ترتيب متنوع شوية.
    */
-  getVideoMemes: async (page: number = 0, limit: number = 10): Promise<Meme[]> => {
+  getVideoMemes: async (page: number = 0, limit: number = 10, feedSeed?: string): Promise<Meme[]> => {
     // بيستخدم get_ranked_reels_v3: زي v2 (completion rate / rewatch rate /
     // share rate) زائد velocity حقيقي على المشاهدات، خبرة صانع المحتوى
     // (creator quality prior)، ومطابقة اهتمامات (tags) - راجع
     // RANKING_ALGORITHMS.md و ranking_v3.sql للتفاصيل الكاملة.
+    // feedSeed: بيتولّد مرة واحدة لما الريلز تتفتح/تتعمل ريفريش، وبيتبعت
+    // نفسه لكل صفحات السكرول بعد كده. كده الترتيب بيتغير فورًا كل مرة
+    // تفتح فيها الريلز من الأول (مش مربوط بوقت/شريطة زمنية ثابتة)، من غير
+    // ما السكرول يتكسر (لو كل صفحة جابت seed مختلف كانت هتتكرر/تضيع بوستات).
     const { data, error } = await supabase.rpc("get_ranked_reels_v3", {
       p_limit: limit * 2, // نجيب ضعف العدد عشان نقدر نعمل diversity re-rank
       p_offset: page * limit,
+      p_seed: feedSeed || null,
     });
     if (error) throw error;
 
@@ -678,7 +683,8 @@ export const dataService = {
     page: number = 0,
     limit: number = 10,
     tag?: string | null,
-    search?: string | null
+    search?: string | null,
+    feedSeed?: string
   ): Promise<Meme[]> => {
     // فيد بروفايل مستخدم معين -> استعلام مباشر (RPC مش مخصصة لده)
     if (userId) {
@@ -697,12 +703,17 @@ export const dataService = {
     // مرتين ورا بعض) قبل ما نقص للحجم المطلوب - بالظبط زي ما أنظمة الترتيب
     // الحقيقية بتفصل بين مرحلة الـ scoring ومرحلة الـ business rules
     // re-ranking.
+    // feedSeed: بيتولّد مرة واحدة أول ما الفيد يتفتح/يتعمل ريفريش/الفلتر
+    // يتغيّر، وبيتبعت نفسه في كل استدعاء "تحميل المزيد" بعد كده عشان
+    // السكرول يفضل ثابت. النتيجة: ترتيب جديد فوراً كل مرة تفتح الفيد، من
+    // غير ما تستنى أي وقت، ومن غير ما تتكرر/تضيع بوستات أثناء السكرول.
     const { data, error } = await supabase.rpc("get_ranked_feed_v3", {
       p_limit: limit * 2,
       p_offset: page * limit,
       p_tag: tag || null,
       p_search: search || null,
       p_post_type: null,
+      p_seed: feedSeed || null,
     });
     if (error) throw error;
 

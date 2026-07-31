@@ -31,12 +31,17 @@
 -- تفاعله في آخر 3 ساعات ده إشارة "بيصعد دلوقتي" حقيقية، بعكس بوست نفس
 -- التفاعل بس اتوزع بالتساوي على مدار اليوم كله.
 
+-- ملحوظة تزامن: النسخة اللي شغالة فعلياً على الداتابيز فيها p_seed بدل
+-- random() العادي (كان بيتعدل يدوي في الداتابيز من غير ما الملف ده يتحدث،
+-- وده اللي سبب مشكلة "نفس الترتيب لكل الناس" - راجع تعليق feed_reels_seed_based_jitter
+-- في تاريخ الميجريشنز). الملف ده دلوقتي متزامن مع اللي شغال فعليًا.
 CREATE OR REPLACE FUNCTION public.get_ranked_feed_v3(
   p_limit integer DEFAULT 30,
   p_offset integer DEFAULT 0,
   p_tag text DEFAULT NULL,
   p_search text DEFAULT NULL,
-  p_post_type text DEFAULT NULL
+  p_post_type text DEFAULT NULL,
+  p_seed text DEFAULT NULL
 )
 RETURNS TABLE(
   id uuid, user_id uuid, image_url text, video_url text, images text[], caption text,
@@ -116,7 +121,8 @@ AS $function$
       COALESCE(rw.avg_completion, 0.42) AS avg_completion,
       COALESCE(cn.reject_count, 0) AS reject_count,
       COALESCE(rm.recent_likes, 0) AS recent_likes,
-      GREATEST(extract(epoch FROM (now() - m.created_at)) / 3600.0, 0.01) AS age_hours
+      GREATEST(extract(epoch FROM (now() - m.created_at)) / 3600.0, 0.01) AS age_hours,
+      me.uid AS viewer_uid
     FROM public.memes m
     JOIN public.profiles p ON p.id = m.user_id
     CROSS JOIN me
@@ -187,14 +193,14 @@ AS $function$
       - ln(1 + b.reject_count) * 4.5
       - (CASE WHEN b.times_seen >= 3 AND NOT b.liked_flag AND NOT b.saved_flag
               THEN LEAST(b.times_seen, 10) * 1.5 ELSE 0 END)
-      + (random() - 0.5) * 1.5
+      + ((mod(abs(hashtext(b.id::text || COALESCE(b.viewer_uid::text, 'anon') || COALESCE(p_seed, extract(epoch FROM now())::text))), 10000) / 10000.0) - 0.5) * 1.5
     ) AS score
   FROM base b
   ORDER BY score DESC, b.created_at DESC
   LIMIT p_limit OFFSET p_offset;
 $function$;
 
-GRANT EXECUTE ON FUNCTION public.get_ranked_feed_v3 TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_ranked_feed_v3(integer, integer, text, text, text, text) TO authenticated;
 
 -- ---------------------------------------------------------------------
 -- 2. REELS — VELOCITY + CREATOR QUALITY PRIOR + TAG AFFINITY
@@ -202,7 +208,8 @@ GRANT EXECUTE ON FUNCTION public.get_ranked_feed_v3 TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.get_ranked_reels_v3(
   p_limit integer DEFAULT 20,
-  p_offset integer DEFAULT 0
+  p_offset integer DEFAULT 0,
+  p_seed text DEFAULT NULL
 )
 RETURNS TABLE(
   id uuid, user_id uuid, video_url text, caption text,
@@ -295,7 +302,7 @@ AS $function$
               THEN 8 * (1 - extract(epoch FROM (now() - m.created_at))/3600.0/6.0) ELSE 0 END)
       - (CASE WHEN mw.my_best_ratio IS NOT NULL AND mw.my_best_ratio < 0.2 THEN 20 ELSE 0 END)
       - (CASE WHEN mw.my_views >= 2 THEN mw.my_views * 3 ELSE 0 END)
-      + (random() - 0.5) * 3.0
+      + ((mod(abs(hashtext(m.id::text || COALESCE(me.uid::text, 'anon') || COALESCE(p_seed, extract(epoch FROM now())::text))), 10000) / 10000.0) - 0.5) * 3.0
     ) AS score
   FROM public.memes m
   JOIN public.profiles p ON p.id = m.user_id
@@ -316,13 +323,16 @@ AS $function$
   ) m_tags ON true
   WHERE m.status = 'approved' AND m.post_type = 'video'
     AND NOT COALESCE(mm.is_hidden, false)
+    AND (m.created_at > now() - interval '45 days'
+         OR COALESCE(mm.is_pinned, false)
+         OR COALESCE(mm.boost_level, 0) > 0)
     AND m.user_id NOT IN (SELECT target_user_id FROM excluded_authors WHERE target_user_id IS NOT NULL)
     AND m.id NOT IN (SELECT meme_id FROM excluded_memes WHERE meme_id IS NOT NULL)
   ORDER BY score DESC, m.created_at DESC
   LIMIT p_limit OFFSET p_offset;
 $function$;
 
-GRANT EXECUTE ON FUNCTION public.get_ranked_reels_v3 TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_ranked_reels_v3(integer, integer, text) TO authenticated;
 
 -- ---------------------------------------------------------------------
 -- 3. STORIES — CLOSE-FRIENDS TIER + MUTE/SNOOZE EXCLUSION
