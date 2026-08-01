@@ -26,41 +26,79 @@ const navItems = [
 
 /**
  * دايرة صورة البروفايل الصغيرة اللي بتتحط بدل أيقونة "الملف" العادية -
- * نفس المنطق بالظبط اللي بيستخدمه البار العلوي (Header.tsx) لصورة
- * البروفايل: لو فيه مستخدم حقيقي وعنده صورة، تتعرض الصورة، وإلا أيقونة
- * شخص افتراضية - من غير أي حالة تحميل/شبح مخصصة كانت بتعلق أحياناً.
+ * بالظبط زي ما واتساب بيعرض صورة حسابك الحقيقية في تاب "الملف الشخصي"
+ * مش أيقونة شخص جينيريك. لو مفيش صورة بروفايل، بترجع لأيقونة User عادية.
+ * ولحد ما الصورة تحمّل فعلياً، بتبان شبح (سكيليتون) بدل الفلاش المفاجئ.
  */
 function ProfileAvatar({
   user,
-  isRealUser,
   active,
   size,
   onDark,
+  isUserLoading,
 }: {
   user: Profile;
-  isRealUser: boolean;
   active: boolean;
   size: number;
   onDark?: boolean;
+  isUserLoading?: boolean;
 }) {
-  const showImage = isRealUser && !!user.avatar_url;
+  const [loaded, setLoaded] = React.useState(false);
+  const [errored, setErrored] = React.useState(false);
+
+  // لما رابط الصورة نفسه يتغيّر (يوزر تاني، أو الصورة لسه بتوصل من السيرفر)
+  // لازم نصفّر حالة "اتحمّلت" القديمة، وإلا هيفضل مستني onLoad اللي مش هيجيلها
+  // تاني فتفضل الصورة القديمة معلقة أو تبان فاضية للحظة - وده اللي كان بيسبب
+  // "الفلاشة"/تغيّر الشكل المفاجئ لما تتنقل بسرعة.
+  React.useEffect(() => {
+    setLoaded(false);
+    setErrored(false);
+  }, [user.avatar_url]);
+
+  // لسه مش عارفين هوية المستخدم فعلياً (أول تحميل للتطبيق) - نوري شبح بس،
+  // مش أيقونة "زائر" لحد ما نتأكد فعلاً إنه زائر أو عنده صورة
+  if (isUserLoading) {
+    return (
+      <span
+        className="relative inline-flex items-center justify-center rounded-full overflow-hidden shrink-0"
+        style={{ width: size, height: size }}
+      >
+        <span
+          className={`absolute inset-0 rounded-full animate-pulse ${
+            onDark ? "bg-white/20" : "bg-gray-300 dark:bg-gray-600"
+          }`}
+        />
+      </span>
+    );
+  }
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full overflow-hidden shrink-0 ${
+      className={`relative inline-flex items-center justify-center rounded-full overflow-hidden shrink-0 ${
         onDark ? "bg-white/15" : "bg-gray-200 dark:bg-gray-700"
       } ${active ? "ring-2 ring-blue-500 dark:ring-blue-400" : ""}`}
       style={{ width: size, height: size }}
     >
-      {showImage ? (
-        <img
-          loading="lazy"
-          decoding="async"
-          src={user.avatar_url as string}
-          alt={user.username || "الملف الشخصي"}
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover"
-        />
+      {user.avatar_url && !errored ? (
+        <>
+          {!loaded && (
+            <span
+              className={`absolute inset-0 rounded-full animate-pulse ${
+                onDark ? "bg-white/20" : "bg-gray-300 dark:bg-gray-600"
+              }`}
+            />
+          )}
+          <img
+            key={user.avatar_url}
+            src={user.avatar_url}
+            alt={user.username || "الملف الشخصي"}
+            onLoad={() => setLoaded(true)}
+            onError={() => setErrored(true)}
+            className={`w-full h-full object-cover transition-opacity duration-200 ${
+              loaded ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        </>
       ) : (
         <User className={`w-full h-full p-[3px] ${onDark ? "text-white/60" : "text-gray-400"}`} />
       )}
@@ -85,6 +123,7 @@ export default function BottomNavigation({
   currentUser,
   isRealUser,
   onShowAuthModal,
+  isUserLoading,
 }: BottomNavigationProps) {
   const handleNavClick = (tabId: string) => {
     if (tabId === "create-post" && !isRealUser) {
@@ -103,52 +142,52 @@ export default function BottomNavigation({
       style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
       <div
-        className={`flex items-center justify-between gap-1 mx-auto w-full max-w-[23rem] px-1.5 py-1 rounded-full border shadow-lg transition-colors duration-200 ${
+        className={`flex items-center justify-between gap-1 mx-auto w-full max-w-[23rem] px-2.5 py-2 rounded-full backdrop-blur-xl border shadow-lg transition-colors duration-200 ${
           isReelsActive
-            ? "bg-black/80 border-white/15 shadow-black/40"
-            : "bg-white dark:bg-gray-900 border-gray-200/70 dark:border-white/10 shadow-black/10 dark:shadow-black/50"
+            ? "bg-black/45 border-white/15 shadow-black/40"
+            : "bg-white/90 dark:bg-gray-900/90 border-gray-200/70 dark:border-white/10 shadow-black/10 dark:shadow-black/50"
         }`}
       >
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
 
-            const inactiveText = isReelsActive
-              ? "text-white/65"
-              : "text-gray-500 dark:text-gray-400";
-            const activeText = isReelsActive
-              ? "bg-blue-400/25 text-blue-300"
-              : "bg-blue-500/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-400";
+          const inactiveText = isReelsActive
+            ? "text-white/65"
+            : "text-gray-500 dark:text-gray-400";
+          const activeText = isReelsActive
+            ? "bg-blue-400/25 text-blue-300"
+            : "bg-blue-500/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-400";
 
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNavClick(item.id)}
-                className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 ${
-                  isActive ? `py-1.5 rounded-full ${activeText}` : inactiveText
-                }`}
-                title={item.label}
-              >
-                {item.id === "profile" ? (
-                  <ProfileAvatar
-                    user={currentUser}
-                    isRealUser={isRealUser}
-                    active={isActive}
-                    size={22}
-                    onDark={isReelsActive}
-                  />
-                ) : (
-                  <Icon
-                    className={`w-[22px] h-[22px] transition-transform duration-200 ${
-                      isActive ? "scale-110" : ""
-                    }`}
-                    strokeWidth={isActive ? 2.4 : 2}
-                  />
-                )}
-                <span className="text-[10px] font-bold leading-none">{item.label}</span>
-              </button>
-            );
-          })}
+          return (
+            <button
+              key={item.id}
+              onClick={() => handleNavClick(item.id)}
+              className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 ${
+                isActive ? `py-1.5 rounded-full ${activeText}` : inactiveText
+              }`}
+              title={item.label}
+            >
+              {item.id === "profile" ? (
+                <ProfileAvatar
+                  user={currentUser}
+                  active={isActive}
+                  size={22}
+                  onDark={isReelsActive}
+                  isUserLoading={isUserLoading}
+                />
+              ) : (
+                <Icon
+                  className={`w-[22px] h-[22px] transition-transform duration-200 ${
+                    isActive ? "scale-110" : ""
+                  }`}
+                  strokeWidth={isActive ? 2.4 : 2}
+                />
+              )}
+              <span className="text-[10px] font-bold leading-none">{item.label}</span>
+            </button>
+          );
+        })}
       </div>
     </nav>
   );
