@@ -11,6 +11,7 @@ interface BottomNavigationProps {
   currentUser: Profile; // المستخدم الحالي
   isRealUser: boolean; // هل المستخدم مسجل دخول
   onShowAuthModal: () => void; // وظيفة إظهار مودال الدخول
+  isUserLoading?: boolean; // لسه بنستنى هوية المستخدم الحقيقية من السيرفر (أول تحميل)
 }
 
 // عناصر الشريط السفلي - تبويب "الحفظ" اتنقل جوه قائمة الإعدادات في الهيدر،
@@ -34,13 +35,42 @@ function ProfileAvatar({
   active,
   size,
   onDark,
+  isUserLoading,
 }: {
   user: Profile;
   active: boolean;
   size: number;
   onDark?: boolean;
+  isUserLoading?: boolean;
 }) {
   const [loaded, setLoaded] = React.useState(false);
+  const [errored, setErrored] = React.useState(false);
+
+  // لما رابط الصورة نفسه يتغيّر (يوزر تاني، أو الصورة لسه بتوصل من السيرفر)
+  // لازم نصفّر حالة "اتحمّلت" القديمة، وإلا هيفضل مستني onLoad اللي مش هيجيلها
+  // تاني فتفضل الصورة القديمة معلقة أو تبان فاضية للحظة - وده اللي كان بيسبب
+  // "الفلاشة"/تغيّر الشكل المفاجئ لما تتنقل بسرعة.
+  React.useEffect(() => {
+    setLoaded(false);
+    setErrored(false);
+  }, [user.avatar_url]);
+
+  // لسه مش عارفين هوية المستخدم فعلياً (أول تحميل للتطبيق) - نوري شبح بس،
+  // مش أيقونة "زائر" لحد ما نتأكد فعلاً إنه زائر أو عنده صورة
+  if (isUserLoading) {
+    return (
+      <span
+        className="relative inline-flex items-center justify-center rounded-full overflow-hidden shrink-0"
+        style={{ width: size, height: size }}
+      >
+        <span
+          className={`absolute inset-0 rounded-full animate-pulse ${
+            onDark ? "bg-white/20" : "bg-gray-300 dark:bg-gray-600"
+          }`}
+        />
+      </span>
+    );
+  }
 
   return (
     <span
@@ -49,7 +79,7 @@ function ProfileAvatar({
       } ${active ? "ring-2 ring-blue-500 dark:ring-blue-400" : ""}`}
       style={{ width: size, height: size }}
     >
-      {user.avatar_url ? (
+      {user.avatar_url && !errored ? (
         <>
           {!loaded && (
             <span
@@ -59,9 +89,11 @@ function ProfileAvatar({
             />
           )}
           <img
+            key={user.avatar_url}
             src={user.avatar_url}
             alt={user.username || "الملف الشخصي"}
             onLoad={() => setLoaded(true)}
+            onError={() => setErrored(true)}
             className={`w-full h-full object-cover transition-opacity duration-200 ${
               loaded ? "opacity-100" : "opacity-0"
             }`}
@@ -91,6 +123,7 @@ export default function BottomNavigation({
   currentUser,
   isRealUser,
   onShowAuthModal,
+  isUserLoading,
 }: BottomNavigationProps) {
   const handleNavClick = (tabId: string) => {
     if (tabId === "create-post" && !isRealUser) {
@@ -131,7 +164,7 @@ export default function BottomNavigation({
               key={item.id}
               onClick={() => handleNavClick(item.id)}
               className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 ${
-                isActive ? `py-1.5 rounded-2xl ${activeText}` : inactiveText
+                isActive ? `py-1.5 rounded-full ${activeText}` : inactiveText
               }`}
               title={item.label}
             >
@@ -141,6 +174,7 @@ export default function BottomNavigation({
                   active={isActive}
                   size={22}
                   onDark={isReelsActive}
+                  isUserLoading={isUserLoading}
                 />
               ) : (
                 <Icon
