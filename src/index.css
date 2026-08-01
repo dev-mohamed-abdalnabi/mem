@@ -223,7 +223,7 @@ a {
    يبين كـ"بار" منفصل شوية زي أي تطبيق - ده طبيعي ومش نفس مشكلة الطبقات. */
 header {
   background-color: var(--card) !important;
-  border-bottom-color: var(--border) !important;
+  border-bottom-color: color-mix(in srgb, var(--border) 45%, transparent) !important;
   color: var(--foreground) !important;
   backdrop-filter: none !important;
 }
@@ -243,7 +243,7 @@ nav {
    فوق (نفس specificity + !important، فالأكثر تحديداً هو اللي بيكسب). */
 nav[data-app-bottom-nav] {
   background-color: var(--muted) !important;
-  border-top-color: var(--border) !important;
+  border-top-color: color-mix(in srgb, var(--border) 45%, transparent) !important;
 }
 
 nav button {
@@ -276,11 +276,12 @@ nav button {
 
 /* البوست (article) كان بياخد لون "الكارت" (var(--card)) بردو - نفس مشكلة
    الهيدر بالظبط: طبقة منفصلة عن لون الصفحة. دلوقتي بياخد نفس var(--muted)
-   بتاع الصفحة، وبيتفصل عن اللي جنبه بخط رفيع بس (border-b) زي ثريدز. */
+   بتاع الصفحة، وبيتفصل عن اللي جنبه بخط باهت جداً (مش خط واضح بيصرخ) زي
+   ثريدز بالظبط - يفصل بس من غير ما "يهاجم" العين. */
 article {
   background-color: var(--muted) !important;
   color: var(--foreground) !important;
-  border-color: var(--border) !important;
+  border-color: color-mix(in srgb, var(--border) 40%, transparent) !important;
 }
 
 /* ===== MODALS & OVERLAYS ===== */
