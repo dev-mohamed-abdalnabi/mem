@@ -142,12 +142,58 @@ export default function Header({
     };
   }, []);
 
-  // تنسيقات مشتركة للأزرار
-  const unifiedBtnClass = "h-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors cursor-pointer text-gray-700 dark:text-gray-200 font-bold";
+  // تنسيقات مشتركة للأزرار - ضفت حد خفيف (border) عشان الشكل الدائري
+  // يبقى واضح الحواف حتى لو خلفية الهيدر قريبة في اللون من خلفية الزرار
+  const unifiedBtnClass = "h-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-colors cursor-pointer text-gray-700 dark:text-gray-200 font-bold";
   const unifiedIconClass = `${unifiedBtnClass} w-10`;
 
+  // إخفاء الهيدر بالتمرير: بينزلق لفوق ويختفي وانت نازل بالسكرول، ويرجع
+  // ينزلق لمكانه فوراً أول ما تبدأ تطلع لفوق تاني - بدل ما يختفي فجأة أو
+  // يفضل واقف مكانه بشكل مزعج. بيفضل ظاهر طول الوقت وانت لسه قريب من فوق
+  // الصفحة، وبرضه لو أي قايمة منسدلة (إشعارات/بروفايل/بحث) فاتحة.
+  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
+  const lastScrollYRef = useRef(0);
+
+  useEffect(() => {
+    const NEAR_TOP = 60; // تحت المسافة دي، الهيدر بيفضل ظاهر دايماً بغض النظر عن اتجاه السكرول
+    let ticking = false;
+
+    const updateHiddenState = () => {
+      const y = window.scrollY;
+      const goingDown = y > lastScrollYRef.current;
+      if (y <= NEAR_TOP) {
+        setIsHeaderHidden(false);
+      } else if (goingDown) {
+        setIsHeaderHidden(true);
+      } else {
+        setIsHeaderHidden(false);
+      }
+      lastScrollYRef.current = y;
+      ticking = false;
+    };
+
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateHiddenState);
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const isHeaderMenuOpen = showUserDropdown || showNotificationsDropdown || showSearchResults || showMobileSearch || showLogoutConfirm;
+  const shouldHideHeader = isHeaderHidden && !isHeaderMenuOpen;
+
   return (
-    <header className="sticky top-0 z-50 bg-gray-50 dark:bg-black">
+    <header
+      className="sticky top-0 z-50 bg-gray-50 dark:bg-black"
+      style={{
+        transform: shouldHideHeader ? "translateY(-100%)" : "translateY(0)",
+        transition: "transform 280ms cubic-bezier(0.22, 1, 0.36, 1)",
+      }}
+    >
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
         
         {/* اللوجو والنقاط */}
@@ -171,7 +217,7 @@ export default function Header({
           {/* عرض نقاط المستخدم */}
           <div 
             onClick={() => onNavigate("leaderboard")}
-            className="h-10 px-4 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center gap-1.5 text-sm font-bold cursor-pointer select-none transition-colors text-gray-800 dark:text-gray-200"
+            className="h-10 px-4 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 flex items-center gap-1.5 text-sm font-bold cursor-pointer select-none transition-colors text-gray-800 dark:text-gray-200"
             title="لوحة الشرف"
           >
             <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
@@ -190,7 +236,7 @@ export default function Header({
             value={searchQuery}
             onChange={handleSearchChange}
             onFocus={() => setShowSearchResults(searchQuery.trim().length > 0)}
-            className="w-full h-10 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-gray-900 border-2 border-transparent focus:border-gray-300 dark:focus:border-gray-600 rounded-full py-2 pr-10 pl-4 text-sm text-gray-900 dark:text-white outline-none transition-all placeholder:text-gray-500 dark:placeholder:text-gray-400"
+            className="w-full h-10 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 focus:border-gray-300 dark:focus:border-gray-600 rounded-full py-2 pr-10 pl-4 text-sm text-gray-900 dark:text-white outline-none transition-all placeholder:text-gray-500 dark:placeholder:text-gray-400"
           />
 
           {/* نتايج بحث اليوزرز - بتظهر فوق الفيد اللي بيتفلتر تلقائي تحت */}
@@ -227,7 +273,7 @@ export default function Header({
               لأن الإنشاء متاح أصلاً من شريط التنقل السفلي على الموبايل */}
           <button
             onClick={() => setShowMobileSearch(true)}
-            className="md:hidden h-10 px-4 rounded-full flex items-center gap-2 font-bold text-sm transition-colors cursor-pointer bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
+            className="md:hidden h-10 px-4 rounded-full flex items-center gap-2 font-bold text-sm transition-colors cursor-pointer bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
             title="بحث"
           >
             <Search className="w-5 h-5" />
@@ -239,7 +285,7 @@ export default function Header({
             className={`hidden md:flex h-10 px-4 rounded-full items-center gap-2 font-bold text-sm transition-colors cursor-pointer ${
               activeTab === "create-post" 
                 ? "bg-blue-600 text-white hover:bg-blue-700" 
-                : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
+                : "bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
             }`}
             title="انشر ميم جديد"
           >
