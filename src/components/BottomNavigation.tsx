@@ -130,8 +130,8 @@ export default function BottomNavigation({
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id)}
-              className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 rounded-2xl transition-all duration-200 ${
-                isActive ? activeText : inactiveText
+              className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 ${
+                isActive ? `py-1.5 rounded-2xl ${activeText}` : inactiveText
               }`}
               title={item.label}
             >
