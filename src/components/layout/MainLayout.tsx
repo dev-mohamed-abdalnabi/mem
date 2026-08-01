@@ -157,7 +157,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           />
 
           {/* مساحة عرض الصفحات (Content Area) */}
-          <div className="flex-1 max-w-full lg:max-w-2xl mx-auto w-full">
+          <div className="flex-1 max-w-full lg:max-w-3xl mx-auto w-full">
             {children}
           </div>
         </main>
