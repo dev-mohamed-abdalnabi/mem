@@ -26,79 +26,41 @@ const navItems = [
 
 /**
  * دايرة صورة البروفايل الصغيرة اللي بتتحط بدل أيقونة "الملف" العادية -
- * بالظبط زي ما واتساب بيعرض صورة حسابك الحقيقية في تاب "الملف الشخصي"
- * مش أيقونة شخص جينيريك. لو مفيش صورة بروفايل، بترجع لأيقونة User عادية.
- * ولحد ما الصورة تحمّل فعلياً، بتبان شبح (سكيليتون) بدل الفلاش المفاجئ.
+ * نفس المنطق بالظبط اللي بيستخدمه البار العلوي (Header.tsx) لصورة
+ * البروفايل: لو فيه مستخدم حقيقي وعنده صورة، تتعرض الصورة، وإلا أيقونة
+ * شخص افتراضية - من غير أي حالة تحميل/شبح مخصصة كانت بتعلق أحياناً.
  */
 function ProfileAvatar({
   user,
+  isRealUser,
   active,
   size,
   onDark,
-  isUserLoading,
 }: {
   user: Profile;
+  isRealUser: boolean;
   active: boolean;
   size: number;
   onDark?: boolean;
-  isUserLoading?: boolean;
 }) {
-  const [loaded, setLoaded] = React.useState(false);
-  const [errored, setErrored] = React.useState(false);
-
-  // لما رابط الصورة نفسه يتغيّر (يوزر تاني، أو الصورة لسه بتوصل من السيرفر)
-  // لازم نصفّر حالة "اتحمّلت" القديمة، وإلا هيفضل مستني onLoad اللي مش هيجيلها
-  // تاني فتفضل الصورة القديمة معلقة أو تبان فاضية للحظة - وده اللي كان بيسبب
-  // "الفلاشة"/تغيّر الشكل المفاجئ لما تتنقل بسرعة.
-  React.useEffect(() => {
-    setLoaded(false);
-    setErrored(false);
-  }, [user.avatar_url]);
-
-  // لسه مش عارفين هوية المستخدم فعلياً (أول تحميل للتطبيق) - نوري شبح بس،
-  // مش أيقونة "زائر" لحد ما نتأكد فعلاً إنه زائر أو عنده صورة
-  if (isUserLoading) {
-    return (
-      <span
-        className="relative inline-flex items-center justify-center rounded-full overflow-hidden shrink-0"
-        style={{ width: size, height: size }}
-      >
-        <span
-          className={`absolute inset-0 rounded-full animate-pulse ${
-            onDark ? "bg-white/20" : "bg-gray-300 dark:bg-gray-600"
-          }`}
-        />
-      </span>
-    );
-  }
+  const showImage = isRealUser && !!user.avatar_url;
 
   return (
     <span
-      className={`relative inline-flex items-center justify-center rounded-full overflow-hidden shrink-0 ${
+      className={`inline-flex items-center justify-center rounded-full overflow-hidden shrink-0 ${
         onDark ? "bg-white/15" : "bg-gray-200 dark:bg-gray-700"
       } ${active ? "ring-2 ring-blue-500 dark:ring-blue-400" : ""}`}
       style={{ width: size, height: size }}
     >
-      {user.avatar_url && !errored ? (
-        <>
-          {!loaded && (
-            <span
-              className={`absolute inset-0 rounded-full animate-pulse ${
-                onDark ? "bg-white/20" : "bg-gray-300 dark:bg-gray-600"
-              }`}
-            />
-          )}
-          <img
-            key={user.avatar_url}
-            src={user.avatar_url}
-            alt={user.username || "الملف الشخصي"}
-            onLoad={() => setLoaded(true)}
-            onError={() => setErrored(true)}
-            className={`w-full h-full object-cover transition-opacity duration-200 ${
-              loaded ? "opacity-100" : "opacity-0"
-            }`}
-          />
-        </>
+      {showImage ? (
+        <img
+          loading="lazy"
+          decoding="async"
+          src={user.avatar_url as string}
+          alt={user.username || "الملف الشخصي"}
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover"
+        />
       ) : (
         <User className={`w-full h-full p-[3px] ${onDark ? "text-white/60" : "text-gray-400"}`} />
       )}
@@ -123,7 +85,6 @@ export default function BottomNavigation({
   currentUser,
   isRealUser,
   onShowAuthModal,
-  isUserLoading,
 }: BottomNavigationProps) {
   const handleNavClick = (tabId: string) => {
     if (tabId === "create-post" && !isRealUser) {
@@ -171,10 +132,10 @@ export default function BottomNavigation({
               {item.id === "profile" ? (
                 <ProfileAvatar
                   user={currentUser}
+                  isRealUser={isRealUser}
                   active={isActive}
                   size={22}
                   onDark={isReelsActive}
-                  isUserLoading={isUserLoading}
                 />
               ) : (
                 <Icon
