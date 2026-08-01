@@ -130,7 +130,7 @@ export default function BottomNavigation({
       className="fixed inset-x-3 z-40 lg:hidden"
       style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
-      <div className="flex items-center justify-around gap-1 mx-auto max-w-md px-1.5 py-1.5 rounded-[1.75rem] bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border border-gray-200/70 dark:border-white/10 shadow-lg shadow-black/10 dark:shadow-black/50">
+      <div className="flex items-center justify-around gap-1 mx-auto max-w-md px-2 py-3 rounded-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border border-gray-200/70 dark:border-white/10 shadow-lg shadow-black/10 dark:shadow-black/50">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -142,7 +142,7 @@ export default function BottomNavigation({
               className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 rounded-2xl transition-all duration-200 ${
                 isActive
                   ? "bg-blue-500/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-400"
-                  : "text-gray-500 dark:text-gray-400 active:bg-gray-100 dark:active:bg-white/5"
+                  : "text-gray-500 dark:text-gray-400"
               }`}
               title={item.label}
             >
