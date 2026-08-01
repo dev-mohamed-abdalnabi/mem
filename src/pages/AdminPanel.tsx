@@ -161,6 +161,7 @@ export default function AdminPanel({ currentUser, setActiveTab }: AdminPanelProp
       const { data, error: err } = await supabase
         .from("memes")
         .select("*, profiles:user_id(*)")
+        .neq("status", "deleted")
         .order("created_at", { ascending: false })
         .limit(50);
 

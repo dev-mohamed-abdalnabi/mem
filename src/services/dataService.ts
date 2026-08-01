@@ -777,16 +777,33 @@ export const dataService = {
   },
 
   deleteMeme: async (memeId: string, _unusedUserId: string): Promise<void> => {
-    const userId = await getAuthenticatedUserId();
+    // بنتأكد إن فيه مستخدم مسجل دخول (بترمي error لو لأ)، من غير ما نستخدم
+    // الـ id بتاعه في شرط الـ WHERE تحت.
+    await getAuthenticatedUserId();
     // Soft delete: بنغيّر الحالة لـ 'deleted' بدل ما نمسح الصف فعلياً
     // (مسح حقيقي كان بيمسح معاه الكومنتات/اللايكات/البلاغات المرتبطة بسبب ON DELETE CASCADE)
-    const { error } = await supabase
+    //
+    // السبب الحقيقي للمشكلة (اتأكد منه بالاختبار المباشر على الداتابيز):
+    // كان فيه هنا شرط .eq("user_id", userId) بيقيّد التحديث على بوستات
+    // المستخدم الحالي بس. ده تمام لمستخدم عادي بيمسح بوسته، لكن الأدمن
+    // كمان بيقدر يمسح بوست حد تاني من الفيد العادي (مش من لوحة التحكم)،
+    // وفي الحالة دي user_id بتاع البوست هو صاحب البوست الأصلي مش الأدمن -
+    // فالشرط ده كان يمنع أي صف من الـ match، والـ UPDATE يتنفذ على 0 صف من
+    // غير أي error، فالواجهة تشيل البوست محلياً وكأنه اتمسح وهو فعلياً لسه
+    // "approved" في الداتابيز - فيرجع يظهر تاني أول ريفريش.
+    // صلاحية الحذف الحقيقية متأكد منها أصلاً على مستوى RLS (owner أو
+    // is_staff())، فمحتاجينش نكررها هنا تاني.
+    const { data, error } = await supabase
       .from("memes")
       .update({ status: "deleted" })
       .eq("id", ensureUUID(memeId))
-      .eq("user_id", userId);
+      .select("id");
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error("تعذّر حذف المنشور - إما إنه مش بتاعك أو مفيش صلاحية كافية.");
+    }
   },
+
 
   /**
    * بترجع التعليقات مرتبة في هيكل شجري: التعليقات الأساسية بس في المستوى

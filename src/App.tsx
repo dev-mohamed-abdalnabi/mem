@@ -616,10 +616,11 @@ export default function App() {
     try {
       await dataService.deleteMeme(memeId, currentUser.id);
       setMemes(prev => prev.filter(m => m.id !== memeId));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting meme:", error);
+      await alertDialog(error?.message || "حصل خطأ أثناء حذف المنشور، جرب تاني.", "تعذّر الحذف");
     }
-  }, [currentUser.id]);
+  }, [currentUser.id, alertDialog]);
 
   const isRealUser = currentUser.id !== "guest-user-temp";
 
