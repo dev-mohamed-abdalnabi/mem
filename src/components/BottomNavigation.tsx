@@ -102,23 +102,13 @@ export default function BottomNavigation({
       className="fixed inset-x-3 z-40 lg:hidden"
       style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
-      {/* لايير خارجية بس لتحديد الشكل (دائري بالكامل) + الظل + القص - بعض
-          المتصفحات/الـ WebView مش بتقص تأثير الـ backdrop-blur صح لو
-          overflow-hidden على نفس العنصر اللي فيه الـ blur بالظبط، فلازم
-          نفصل: طبقة برانية للقص والظل، وطبقة جوانية للبلور والمحتوى -
-          وده اللي بيمنع ظهور أي حتة زايدة/مربعة عند حواف البار الدائرية */}
       <div
-        className={`mx-auto w-full max-w-[23rem] rounded-full overflow-hidden shadow-lg transition-colors duration-200 ${
-          isReelsActive ? "shadow-black/40" : "shadow-black/10 dark:shadow-black/50"
+        className={`flex items-center justify-between gap-1 mx-auto w-full max-w-[23rem] px-1.5 py-1 rounded-full border shadow-lg transition-colors duration-200 ${
+          isReelsActive
+            ? "bg-black/80 border-white/15 shadow-black/40"
+            : "bg-white dark:bg-gray-900 border-gray-200/70 dark:border-white/10 shadow-black/10 dark:shadow-black/50"
         }`}
       >
-        <div
-          className={`flex items-center justify-between gap-1 px-1.5 py-1 rounded-full backdrop-blur-xl border transition-colors duration-200 ${
-            isReelsActive
-              ? "bg-black/45 border-white/15"
-              : "bg-white/90 dark:bg-gray-900/90 border-gray-200/70 dark:border-white/10"
-          }`}
-        >
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -159,7 +149,6 @@ export default function BottomNavigation({
               </button>
             );
           })}
-        </div>
       </div>
     </nav>
   );
