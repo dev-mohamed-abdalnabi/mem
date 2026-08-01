@@ -217,8 +217,16 @@ a {
 }
 
 /* ===== HEADER ===== */
+/* الهيدر كان بياخد لون "الكارت" (var(--card))، وده لون مختلف عن خلفية
+   الصفحة الفعلية (var(--muted) - المصدر: MainLayout.tsx بيستخدم
+   bg-gray-50 dark:bg-black، وقاعدة .bg-gray-50 تحت بتحول أي حاجة زي كده
+   لـ var(--muted) بشكل ثابت). الفرق ده كان بيبين الهيدر كـ"طبقة" منفصلة
+   فوق الصفحة (خصوصاً واضح في الوضع الداكن). دلوقتي الهيدر بياخد نفس لون
+   الصفحة بالظبط - طبقة واحدة متصلة زي ثريدز، والفاصل الوحيد هو خط رفيع
+   تحته (border-bottom-color).
+*/
 header {
-  background-color: var(--card) !important;
+  background-color: var(--muted) !important;
   border-bottom-color: var(--border) !important;
   color: var(--foreground) !important;
   backdrop-filter: none !important;
@@ -230,6 +238,16 @@ nav {
   border-top-color: var(--border) !important;
   backdrop-filter: none !important;
   color: var(--foreground) !important;
+}
+
+/* شريط التنقل السفلي بالتحديد (البار العلوي في RightSidebar.tsx مقصود
+   إنه يفضل "كارت" مرفوع شوية زي ودجت Twitter، فمش بنلمسه) - عايزينه
+   بنفس لون الصفحة (var(--muted)) زي الهيدر بالظبط، مش لون الكارت.
+   محتاجين data-attribute مخصص عشان القاعدة دي تكسب على قاعدة "nav" العامة
+   فوق (نفس specificity + !important، فالأكثر تحديداً هو اللي بيكسب). */
+nav[data-app-bottom-nav] {
+  background-color: var(--muted) !important;
+  border-top-color: var(--border) !important;
 }
 
 nav button {
@@ -260,8 +278,11 @@ nav button {
   }
 }
 
+/* البوست (article) كان بياخد لون "الكارت" (var(--card)) بردو - نفس مشكلة
+   الهيدر بالظبط: طبقة منفصلة عن لون الصفحة. دلوقتي بياخد نفس var(--muted)
+   بتاع الصفحة، وبيتفصل عن اللي جنبه بخط رفيع بس (border-b) زي ثريدز. */
 article {
-  background-color: var(--card) !important;
+  background-color: var(--muted) !important;
   color: var(--foreground) !important;
   border-color: var(--border) !important;
 }

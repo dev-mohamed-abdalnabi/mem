@@ -270,7 +270,7 @@ export default function MemeCard({
       snooze_author: `هنقلل ظهور بوستات ${creator.username} لمدة أسبوعين`,
     };
     return (
-      <article className="bg-white border-b border-gray-200 text-right flex items-center justify-between px-4 py-5 text-sm text-gray-500">
+      <article className="border-b border-gray-200 text-right flex items-center justify-between px-4 py-5 text-sm text-gray-500">
         <span>{labels[feedbackGiven]}</span>
         <Check className="w-4 h-4 text-green-600 shrink-0" />
       </article>
@@ -278,7 +278,7 @@ export default function MemeCard({
   }
 
   return (
-    <article ref={cardRef} className="bg-white border-b border-gray-100 text-right flex flex-col mb-0 transition-colors">
+    <article ref={cardRef} className="border-b border-gray-100 text-right flex flex-col mb-0 transition-colors">
       <div className="flex gap-3.5 px-4 pt-4 pb-3">
         {/* الجزء الأيمن: الأفاتار وزر المتابعة */}
         <div className="flex flex-col items-center gap-2 shrink-0">

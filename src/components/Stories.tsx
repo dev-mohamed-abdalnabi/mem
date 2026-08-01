@@ -652,8 +652,10 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
 
   return (
     <>
-      {/* شريط الحالات - بدون مربع/بوردر حواليه، زي انستقرام بالظبط */}
-      <div className="flex gap-4 overflow-x-auto py-3 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 no-scrollbar">
+      {/* شريط الحالات - بدون أي لون خلفية خاص بيه، بيورّث لون الصفحة زي ما هو
+          (نفس لون الهيدر والبوستات بعد التعديل) عشان يبقى طبقة واحدة متصلة
+          زي انستقرام/ثريدز، مش شريط "كارت" منفصل. */}
+      <div className="flex gap-4 overflow-x-auto py-3 border-b border-gray-100 dark:border-gray-800 no-scrollbar">
         {/* Add Story */}
         <div className="flex flex-col items-center gap-1 shrink-0">
           <button

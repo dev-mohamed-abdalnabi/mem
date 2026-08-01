@@ -2,7 +2,7 @@ import React from "react";
 
 export const MemeCardSkeleton = () => {
   return (
-    <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 pt-4 pb-3 animate-pulse">
+    <div className="border-b border-gray-100 dark:border-gray-800 px-4 pt-4 pb-3 animate-pulse">
       {/* Header skeleton */}
       <div className="flex gap-3.5 mb-4">
         <div className="w-11 h-11 rounded-full bg-gray-200 dark:bg-gray-800 shrink-0" />
