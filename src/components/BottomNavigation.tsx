@@ -43,8 +43,11 @@ export default function BottomNavigation({
   };
 
   return (
-    <nav data-app-bottom-nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 lg:hidden">
-      <div className="flex items-center justify-around h-16 max-w-full">
+    <nav
+      data-app-bottom-nav
+      className="fixed bottom-3 left-3 right-3 z-40 lg:hidden rounded-[28px] shadow-xl border border-gray-200 dark:border-gray-800"
+    >
+      <div className="flex items-center justify-around gap-1 px-2 py-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -53,14 +56,14 @@ export default function BottomNavigation({
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id)}
-              className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-all duration-200 ${
+              className={`flex flex-col items-center justify-center gap-0.5 px-3.5 py-2 rounded-2xl transition-all duration-200 ${
                 isActive
-                  ? "text-blue-600 dark:text-blue-400"
+                  ? "bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
               }`}
               title={item.label}
             >
-              <Icon className={`w-6 h-6 ${isActive ? "scale-110" : ""}`} />
+              <Icon className={`w-5 h-5 ${isActive ? "scale-110" : ""}`} />
               <span className="text-[10px] font-bold">{item.label}</span>
             </button>
           );
