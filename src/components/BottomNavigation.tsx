@@ -102,53 +102,64 @@ export default function BottomNavigation({
       className="fixed inset-x-3 z-40 lg:hidden"
       style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
+      {/* لايير خارجية بس لتحديد الشكل (دائري بالكامل) + الظل + القص - بعض
+          المتصفحات/الـ WebView مش بتقص تأثير الـ backdrop-blur صح لو
+          overflow-hidden على نفس العنصر اللي فيه الـ blur بالظبط، فلازم
+          نفصل: طبقة برانية للقص والظل، وطبقة جوانية للبلور والمحتوى -
+          وده اللي بيمنع ظهور أي حتة زايدة/مربعة عند حواف البار الدائرية */}
       <div
-        className={`flex items-center justify-between gap-1 mx-auto w-full max-w-[23rem] px-2 py-1.5 rounded-full overflow-hidden backdrop-blur-xl border shadow-lg transition-colors duration-200 ${
-          isReelsActive
-            ? "bg-black/45 border-white/15 shadow-black/40"
-            : "bg-white/90 dark:bg-gray-900/90 border-gray-200/70 dark:border-white/10 shadow-black/10 dark:shadow-black/50"
+        className={`mx-auto w-full max-w-[23rem] rounded-full overflow-hidden shadow-lg transition-colors duration-200 ${
+          isReelsActive ? "shadow-black/40" : "shadow-black/10 dark:shadow-black/50"
         }`}
       >
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
+        <div
+          className={`flex items-center justify-between gap-1 px-1.5 py-1 rounded-full backdrop-blur-xl border transition-colors duration-200 ${
+            isReelsActive
+              ? "bg-black/45 border-white/15"
+              : "bg-white/90 dark:bg-gray-900/90 border-gray-200/70 dark:border-white/10"
+          }`}
+        >
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
 
-          const inactiveText = isReelsActive
-            ? "text-white/65"
-            : "text-gray-500 dark:text-gray-400";
-          const activeText = isReelsActive
-            ? "bg-blue-400/25 text-blue-300"
-            : "bg-blue-500/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-400";
+            const inactiveText = isReelsActive
+              ? "text-white/65"
+              : "text-gray-500 dark:text-gray-400";
+            const activeText = isReelsActive
+              ? "bg-blue-400/25 text-blue-300"
+              : "bg-blue-500/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-400";
 
-          return (
-            <button
-              key={item.id}
-              onClick={() => handleNavClick(item.id)}
-              className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 ${
-                isActive ? `py-1.5 rounded-full ${activeText}` : inactiveText
-              }`}
-              title={item.label}
-            >
-              {item.id === "profile" ? (
-                <ProfileAvatar
-                  user={currentUser}
-                  isRealUser={isRealUser}
-                  active={isActive}
-                  size={22}
-                  onDark={isReelsActive}
-                />
-              ) : (
-                <Icon
-                  className={`w-[22px] h-[22px] transition-transform duration-200 ${
-                    isActive ? "scale-110" : ""
-                  }`}
-                  strokeWidth={isActive ? 2.4 : 2}
-                />
-              )}
-              <span className="text-[10px] font-bold leading-none">{item.label}</span>
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item.id)}
+                className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 ${
+                  isActive ? `py-1.5 rounded-full ${activeText}` : inactiveText
+                }`}
+                title={item.label}
+              >
+                {item.id === "profile" ? (
+                  <ProfileAvatar
+                    user={currentUser}
+                    isRealUser={isRealUser}
+                    active={isActive}
+                    size={22}
+                    onDark={isReelsActive}
+                  />
+                ) : (
+                  <Icon
+                    className={`w-[22px] h-[22px] transition-transform duration-200 ${
+                      isActive ? "scale-110" : ""
+                    }`}
+                    strokeWidth={isActive ? 2.4 : 2}
+                  />
+                )}
+                <span className="text-[10px] font-bold leading-none">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );
