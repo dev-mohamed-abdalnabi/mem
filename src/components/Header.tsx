@@ -408,14 +408,16 @@ export default function Header({
                 </p>
               </div>
               {isRealUser && currentUser.avatar_url ? (
-                <img loading="lazy" decoding="async"
-                  src={currentUser.avatar_url}
-                  alt={currentUser.username}
-                  className="w-8 h-8 rounded-full object-cover bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-500"
-                  referrerPolicy="no-referrer"
-                />
+                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
+                  <img loading="lazy" decoding="async"
+                    src={currentUser.avatar_url}
+                    alt={currentUser.username}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
               ) : (
-                <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 flex items-center justify-center text-xs font-black border border-gray-300 dark:border-gray-500">
+                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-300 flex items-center justify-center text-xs font-black shrink-0">
                   <User className="w-4 h-4" />
                 </div>
               )}
