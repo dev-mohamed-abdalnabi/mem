@@ -37,19 +37,32 @@ function ProfileAvatar({
   active: boolean;
   size: number;
 }) {
+  const [loaded, setLoaded] = React.useState(false);
+
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full overflow-hidden shrink-0 bg-gray-200 dark:bg-gray-700 transition-all duration-200 ${
+      className={`relative inline-flex items-center justify-center rounded-full overflow-hidden shrink-0 bg-gray-200 dark:bg-gray-700 transition-all duration-200 ${
         active ? "ring-2 ring-blue-500 dark:ring-blue-400" : ""
       }`}
       style={{ width: size, height: size }}
     >
       {user.avatar_url ? (
-        <img
-          src={user.avatar_url}
-          alt={user.username || "الملف الشخصي"}
-          className="w-full h-full object-cover"
-        />
+        <>
+          {/* لحد ما الصورة تحمّل فعلياً، بنعرض شبح (سكيليتون) بدل ما تبان
+              أيقونة "شخص" افتراضية للحظة وبعدين تتبدل بالصورة - عشان
+              الانتقال يبقى سلس واحترافي */}
+          {!loaded && (
+            <span className="absolute inset-0 rounded-full bg-gray-300 dark:bg-gray-600 animate-pulse" />
+          )}
+          <img
+            src={user.avatar_url}
+            alt={user.username || "الملف الشخصي"}
+            onLoad={() => setLoaded(true)}
+            className={`w-full h-full object-cover transition-opacity duration-200 ${
+              loaded ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        </>
       ) : (
         <User className="w-full h-full p-[3px] text-gray-400" />
       )}
@@ -128,7 +141,7 @@ export default function BottomNavigation({
       className="fixed inset-x-3 z-40 lg:hidden"
       style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
-      <div className="flex items-center justify-around gap-1 mx-auto max-w-md px-2 py-2 rounded-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border border-gray-200/70 dark:border-white/10 shadow-lg shadow-black/10 dark:shadow-black/50">
+      <div className="flex items-center justify-center gap-0.5 mx-auto w-fit px-1.5 py-2 rounded-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border border-gray-200/70 dark:border-white/10 shadow-lg shadow-black/10 dark:shadow-black/50">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -137,7 +150,7 @@ export default function BottomNavigation({
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id)}
-              className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 transition-all duration-200 ${
+              className={`relative flex flex-col items-center justify-center gap-0.5 px-3 transition-all duration-200 ${
                 isActive
                   ? "py-1.5 rounded-2xl bg-blue-500/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-400"
                   : "py-1.5 text-gray-500 dark:text-gray-400"
