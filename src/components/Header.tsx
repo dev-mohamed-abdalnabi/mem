@@ -146,9 +146,61 @@ export default function Header({
   const unifiedBtnClass = "h-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors cursor-pointer text-gray-700 dark:text-gray-200 font-bold";
   const unifiedIconClass = `${unifiedBtnClass} w-10`;
 
+  // شفافية الهيدر حسب مقدار السكرول - بيبدأ يخف تدريجياً أول ما ينزل
+  // المستخدم شوية (بدل ما يفضل صندوق صلب واضح فوق المحتوى)، وبيرجع
+  // يوضح تاني تدريجياً برضه لو رجع لفوق. مفيش أي "قطع" مفاجئ - كله بيتغير
+  // بسلاسة مع كل بكسل سكرول.
+  const [headerOpacity, setHeaderOpacity] = useState(1);
+
+  useEffect(() => {
+    const FADE_START = 8; // مسافة السكرول اللي الهيدر بيفضل فيها واضح بالكامل
+    const FADE_DISTANCE = 90; // بعدها بيتلاشى تدريجياً على مدى المسافة دي
+
+    let ticking = false;
+    const updateOpacity = () => {
+      const y = window.scrollY;
+      const raw = 1 - (y - FADE_START) / FADE_DISTANCE;
+      setHeaderOpacity(Math.min(1, Math.max(0, raw)));
+      ticking = false;
+    };
+
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateOpacity);
+        ticking = true;
+      }
+    };
+
+    updateOpacity();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const isHeaderMenuOpen = showUserDropdown || showNotificationsDropdown || showSearchResults || showMobileSearch || showLogoutConfirm;
+  const effectiveHeaderOpacity = isHeaderMenuOpen ? 1 : headerOpacity;
+
+  // قناع (mask) بيخلي خلفية الهيدر نفسها (البلور + اللون) تدوب تدريجياً في
+  // المحتوى اللي تحتها من غير أي خط فاصل قاطع - موجود طول الوقت من أول ما
+  // الصفحة بتفتح، مش بس بعد سكرول. آخر 25% من ارتفاع الهيدر بتتلاشى للشفافية.
+  const fadeMask = "linear-gradient(to bottom, black 0%, black 75%, transparent 100%)";
+
   return (
-    <header className="sticky top-0 z-50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 transition-all">
-      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+    <header
+      className="sticky top-0 z-50"
+      style={{
+        opacity: effectiveHeaderOpacity,
+        pointerEvents: effectiveHeaderOpacity < 0.05 ? "none" : "auto",
+        transition: "opacity 120ms linear",
+      }}
+    >
+      {/* طبقة الخلفية بس (اللون + البلور) هي اللي بتدوب تدريجياً في آخر
+          25% من ارتفاعها - من غير ما تأثر على أي قايمة منسدلة أو محتوى
+          فوقها، عشان دي طبقة منفصلة تحت المحتوى مش حاطة عليه. */}
+      <div
+        className="absolute inset-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md"
+        style={{ WebkitMaskImage: fadeMask, maskImage: fadeMask }}
+      />
+      <div className="relative max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
         
         {/* اللوجو والنقاط */}
         <div className="flex items-center gap-3">
