@@ -396,10 +396,10 @@ export default function Header({
                 setShowNotificationsDropdown(false);
                 setShowLogoutConfirm(false);
               }}
-              className={`h-10 px-1 lg:pr-3 flex items-center gap-2 rounded-full border-[3px] transition-colors cursor-pointer ${
+              className={`h-10 pl-1.5 pr-2 lg:pr-3 flex items-center gap-2 rounded-full border transition-colors cursor-pointer ${
                 showUserDropdown 
-                  ? "bg-gray-300 dark:bg-gray-600 border-gray-100 dark:border-gray-100 text-gray-900 dark:text-white" 
-                  : "bg-gray-100 dark:bg-gray-800 border-gray-100 dark:border-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
+                  ? "bg-gray-300 dark:bg-gray-600 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white" 
+                  : "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
               }`}
             >
               <div className="hidden lg:block text-right">
@@ -408,7 +408,7 @@ export default function Header({
                 </p>
               </div>
               {isRealUser && currentUser.avatar_url ? (
-                <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
+                <div className="w-8 h-8 -ml-0.5 rounded-full overflow-hidden shrink-0">
                   <img loading="lazy" decoding="async"
                     src={currentUser.avatar_url}
                     alt={currentUser.username}
@@ -417,7 +417,7 @@ export default function Header({
                   />
                 </div>
               ) : (
-                <div className="w-8 h-8 rounded-full text-gray-500 dark:text-gray-300 flex items-center justify-center text-xs font-black shrink-0">
+                <div className="w-8 h-8 -ml-0.5 rounded-full text-gray-500 dark:text-gray-300 flex items-center justify-center text-xs font-black shrink-0">
                   <User className="w-4 h-4" />
                 </div>
               )}
