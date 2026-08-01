@@ -798,7 +798,6 @@ export default function App() {
       notifications={notifications}
       activeTab={activeTab}
       isRealUser={isRealUser}
-      isUserLoading={loading}
       profiles={profiles}
       showAuthModal={showAuthModal}
       authTab={authTab}

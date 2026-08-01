@@ -49,9 +49,8 @@ interface TapState {
  * ملحوظة مهمة عن الحاوية: بدل ما نحسب الارتفاع بـ "100vh - كذا" (اللي كان بيغلط
  * لأنه ما كانش مطابق للارتفاع الحقيقي للهيدر + الشريط السفلي، فكان بيخلي جزء من
  * أسفل الفيديو "بياكل" ومش ظاهر) دلوقتي بنثبت الحاوية بـ top/bottom مباشرة على
- * ارتفاع الهيدر (4rem) ومسافة الشريط السفلي العائم (4.75rem = ارتفاع البار +
- * المسافة العائمة تحته)، وده بيتأقلم صح مع اختفاء/ظهور شريط عنوان المتصفح في
- * الموبايل بشكل تلقائي بخلاف حسابات الـ vh.
+ * ارتفاع الهيدر (4rem) والشريط السفلي (4rem)، وده بيتأقلم صح مع اختفاء/ظهور شريط
+ * عنوان المتصفح في الموبايل بشكل تلقائي بخلاف حسابات الـ vh.
  *
  * إصلاح باگ "الفيديوهات بتقف تشتغل لما تنزل تحت": كان الكود القديم بيشغل
  * ويوقف كل فيديو لوحده على حسب الـ entry بتاعه من غير ما ياخد بالباله باقي
@@ -511,7 +510,7 @@ export default function ReelsPage({
 
   if (loading) {
     return (
-      <div className="fixed top-16 bottom-[4.75rem] md:static md:h-[75vh] inset-x-0 md:inset-auto flex items-center justify-center">
+      <div className="fixed top-16 bottom-16 md:static md:h-[75vh] inset-x-0 md:inset-auto flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-gray-300 animate-spin" />
       </div>
     );
@@ -519,7 +518,7 @@ export default function ReelsPage({
 
   if (reels.length === 0) {
     return (
-      <div className="fixed top-16 bottom-[4.75rem] md:static md:h-[75vh] inset-x-0 md:inset-auto flex flex-col items-center justify-center gap-2 text-center px-6">
+      <div className="fixed top-16 bottom-16 md:static md:h-[75vh] inset-x-0 md:inset-auto flex flex-col items-center justify-center gap-2 text-center px-6">
         <p className="font-bold text-gray-500 dark:text-gray-400">مفيش فيديوهات ريلز دلوقتي</p>
         <p className="text-xs text-gray-400 dark:text-gray-600">أول فيديو ينشر هنا هيظهر في الريلز تلقائي</p>
       </div>
@@ -529,7 +528,7 @@ export default function ReelsPage({
   return (
     <div
       ref={containerRef}
-      className="fixed top-16 bottom-[4.75rem] md:bottom-4 inset-x-0 md:static md:h-[80vh] md:rounded-2xl overflow-y-scroll snap-y snap-mandatory bg-black no-scrollbar z-30"
+      className="fixed top-16 bottom-16 md:bottom-4 inset-x-0 md:static md:h-[80vh] md:rounded-2xl overflow-y-scroll snap-y snap-mandatory bg-black no-scrollbar z-30"
     >
       {reels.map((meme, index) => {
         // استراتيجية تحميل ذكية زي تيك توك: الفيديو الشغال دلوقتي واللي بعده

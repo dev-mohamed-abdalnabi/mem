@@ -11,7 +11,6 @@ interface BottomNavigationProps {
   currentUser: Profile; // المستخدم الحالي
   isRealUser: boolean; // هل المستخدم مسجل دخول
   onShowAuthModal: () => void; // وظيفة إظهار مودال الدخول
-  isUserLoading?: boolean; // لسه بنستنى هوية المستخدم الحقيقية من السيرفر (أول تحميل)
 }
 
 // عناصر الشريط السفلي - تبويب "الحفظ" اتنقل جوه قائمة الإعدادات في الهيدر،
@@ -28,79 +27,44 @@ const navItems = [
  * دايرة صورة البروفايل الصغيرة اللي بتتحط بدل أيقونة "الملف" العادية -
  * بالظبط زي ما واتساب بيعرض صورة حسابك الحقيقية في تاب "الملف الشخصي"
  * مش أيقونة شخص جينيريك. لو مفيش صورة بروفايل، بترجع لأيقونة User عادية.
- * ولحد ما الصورة تحمّل فعلياً، بتبان شبح (سكيليتون) بدل الفلاش المفاجئ.
  */
 function ProfileAvatar({
   user,
   active,
   size,
-  onDark,
-  isUserLoading,
 }: {
   user: Profile;
   active: boolean;
   size: number;
-  onDark?: boolean;
-  isUserLoading?: boolean;
 }) {
   const [loaded, setLoaded] = React.useState(false);
-  const [errored, setErrored] = React.useState(false);
-
-  // لما رابط الصورة نفسه يتغيّر (يوزر تاني، أو الصورة لسه بتوصل من السيرفر)
-  // لازم نصفّر حالة "اتحمّلت" القديمة، وإلا هيفضل مستني onLoad اللي مش هيجيلها
-  // تاني فتفضل الصورة القديمة معلقة أو تبان فاضية للحظة - وده اللي كان بيسبب
-  // "الفلاشة"/تغيّر الشكل المفاجئ لما تتنقل بسرعة.
-  React.useEffect(() => {
-    setLoaded(false);
-    setErrored(false);
-  }, [user.avatar_url]);
-
-  // لسه مش عارفين هوية المستخدم فعلياً (أول تحميل للتطبيق) - نوري شبح بس،
-  // مش أيقونة "زائر" لحد ما نتأكد فعلاً إنه زائر أو عنده صورة
-  if (isUserLoading) {
-    return (
-      <span
-        className="relative inline-flex items-center justify-center rounded-full overflow-hidden shrink-0"
-        style={{ width: size, height: size }}
-      >
-        <span
-          className={`absolute inset-0 rounded-full animate-pulse ${
-            onDark ? "bg-white/20" : "bg-gray-300 dark:bg-gray-600"
-          }`}
-        />
-      </span>
-    );
-  }
 
   return (
     <span
-      className={`relative inline-flex items-center justify-center rounded-full overflow-hidden shrink-0 ${
-        onDark ? "bg-white/15" : "bg-gray-200 dark:bg-gray-700"
-      } ${active ? "ring-2 ring-blue-500 dark:ring-blue-400" : ""}`}
+      className={`relative inline-flex items-center justify-center rounded-full overflow-hidden shrink-0 bg-gray-200 dark:bg-gray-700 transition-all duration-200 ${
+        active ? "ring-2 ring-blue-500 dark:ring-blue-400" : ""
+      }`}
       style={{ width: size, height: size }}
     >
-      {user.avatar_url && !errored ? (
+      {user.avatar_url ? (
         <>
+          {/* لحد ما الصورة تحمّل فعلياً، بنعرض شبح (سكيليتون) بدل ما تبان
+              أيقونة "شخص" افتراضية للحظة وبعدين تتبدل بالصورة - عشان
+              الانتقال يبقى سلس واحترافي */}
           {!loaded && (
-            <span
-              className={`absolute inset-0 rounded-full animate-pulse ${
-                onDark ? "bg-white/20" : "bg-gray-300 dark:bg-gray-600"
-              }`}
-            />
+            <span className="absolute inset-0 rounded-full bg-gray-300 dark:bg-gray-600 animate-pulse" />
           )}
           <img
-            key={user.avatar_url}
             src={user.avatar_url}
             alt={user.username || "الملف الشخصي"}
             onLoad={() => setLoaded(true)}
-            onError={() => setErrored(true)}
             className={`w-full h-full object-cover transition-opacity duration-200 ${
               loaded ? "opacity-100" : "opacity-0"
             }`}
           />
         </>
       ) : (
-        <User className={`w-full h-full p-[3px] ${onDark ? "text-white/60" : "text-gray-400"}`} />
+        <User className="w-full h-full p-[3px] text-gray-400" />
       )}
     </span>
   );
@@ -110,12 +74,16 @@ function ProfileAvatar({
  * مكون الشريط السفلي (BottomNavigation)
  * يظهر فقط في الشاشات الصغيرة (الموبايل)
  *
- * بار عائم (floating pill) بستايل احترافي شبيه بشريط التابات في
- * واتساب/آيفون - مستدير بالكامل، عايم فوق المحتوى بمسافة من الجوانب
- * والأسفل، والتاب النشط بياخد هايلايت واضح، وباقي الأيقونات من غير أي
- * صندوق حواليها. نفس البار العائم بيفضل شغال حتى في تبويب "الريلز" -
- * بس بستايل زجاجي غامق (glass dark) عشان يفضل واضح فوق أي فيديو مهما
- * كان لونه، بدل ما يترجع لشكل تاني مختلف فجأة لما تدخل الريلز.
+ * الشكل الافتراضي: بار عائم (floating pill) بستايل احترافي شبيه بشريط
+ * التابات في واتساب/آيفون - مستدير بالكامل، خلفية شبه شفافة مع بلور،
+ * عايم فوق المحتوى بمسافة من الجوانب والأسفل، والتاب النشط بياخد هايلايت
+ * واضح (خلفية زرقاء فاتحة + سكيل بسيط للأيقونة).
+ *
+ * استثناء تبويب "الريلز": بما إن صفحة الريلز فيديو full-screen بيحسب
+ * ارتفاعه بالظبط على أساس شريط سفلي عادي ثابت (bar-to-bar) مش عائم، فلما
+ * تكون الريلز هي التاب النشط بنرجع للشكل "العادي" التقليدي (بار كامل
+ * العرض، ملاصق للأسفل، بدون تعويم) عشان الفيديو يفضل مظبوط بدون ما البار
+ * العائم يتقطع فوقه بشكل غريب.
  */
 export default function BottomNavigation({
   activeTab,
@@ -123,7 +91,6 @@ export default function BottomNavigation({
   currentUser,
   isRealUser,
   onShowAuthModal,
-  isUserLoading,
 }: BottomNavigationProps) {
   const handleNavClick = (tabId: string) => {
     if (tabId === "create-post" && !isRealUser) {
@@ -135,47 +102,63 @@ export default function BottomNavigation({
 
   const isReelsActive = activeTab === "reels";
 
+  // === وضع الريلز: نفس البار العادي القديم بالظبط (بار كامل العرض، ملاصق
+  // للأسفل، ارتفاع 4rem ثابت) - عشان حساب ارتفاع فيديو الريلز اللي متبني
+  // على الـ 4rem ده يفضل مظبوط بدون أي قطع أو مسافة زيادة ===
+  if (isReelsActive) {
+    return (
+      <nav data-app-bottom-nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 lg:hidden">
+        <div className="flex items-center justify-around h-16 max-w-full">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item.id)}
+                className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-all duration-200 ${
+                  isActive
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                }`}
+                title={item.label}
+              >
+                <Icon className={`w-6 h-6 ${isActive ? "scale-110" : ""}`} />
+                <span className="text-[10px] font-bold">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  }
+
+  // === الوضع الافتراضي: البار العائم الاحترافي ===
   return (
     <nav
       data-app-bottom-nav
       className="fixed inset-x-3 z-40 lg:hidden"
       style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
-      <div
-        className={`flex items-center justify-between gap-1 mx-auto w-full max-w-[23rem] px-2.5 py-2 rounded-full backdrop-blur-xl border shadow-lg transition-colors duration-200 ${
-          isReelsActive
-            ? "bg-black/45 border-white/15 shadow-black/40"
-            : "bg-white/90 dark:bg-gray-900/90 border-gray-200/70 dark:border-white/10 shadow-black/10 dark:shadow-black/50"
-        }`}
-      >
+      <div className="flex items-center justify-center gap-0.5 mx-auto w-fit px-1.5 py-2 rounded-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border border-gray-200/70 dark:border-white/10 shadow-lg shadow-black/10 dark:shadow-black/50">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
-
-          const inactiveText = isReelsActive
-            ? "text-white/65"
-            : "text-gray-500 dark:text-gray-400";
-          const activeText = isReelsActive
-            ? "bg-blue-400/25 text-blue-300"
-            : "bg-blue-500/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-400";
 
           return (
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id)}
-              className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 ${
-                isActive ? `py-1.5 rounded-full ${activeText}` : inactiveText
+              className={`relative flex flex-col items-center justify-center gap-0.5 px-3 transition-all duration-200 ${
+                isActive
+                  ? "py-1.5 rounded-2xl bg-blue-500/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-400"
+                  : "py-1.5 text-gray-500 dark:text-gray-400"
               }`}
               title={item.label}
             >
               {item.id === "profile" ? (
-                <ProfileAvatar
-                  user={currentUser}
-                  active={isActive}
-                  size={22}
-                  onDark={isReelsActive}
-                  isUserLoading={isUserLoading}
-                />
+                <ProfileAvatar user={currentUser} active={isActive} size={22} />
               ) : (
                 <Icon
                   className={`w-[22px] h-[22px] transition-transform duration-200 ${

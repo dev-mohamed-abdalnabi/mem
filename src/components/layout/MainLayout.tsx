@@ -40,7 +40,6 @@ interface MainLayoutProps {
   unreadMessagesCount?: number; // عدد الرسايل الغير مقروءة
   followingIds?: string[]; // معرفات اللي المستخدم بيتابعهم - لودجت اقتراحات المتابعة
   onFollowToggle?: (followerId: string, followingId: string) => void; // متابعة/إلغاء متابعة - لودجت اقتراحات المتابعة
-  isUserLoading?: boolean; // لسه بنستنى هوية المستخدم الحقيقية من السيرفر (أول تحميل)
 }
 
 /**
@@ -77,8 +76,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   onCloseLightbox,
   unreadMessagesCount = 0,
   followingIds = [],
-  onFollowToggle,
-  isUserLoading,
+  onFollowToggle
 }) => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 flex flex-col antialiased" dir="rtl">
@@ -116,7 +114,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         currentUser={currentUser}
         isRealUser={isRealUser}
         onShowAuthModal={onShowAuthModal}
-        isUserLoading={isUserLoading}
       />
 
       {/* الهيدر العلوي (Header) */}
