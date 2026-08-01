@@ -188,7 +188,7 @@ export default function Header({
 
   return (
     <header
-      className="sticky top-0 z-50 bg-gray-50 dark:bg-black"
+      className="sticky top-0 z-50 bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-gray-800"
       style={{
         transform: shouldHideHeader ? "translateY(-100%)" : "translateY(0)",
         transition: "transform 280ms cubic-bezier(0.22, 1, 0.36, 1)",
@@ -411,11 +411,11 @@ export default function Header({
                 <img loading="lazy" decoding="async"
                   src={currentUser.avatar_url}
                   alt={currentUser.username}
-                  className="w-8 h-8 rounded-full object-cover bg-white dark:bg-gray-700"
+                  className="w-8 h-8 rounded-full object-cover bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-700"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 flex items-center justify-center text-xs font-black">
+                <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 flex items-center justify-center text-xs font-black border border-gray-200 dark:border-gray-700">
                   <User className="w-4 h-4" />
                 </div>
               )}

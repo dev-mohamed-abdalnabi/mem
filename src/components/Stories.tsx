@@ -652,9 +652,9 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
 
   return (
     <>
-      {/* شريط الحالات - من غير خط فاصل تحته خالص، عشان يسيح مع الفيد بدل
-          ما يبين كـ"قسم" منفصل بيصرخ إنه هنا */}
-      <div className="flex gap-4 overflow-x-auto py-3 no-scrollbar">
+      {/* شريط الحالات - خط رفيع جداً جداً تحته يفصله عن المحتوى اللي تحت
+          (فيد/بوستات) عشان القسمين ميحسوش إنهم ملتصقين في بعض */}
+      <div className="flex gap-4 overflow-x-auto py-3 pb-4 mb-1 no-scrollbar border-b border-gray-100 dark:border-gray-800/60">
         {/* Add Story */}
         <div className="flex flex-col items-center gap-1 shrink-0">
           <button
