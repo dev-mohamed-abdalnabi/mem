@@ -411,11 +411,11 @@ export default function Header({
                 <img loading="lazy" decoding="async"
                   src={currentUser.avatar_url}
                   alt={currentUser.username}
-                  className="w-8 h-8 rounded-full object-cover bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-700"
+                  className="w-8 h-8 rounded-full object-cover bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-500"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 flex items-center justify-center text-xs font-black border border-gray-200 dark:border-gray-700">
+                <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 flex items-center justify-center text-xs font-black border border-gray-300 dark:border-gray-500">
                   <User className="w-4 h-4" />
                 </div>
               )}
