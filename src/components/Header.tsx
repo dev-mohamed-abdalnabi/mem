@@ -223,19 +223,20 @@ export default function Header({
         {/* الإجراءات والقوائم المنسدلة */}
         <div ref={dropdownContainerRef} className="flex items-center gap-2">
 
-          {/* زرار البحث (موبايل فقط - شريط البحث الأساسي متخبي في الشاشات الصغيرة) */}
+          {/* زرار البحث (موبايل فقط) - بياخد مكان زرار الإنشاء بالظبط بنفس الشكل،
+              لأن الإنشاء متاح أصلاً من شريط التنقل السفلي على الموبايل */}
           <button
             onClick={() => setShowMobileSearch(true)}
-            className={`${unifiedIconClass} md:hidden`}
+            className="md:hidden h-10 px-4 rounded-full flex items-center gap-2 font-bold text-sm transition-colors cursor-pointer bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
             title="بحث"
           >
             <Search className="w-5 h-5" />
           </button>
 
-          {/* زر نشر ميم جديد */}
+          {/* زر نشر ميم جديد (ديسكتوب فقط - على الموبايل مكانه زرار البحث فوق) */}
           <button
             onClick={() => onNavigate("create-post")}
-            className={`h-10 px-4 rounded-full flex items-center gap-2 font-bold text-sm transition-colors cursor-pointer ${
+            className={`hidden md:flex h-10 px-4 rounded-full items-center gap-2 font-bold text-sm transition-colors cursor-pointer ${
               activeTab === "create-post" 
                 ? "bg-blue-600 text-white hover:bg-blue-700" 
                 : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"

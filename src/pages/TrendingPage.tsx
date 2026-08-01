@@ -65,29 +65,27 @@ export default function TrendingPage({
           <p className="font-bold text-gray-500 dark:text-gray-400">مفيش بوستات ترند دلوقتي، جرب تاني بعد شوية</p>
         </div>
       ) : (
-        trendingMemes.map((m) => (
-          <div 
-            key={m.id} 
-            className="post-wrapper w-full bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-800"
-          >  
-            <MemeCard 
-              meme={m} 
-              currentUser={currentUser} 
-              onLikeToggle={handleLikeToggle} 
-              onSaveToggle={handleSaveToggle} 
-              onFollowToggle={handleFollowToggle} 
-              onTagClick={setSelectedTag} 
-              onDeleteComment={() => {}} 
-              onReportSubmit={handleReportSubmit} 
-              onShareCompleted={handleShareCompleted} 
-              onDeleteMeme={handleDeleteMeme} 
-              onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }} 
-              isFollowingCreator={followingIds.includes(m.user_id)} 
-              onImageClick={setLightboxImage}
-
-            />  
-          </div>  
-        ))
+        <div className="flex flex-col -mx-4 md:mx-0">
+          {trendingMemes.map((m) => (
+            <div key={m.id} className="post-wrapper w-full">
+              <MemeCard 
+                meme={m} 
+                currentUser={currentUser} 
+                onLikeToggle={handleLikeToggle} 
+                onSaveToggle={handleSaveToggle} 
+                onFollowToggle={handleFollowToggle} 
+                onTagClick={setSelectedTag} 
+                onDeleteComment={() => {}} 
+                onReportSubmit={handleReportSubmit} 
+                onShareCompleted={handleShareCompleted} 
+                onDeleteMeme={handleDeleteMeme} 
+                onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }} 
+                isFollowingCreator={followingIds.includes(m.user_id)} 
+                onImageClick={setLightboxImage}
+              />  
+            </div>  
+          ))}
+        </div>
       )}
     </div>
   );

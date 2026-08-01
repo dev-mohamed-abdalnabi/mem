@@ -166,35 +166,36 @@ export default function FeedPage({
         </div>
       ) : (
         <>
-          {/* عرض قائمة الميمز */}
-          {filteredMemes.map((meme) => (
-            <div 
-              key={meme.id} 
-              id={`meme-${meme.id}`}
-              className={`post-wrapper w-full bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border transition-all hover:shadow-md ${
-                highlightedMemeId === meme.id
-                  ? "border-blue-500 ring-2 ring-blue-500/60"
-                  : "border-gray-200 dark:border-gray-800"
-              }`}
-            >
-              <MemeCard
-                meme={meme}
-                currentUser={currentUser}
-                onLikeToggle={handleLikeToggle}
-                onSaveToggle={handleSaveToggle}
-                onFollowToggle={handleFollowToggle}
-                onTagClick={(tag) => setSelectedTag(tag)}
-                onDeleteComment={() => setMemes(prev => prev.map(m => m.id === meme.id ? { ...m, comments_count: Math.max(0, m.comments_count - 1) } : m))}
-                onReportSubmit={handleReportSubmit}
-                onShareCompleted={handleShareCompleted}
-                onDeleteMeme={handleDeleteMeme}
-                onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }}
-                isFollowingCreator={followingIds.includes(meme.user_id)}
-                onImageClick={(url: string, meme: Meme) => setLightboxImage(url, meme)}
-                onOpenComments={onOpenComments}
-              />
-            </div>
-          ))}
+          {/* عرض قائمة الميمز - بدون مربع/بوردر حوالين كل بوست، فيد متصل زي ثريدز
+              (كل بوست بيتفصل بس بخط رفيع من تحت جوه المكون نفسه) */}
+          <div className="flex flex-col -mx-4 md:mx-0">
+            {filteredMemes.map((meme) => (
+              <div
+                key={meme.id}
+                id={`meme-${meme.id}`}
+                className={`post-wrapper w-full transition-colors duration-700 ${
+                  highlightedMemeId === meme.id ? "bg-blue-50 dark:bg-blue-950/30" : ""
+                }`}
+              >
+                <MemeCard
+                  meme={meme}
+                  currentUser={currentUser}
+                  onLikeToggle={handleLikeToggle}
+                  onSaveToggle={handleSaveToggle}
+                  onFollowToggle={handleFollowToggle}
+                  onTagClick={(tag) => setSelectedTag(tag)}
+                  onDeleteComment={() => setMemes(prev => prev.map(m => m.id === meme.id ? { ...m, comments_count: Math.max(0, m.comments_count - 1) } : m))}
+                  onReportSubmit={handleReportSubmit}
+                  onShareCompleted={handleShareCompleted}
+                  onDeleteMeme={handleDeleteMeme}
+                  onUserProfileClick={(uid) => { setSelectedProfileId(uid); setActiveTab("user-profile"); }}
+                  isFollowingCreator={followingIds.includes(meme.user_id)}
+                  onImageClick={(url: string, meme: Meme) => setLightboxImage(url, meme)}
+                  onOpenComments={onOpenComments}
+                />
+              </div>
+            ))}
+          </div>
 
           {/* مؤشر تحميل المزيد في نهاية الصفحة */}
           <div 

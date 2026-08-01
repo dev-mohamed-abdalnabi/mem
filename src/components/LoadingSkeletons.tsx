@@ -2,10 +2,10 @@ import React from "react";
 
 export const MemeCardSkeleton = () => {
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-800 mb-4 p-4 animate-pulse">
+    <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 pt-4 pb-3 animate-pulse">
       {/* Header skeleton */}
-      <div className="flex gap-3 mb-4">
-        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 shrink-0" />
+      <div className="flex gap-3.5 mb-4">
+        <div className="w-11 h-11 rounded-full bg-gray-200 dark:bg-gray-800 shrink-0" />
         <div className="flex-1">
           <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/3 mb-2" />
           <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-1/4" />
@@ -19,7 +19,7 @@ export const MemeCardSkeleton = () => {
       </div>
 
       {/* Image skeleton */}
-      <div className="rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden mb-3 max-h-[500px] w-full bg-gray-100 dark:bg-gray-800 h-64" />
+      <div className="rounded-2xl overflow-hidden mb-3 max-h-[500px] w-full bg-gray-100 dark:bg-gray-800 h-64" />
 
       {/* Actions skeleton */}
       <div className="flex gap-4 py-2">
@@ -34,7 +34,7 @@ export const MemeCardSkeleton = () => {
 
 export const FeedLoadingSkeleton = () => {
   return (
-    <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto pb-20 lg:pb-8 px-4 md:px-0">
+    <div className="flex flex-col w-full max-w-2xl mx-auto pb-20 lg:pb-8 -mx-4 md:mx-0">
       {[1, 2, 3].map((i) => (
         <MemeCardSkeleton key={i} />
       ))}

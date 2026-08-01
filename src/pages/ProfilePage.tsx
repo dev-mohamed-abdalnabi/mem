@@ -534,12 +534,12 @@ export default function ProfilePage({
         
         {/* المنشورات (شكل كروت) */}
         {activeProfileTab === "posts" && (
-          <div className="space-y-4 px-2 sm:px-4">
+          <div className="-mx-2 sm:mx-0">
             {isLoadingMemes ? (
               <div className="text-center py-10"><Clock className="w-6 h-6 text-gray-400 mx-auto animate-spin" /></div>
             ) : localUserMemes.length > 0 ? (
               localUserMemes.map(meme => (
-                <div key={meme.id} className="bg-white dark:bg-[#16181c] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                <div key={meme.id}>
                   <MemeCard
                     meme={meme} currentUser={currentUser} onLikeToggle={handleLikeToggle} onSaveToggle={handleSaveToggle}
                     onFollowToggle={handleFollowToggle} onTagClick={setSelectedTag} onDeleteComment={() => {}}

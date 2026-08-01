@@ -652,7 +652,8 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
 
   return (
     <>
-      <div className="flex gap-3 overflow-x-auto p-4 bg-white border border-gray-100 rounded-3xl shadow-sm m-3 no-scrollbar">
+      {/* شريط الحالات - بدون مربع/بوردر حواليه، زي انستقرام بالظبط */}
+      <div className="flex gap-4 overflow-x-auto py-3 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 no-scrollbar">
         {/* Add Story */}
         <div className="flex flex-col items-center gap-1 shrink-0">
           <button
@@ -661,14 +662,14 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
           >
             <img loading="lazy" decoding="async"
               src={currentUser?.avatar_url || ""}
-              className="w-14 h-14 rounded-full border-2 border-gray-200 object-cover group-hover:border-blue-500 transition-colors"
+              className="w-16 h-16 rounded-full border-2 border-gray-200 object-cover group-hover:border-blue-500 transition-colors"
               alt="قصتك"
             />
             <div className="absolute bottom-0 right-0 bg-blue-500 text-white rounded-full p-0.5 border-2 border-white group-hover:bg-blue-600 transition-colors">
               <Plus className="w-3 h-3" />
             </div>
           </button>
-          <span className="text-[10px] text-gray-500">قصتك</span>
+          <span className="text-[11px] text-gray-500">قصتك</span>
         </div>
 
         {/* User Stories */}
@@ -691,7 +692,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
               >
                 <img loading="lazy" decoding="async"
                   src={uStories[0]?.profiles?.avatar_url || ""}
-                  className="w-14 h-14 rounded-full border-2 border-white object-cover group-hover:scale-105 transition-transform"
+                  className="w-16 h-16 rounded-full border-2 border-white object-cover group-hover:scale-105 transition-transform"
                   alt={uStories[0]?.profiles?.username || "مستخدم"}
                 />
                 {/* شارة عدد الحالات لما يكون عند الشخص أكتر من حالة واحدة */}
@@ -701,7 +702,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
                   </span>
                 )}
               </div>
-              <span className="text-[10px] text-gray-900 truncate w-14 text-center group-hover:text-blue-600 transition-colors">
+              <span className="text-[11px] text-gray-900 dark:text-gray-100 truncate w-16 text-center group-hover:text-blue-600 transition-colors">
                 {uStories[0]?.profiles?.username || "مستخدم"}
               </span>
             </div>

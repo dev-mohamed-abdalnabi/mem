@@ -278,13 +278,13 @@ export default function MemeCard({
   }
 
   return (
-    <article ref={cardRef} className="bg-white border-b border-gray-200 text-right flex flex-col mb-0 transition-all shadow-sm hover:shadow-md">
-      <div className="flex gap-3 p-4">
+    <article ref={cardRef} className="bg-white border-b border-gray-100 text-right flex flex-col mb-0 transition-colors">
+      <div className="flex gap-3.5 px-4 pt-4 pb-3">
         {/* الجزء الأيمن: الأفاتار وزر المتابعة */}
         <div className="flex flex-col items-center gap-2 shrink-0">
           <div className="relative">
             <div className="cursor-pointer hover:opacity-80" onClick={() => onUserProfileClick(creator.id)}>
-              <img loading="lazy" decoding="async" src={creator.avatar_url || `https://api.dicebear.com/10.x/initials/svg?backgroundType=gradientLinear&fontSize=40&seed=${creator.username}`} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-100" />
+              <img loading="lazy" decoding="async" src={creator.avatar_url || `https://api.dicebear.com/10.x/initials/svg?backgroundType=gradientLinear&fontSize=40&seed=${creator.username}`} alt="" className="w-11 h-11 rounded-full object-cover border border-gray-100" />
             </div>
             {!isFollowingCreator && currentUser.id !== creator.id && (
               <button onClick={() => onFollowToggle(currentUser.id, creator.id)} className="absolute -bottom-1 -left-1 bg-black text-white rounded-full w-4 h-4 flex items-center justify-center border-2 border-white"><PlusCircle className="w-3 h-3" /></button>
@@ -297,7 +297,7 @@ export default function MemeCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-sm text-gray-900 hover:underline cursor-pointer" onClick={() => onUserProfileClick(creator.id)}>{creator.username}</span>
+              <span className="font-bold text-[15px] text-gray-900 hover:underline cursor-pointer" onClick={() => onUserProfileClick(creator.id)}>{creator.username}</span>
               <span className="text-gray-400 text-xs" title={new Date(meme.created_at).toLocaleString("ar-EG")}>{formatRelativeTime(meme.created_at)}</span>
               {(meme as any).status === "pending" && (
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">قيد المراجعة</span>
@@ -422,8 +422,8 @@ export default function MemeCard({
             </div>
           )}
 
-          {/* عرض الميديا (صورة، فيديو، أو مجموعة صور) */}
-          <div className="rounded-xl border border-gray-200 overflow-hidden mb-3 bg-gray-50 relative group">
+          {/* عرض الميديا (صورة، فيديو، أو مجموعة صور) - بدون مربع/بوردر حواليها، زي ثريدز بالظبط */}
+          <div className="rounded-2xl overflow-hidden mb-3 bg-gray-100 relative group">
             {meme.post_type === 'video' && meme.video_url ? (
               <CustomVideoPlayer
                 src={meme.video_url}
