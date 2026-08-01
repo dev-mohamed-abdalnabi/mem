@@ -103,7 +103,7 @@ export default function BottomNavigation({
       style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
       <div
-        className={`flex items-center justify-between gap-1 mx-auto w-full max-w-[23rem] px-2.5 py-2 rounded-full backdrop-blur-xl border shadow-lg transition-colors duration-200 ${
+        className={`flex items-center justify-between gap-1 mx-auto w-full max-w-[23rem] px-2 py-1.5 rounded-full overflow-hidden backdrop-blur-xl border shadow-lg transition-colors duration-200 ${
           isReelsActive
             ? "bg-black/45 border-white/15 shadow-black/40"
             : "bg-white/90 dark:bg-gray-900/90 border-gray-200/70 dark:border-white/10 shadow-black/10 dark:shadow-black/50"
