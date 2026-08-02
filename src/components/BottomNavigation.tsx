@@ -79,10 +79,10 @@ function ProfileAvatar({
  * - التاب النشط بياخد "حبة" (pill) خلفية لونها فاتح حوالين الأيقونة بس
  *   (مش الزرار كله) - نفس أسلوب Material 3 / يوتيوب الحديث - بانتقال
  *   ناعم بدل خط بسيط
- * - زرار "إنشاء" مميز بدايرة زرقاء معبأة صلبة (نفس لون العلامة التجارية
- *   #3b82f6 المستخدم في باقي التطبيق) - بس **في نفس صف الأزرار وبنفس
- *   ارتفاعها**، من غير أي بروز/طيران فوق خط البار، عشان يفضل شكله نضيف
- *   ومحسوب من غير أي تراكب مع المحتوى فوقه
+ * - زرار "إنشاء" نفس تصميم أيقونات باقي الأزرار بالظبط (نفس سمك الخط
+ *   ونفس منطق اللون active/inactive)، وحواليه دايرة بنفس تصميم زرار
+ *   البحث في الهيدر العلوي بالظبط (rounded-full + border + خلفية
+ *   رمادية فاتحة جدًا) بدل الدايرة الزرقاء المعبأة
  * - ظل خفيف لأعلى + خط علوي رفيع بيدوا إحساس ارتفاع (elevation) حقيقي
  *   بدل خط تقسيم مسطح
  */
@@ -131,8 +131,11 @@ export default function BottomNavigation({
           const activeColorText = isReelsActive ? "text-blue-300" : "text-blue-600 dark:text-blue-400";
           const activePillBg = isReelsActive ? "bg-white/10" : "bg-blue-50 dark:bg-blue-400/10";
 
-          // زرار "إنشاء": دايرة زرقاء معبأة ثابتة، جوه نفس الصف وبنفس
-          // ارتفاع باقي الأزرار بالظبط - من غير أي بروز خارج حدود البار
+          // زرار "إنشاء": نفس تصميم أيقونات باقي الأزرار بالظبط (نفس
+          // سمك الخط ونفس منطق اللون active/inactive)، وحواليها دايرة
+          // بنفس تصميم زرار البحث في الهيدر العلوي (Header.tsx) بالظبط:
+          // rounded-full + border + خلفية رمادية فاتحة جدًا - مش دايرة
+          // زرقاء معبأة زي قبل كده
           if (isCreate) {
             return (
               <button
@@ -141,10 +144,23 @@ export default function BottomNavigation({
                 className="flex-1 h-full flex flex-col items-center justify-center gap-1"
                 title={item.label}
               >
-                <span className="flex items-center justify-center rounded-full bg-blue-600 text-white shadow-sm shadow-blue-600/40 active:scale-95 transition-transform duration-150 w-8 h-8">
-                  <Plus className="w-5 h-5" strokeWidth={2.5} />
+                <span
+                  className={`flex items-center justify-center rounded-full border w-9 h-9 transition-colors duration-200 active:scale-95 ${
+                    isReelsActive
+                      ? "bg-white/10 border-white/15"
+                      : "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                  }`}
+                >
+                  <Plus
+                    className={`w-[22px] h-[22px] ${isActive ? activeColorText : inactiveText}`}
+                    strokeWidth={isActive ? 2.4 : 2}
+                  />
                 </span>
-                <span className={`text-[10px] font-semibold leading-none ${inactiveText}`}>
+                <span
+                  className={`text-[10px] leading-none transition-colors duration-200 ${
+                    isActive ? `font-bold ${activeColorText}` : `font-medium ${inactiveText}`
+                  }`}
+                >
                   {item.label}
                 </span>
               </button>
