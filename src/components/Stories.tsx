@@ -97,6 +97,10 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
   const [textContent, setTextContent] = useState("");
   const [textBgColor, setTextBgColor] = useState("#1877F2");
   const [textFontSize, setTextFontSize] = useState(32);
+  // ستايل صندوق الكتابة في محرر النص: 'none' = الكتابة على الخلفية مباشرة بظل خفيف،
+  // 'dark' = صندوق أسود شفاف حوالين النص، 'light' = صندوق أبيض حوالين النص بلون كتابة غامق.
+  // نفس فكرة زرار "Aa" في انستجرام اللي بيلف بين أشكال النص.
+  const [textBoxStyle, setTextBoxStyle] = useState<'none' | 'dark' | 'light'>('none');
   const [myReactions, setMyReactions] = useState<Record<string, string>>({});
   const [reactionFeedback, setReactionFeedback] = useState<string | null>(null);
   const [showViewers, setShowViewers] = useState(false);
@@ -1030,15 +1034,16 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
       {showCreateModal && (
         <div className="fixed inset-0 z-[100] bg-black flex flex-col">
           {!createMode ? (
-            <div className="bg-white dark:bg-[#0f1115] w-full h-full flex flex-col animate-fade-in">
-              <div className="p-5 border-b border-gray-100 dark:border-gray-900 flex items-center justify-between">
-                <button onClick={() => setShowCreateModal(false)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white p-2 -mr-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                  <X className="w-5 h-5" />
+            <div className="bg-black w-full h-full flex flex-col animate-fade-in">
+              <div className="px-4 pt-5 pb-4 flex items-center justify-between">
+                <button onClick={() => setShowCreateModal(false)} className="text-white/90 hover:text-white p-2 -mr-2 rounded-full hover:bg-white/10 transition-colors active:scale-90">
+                  <X className="w-6 h-6" />
                 </button>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">إنشاء حالة جديدة</h2>
+                <h2 className="text-[15px] font-bold text-white">إنشاء حالة جديدة</h2>
                 <div className="w-9" />
               </div>
-              <div className="p-5 space-y-3.5 flex-1">
+
+              <div className="flex-1 flex flex-col justify-center px-6 -mt-10 gap-4">
                 <label className="block group">
                   <input
                     type="file"
@@ -1046,15 +1051,15 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
                     className="hidden"
                     onChange={(e) => { setCreateMode('image'); handleFileUpload(e); }}
                   />
-                  <div className="flex items-center gap-4 p-4 rounded-2xl cursor-pointer bg-gradient-to-l from-blue-50 to-white dark:from-blue-950/40 dark:to-[#141620] border border-blue-100 dark:border-blue-950 hover:shadow-md hover:shadow-blue-500/10 transition-all">
-                    <div className="w-12 h-12 shrink-0 bg-gradient-to-br from-[#1877F2] to-[#3b9bff] rounded-xl flex items-center justify-center shadow-sm">
-                      <Camera className="w-6 h-6 text-white" />
+                  <div className="flex items-center gap-4 p-3 rounded-2xl cursor-pointer bg-[#1c1c1e] active:bg-[#242426] transition-colors">
+                    <div className="w-16 h-16 shrink-0 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#4f9dff] via-[#1877F2] to-[#0b5fd1] shadow-lg shadow-blue-500/20">
+                      <Camera className="w-7 h-7 text-white" strokeWidth={2.2} />
                     </div>
                     <div className="flex-1 text-right">
-                      <p className="font-bold text-gray-900 dark:text-white">صورة</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">اختر صورة من جهازك</p>
+                      <p className="font-bold text-[15px] text-white">صورة</p>
+                      <p className="text-[12.5px] text-white/50 mt-0.5">اختر صورة من جهازك</p>
                     </div>
-                    <ChevronLeft className="w-4 h-4 text-gray-300 dark:text-gray-700 group-hover:text-blue-400 transition-colors" />
+                    <ChevronLeft className="w-5 h-5 text-white/25 group-active:text-white/50 transition-colors" />
                   </div>
                 </label>
 
@@ -1065,67 +1070,100 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
                     className="hidden"
                     onChange={(e) => { setCreateMode('video'); handleFileUpload(e); }}
                   />
-                  <div className="flex items-center gap-4 p-4 rounded-2xl cursor-pointer bg-gradient-to-l from-purple-50 to-white dark:from-purple-950/40 dark:to-[#141620] border border-purple-100 dark:border-purple-950 hover:shadow-md hover:shadow-purple-500/10 transition-all">
-                    <div className="w-12 h-12 shrink-0 bg-gradient-to-br from-purple-500 to-fuchsia-500 rounded-xl flex items-center justify-center shadow-sm">
-                      <Video className="w-6 h-6 text-white" />
+                  <div className="flex items-center gap-4 p-3 rounded-2xl cursor-pointer bg-[#1c1c1e] active:bg-[#242426] transition-colors">
+                    <div className="w-16 h-16 shrink-0 rounded-2xl flex items-center justify-center bg-gradient-to-br from-fuchsia-400 via-purple-500 to-indigo-600 shadow-lg shadow-purple-500/20">
+                      <Video className="w-7 h-7 text-white" strokeWidth={2.2} />
                     </div>
                     <div className="flex-1 text-right">
-                      <p className="font-bold text-gray-900 dark:text-white">فيديو</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">أقصى مدة دقيقة واحدة</p>
+                      <p className="font-bold text-[15px] text-white">فيديو</p>
+                      <p className="text-[12.5px] text-white/50 mt-0.5">أقصى مدة دقيقة واحدة</p>
                     </div>
-                    <ChevronLeft className="w-4 h-4 text-gray-300 dark:text-gray-700 group-hover:text-purple-400 transition-colors" />
+                    <ChevronLeft className="w-5 h-5 text-white/25 group-active:text-white/50 transition-colors" />
                   </div>
                 </label>
 
                 <button
                   onClick={() => setCreateMode('text')}
-                  className="flex items-center gap-4 p-4 rounded-2xl cursor-pointer bg-gradient-to-l from-emerald-50 to-white dark:from-emerald-950/40 dark:to-[#141620] border border-emerald-100 dark:border-emerald-950 hover:shadow-md hover:shadow-emerald-500/10 transition-all w-full group"
+                  className="flex items-center gap-4 p-3 rounded-2xl cursor-pointer bg-[#1c1c1e] active:bg-[#242426] transition-colors w-full group"
                 >
-                  <div className="w-12 h-12 shrink-0 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center shadow-sm">
-                    <Type className="w-6 h-6 text-white" />
+                  <div className="w-16 h-16 shrink-0 rounded-2xl flex items-center justify-center bg-gradient-to-br from-amber-300 via-orange-400 to-pink-500 shadow-lg shadow-orange-500/20">
+                    <Type className="w-7 h-7 text-white" strokeWidth={2.4} />
                   </div>
                   <div className="flex-1 text-right">
-                    <p className="font-bold text-gray-900 dark:text-white">نص</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">اكتب نص ملون بخلفية من اختيارك</p>
+                    <p className="font-bold text-[15px] text-white">نص</p>
+                    <p className="text-[12.5px] text-white/50 mt-0.5">اكتب نص ملون بخلفية من اختيارك</p>
                   </div>
-                  <ChevronLeft className="w-4 h-4 text-gray-300 dark:text-gray-700 group-hover:text-emerald-400 transition-colors" />
+                  <ChevronLeft className="w-5 h-5 text-white/25 group-active:text-white/50 transition-colors" />
                 </button>
-
-                <p className="text-[11px] text-gray-400 dark:text-gray-600 text-center pt-2">
-                  الحالة هتفضل ظاهرة ٢٤ ساعة، وهتقدر تكمل التصفح وهي بترفع
-                </p>
               </div>
+
+              <p className="text-[11.5px] text-white/35 text-center pb-8 px-10">
+                الحالة هتفضل ظاهرة ٢٤ ساعة، وهتقدر تكمل التصفح وهي بترفع
+              </p>
             </div>
           ) : createMode === 'text' ? (
             // محرر نص بستايل واتساب: شاشة كاملة، الخلفية اللونية تملأ الشاشة، الكتابة فوقها مباشرة
             <div className="w-full h-full flex flex-col relative animate-fade-in" style={{ backgroundColor: textBgColor }}>
               <div className="relative z-10 flex items-center justify-between p-4">
-                <button onClick={() => setCreateMode(null)} className="text-white bg-black/25 hover:bg-black/40 p-2.5 rounded-full transition-colors backdrop-blur-sm">
+                <button onClick={() => setCreateMode(null)} className="text-white bg-black/25 hover:bg-black/40 p-2.5 rounded-full transition-colors backdrop-blur-sm active:scale-90">
                   <X className="w-5 h-5" />
                 </button>
-                <div className="flex gap-2 bg-black/20 backdrop-blur-sm p-1.5 rounded-full">
-                  {['#1877F2', '#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181', '#111827'].map(color => (
-                    <button
-                      key={color}
-                      onClick={() => setTextBgColor(color)}
-                      className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${textBgColor === color ? 'border-white scale-110' : 'border-white/30'}`}
-                      style={{ backgroundColor: color }}
-                    >
-                      {textBgColor === color && <span className="w-2 h-2 rounded-full bg-white" />}
-                    </button>
-                  ))}
+
+                <div className="flex items-center gap-2">
+                  {/* زرار "Aa" بيلف بين أشكال صندوق الكتابة: بدون صندوق / صندوق غامق / صندوق فاتح */}
+                  <button
+                    onClick={() => setTextBoxStyle(s => s === 'none' ? 'dark' : s === 'dark' ? 'light' : 'none')}
+                    className="w-9 h-9 rounded-full bg-black/25 backdrop-blur-sm flex items-center justify-center text-white font-black text-sm transition-colors active:scale-90"
+                    style={
+                      textBoxStyle === 'dark'
+                        ? { backgroundColor: 'rgba(17,24,39,0.85)' }
+                        : textBoxStyle === 'light'
+                        ? { backgroundColor: '#ffffff', color: '#111827' }
+                        : undefined
+                    }
+                  >
+                    Aa
+                  </button>
+                  <div className="flex gap-2 bg-black/20 backdrop-blur-sm p-1.5 rounded-full">
+                    {['#1877F2', '#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181', '#111827'].map(color => (
+                      <button
+                        key={color}
+                        onClick={() => setTextBgColor(color)}
+                        className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${textBgColor === color ? 'border-white scale-110' : 'border-white/30'}`}
+                        style={{ backgroundColor: color }}
+                      >
+                        {textBgColor === color && <span className="w-2 h-2 rounded-full bg-white" />}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
+              {/* منطقة الكتابة - صندوق بلون مختلف عن خلفية الحالة، زي أداة النص في انستجرام */}
               <div className="flex-1 flex items-center justify-center px-8">
-                <textarea
-                  value={textContent}
-                  onChange={(e) => setTextContent(e.target.value)}
-                  placeholder="اكتب نصك هنا"
-                  autoFocus
-                  className="w-full bg-transparent border-none outline-none resize-none text-white font-bold text-center placeholder-white/60"
-                  style={{ fontSize: `${textFontSize}px`, minHeight: "40%", textShadow: "0 2px 12px rgba(0,0,0,0.25)" }}
-                />
+                <div
+                  className="w-full rounded-2xl transition-colors"
+                  style={
+                    textBoxStyle === 'dark'
+                      ? { backgroundColor: 'rgba(17,24,39,0.78)', padding: '18px 20px' }
+                      : textBoxStyle === 'light'
+                      ? { backgroundColor: 'rgba(255,255,255,0.95)', padding: '18px 20px' }
+                      : { padding: '0' }
+                  }
+                >
+                  <textarea
+                    value={textContent}
+                    onChange={(e) => setTextContent(e.target.value)}
+                    placeholder="اكتب نصك هنا"
+                    autoFocus
+                    className={`w-full bg-transparent border-none outline-none resize-none font-bold text-center placeholder-white/60 ${textBoxStyle === 'light' ? 'text-gray-900' : 'text-white'}`}
+                    style={{
+                      fontSize: `${textFontSize}px`,
+                      minHeight: "40%",
+                      textShadow: textBoxStyle === 'none' ? "0 2px 12px rgba(0,0,0,0.25)" : "none",
+                    }}
+                  />
+                </div>
               </div>
 
               <div className="relative z-10 p-4 flex items-center gap-3 bg-gradient-to-t from-black/25 to-transparent">

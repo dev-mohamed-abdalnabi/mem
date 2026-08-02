@@ -118,34 +118,31 @@ export default function CreatePostPage({ currentUser, setActiveTab, onPostCreate
       {/* هيدر - إلغاء / عنوان / نشر */}
       <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-gray-900 sticky top-0 bg-white/90 dark:bg-[#0f1115]/90 backdrop-blur-sm z-10">
         <button type="button" onClick={() => setActiveTab("feed")} className="text-gray-500 dark:text-gray-400 text-sm font-bold px-2 py-1 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">إلغاء</button>
-        <h2 className="text-[15px] font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-          <Sparkles className="w-4 h-4 text-[#1d9bf0]" />
-          منشور جديد
-        </h2>
+        <h2 className="text-[15px] font-bold text-gray-900 dark:text-white">منشور جديد</h2>
         <button
           type="submit"
           form="create-post-form"
           disabled={newPostCaption.trim() === "" && mediaFiles.length === 0}
-          className="bg-gradient-to-r from-[#1d9bf0] to-[#3b82f6] hover:from-[#1a8cd8] hover:to-[#2f6fe0] text-white px-5 py-1.5 rounded-full text-xs font-bold disabled:opacity-40 transition-all min-w-[64px] text-center shadow-sm shadow-blue-500/30"
+          className="text-[#1d9bf0] font-bold text-[15px] disabled:text-gray-300 dark:disabled:text-gray-700 transition-colors min-w-[44px] text-center"
         >
           نشر
         </button>
       </div>
 
-      <form id="create-post-form" onSubmit={handleQuickPostSubmit} className="px-4 pt-5">
-        {/* كارت المنشور */}
-        <div className="bg-white dark:bg-[#16181c] rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow p-4">
-          {/* صف: أفاتار + اسم المستخدم + عمود النص */}
-          <div className="flex items-start gap-3">
-            <img src={currentUser.avatar_url || ""} className="w-11 h-11 rounded-full object-cover shrink-0 ring-2 ring-[#1d9bf0]/20" alt="avatar" />
-            <div className="flex-1 min-w-0">
-              <span className="font-bold text-sm text-gray-900 dark:text-white">{currentUser.username}</span>
+      <form id="create-post-form" onSubmit={handleQuickPostSubmit}>
+        {/* صف صغير: أفاتار + اسم المستخدم */}
+        <div className="flex items-center gap-2.5 px-4 pt-4 pb-1">
+          <img src={currentUser.avatar_url || ""} className="w-8 h-8 rounded-full object-cover shrink-0" alt="avatar" />
+          <span className="font-bold text-[13.5px] text-gray-900 dark:text-white">{currentUser.username}</span>
+        </div>
 
+        <div className="px-4 pt-1">
+          <div className="min-w-0">
               <textarea
                 placeholder="بماذا تفكر يا غالي؟"
                 value={newPostCaption}
                 onChange={(e) => setNewPostCaption(e.target.value)}
-                className="w-full bg-transparent border-none focus:ring-0 p-0 mt-1.5 text-[15px] leading-relaxed text-gray-800 dark:text-gray-100 resize-none min-h-[90px] outline-none text-right placeholder-gray-400 dark:placeholder-gray-600"
+                className="w-full bg-transparent border-none focus:ring-0 p-0 text-[16px] leading-relaxed text-gray-800 dark:text-gray-100 resize-none min-h-[64px] outline-none text-right placeholder-gray-400 dark:placeholder-gray-600"
                 autoFocus
               />
 
@@ -256,11 +253,10 @@ export default function CreatePostPage({ currentUser, setActiveTab, onPostCreate
                   className="w-full bg-transparent border-none text-xs text-right outline-none text-gray-600 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-600"
                 />
               </div>
+
+              {postError && <p className="text-red-500 text-xs mt-3.5 text-center font-bold bg-red-50 dark:bg-red-950/30 p-2.5 rounded-xl">{postError}</p>}
             </div>
           </div>
-
-          {postError && <p className="text-red-500 text-xs mt-3.5 text-center font-bold bg-red-50 dark:bg-red-950/30 p-2.5 rounded-xl">{postError}</p>}
-        </div>
 
         <p className="text-[11px] text-gray-400 dark:text-gray-600 text-center mt-3">
           هتقدر تكمل تصفح التطبيق وانت البوست بيترفع في الخلفية
