@@ -3,6 +3,7 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
 import { DialogProvider } from './components/DialogProvider.tsx';
+import { UploadManagerProvider } from './contexts/UploadManagerContext.tsx';
 import './index.css';
 
 // أول ما الصفحة تفتح، ولسه محدش دوس على زرار "فاتح/داكن" (يعني مفيش
@@ -48,7 +49,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <DialogProvider>
-        <App />
+        <UploadManagerProvider>
+          <App />
+        </UploadManagerProvider>
       </DialogProvider>
     </ErrorBoundary>
   </StrictMode>,

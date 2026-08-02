@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { Camera, Clock, X, Video } from "lucide-react";
+import { Camera, Video, X, Hash, Sparkles } from "lucide-react";
 import { Profile } from "../types";
-import { dataService } from "../services/dataService";
-import { socialService } from "../services/socialService";
+import { useUploadManager } from "../contexts/UploadManagerContext";
 
 interface CreatePostPageProps {
   currentUser: Profile;
@@ -11,10 +10,10 @@ interface CreatePostPageProps {
 }
 
 export default function CreatePostPage({ currentUser, setActiveTab, onPostCreated }: CreatePostPageProps) {
+  const { startPostUpload } = useUploadManager();
   const [newPostCaption, setNewPostCaption] = useState("");
   const [mediaFiles, setMediaFiles] = useState<{file: File, preview: string, type: 'image' | 'video'}[]>([]);
   const [newPostTags, setNewPostTags] = useState("");
-  const [loading, setLoading] = useState(false);
   const [postError, setPostError] = useState("");
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,7 +32,7 @@ export default function CreatePostPage({ currentUser, setActiveTab, onPostCreate
     for (const file of newFiles) {
       const isVideo = file.type.startsWith('video/');
       const isImage = file.type.startsWith('image/');
-      
+
       if (!isImage && !isVideo) continue;
 
       if (isVideo && (batchHasVideo || batchHasImage)) {
@@ -83,71 +82,35 @@ export default function CreatePostPage({ currentUser, setActiveTab, onPostCreate
     setMediaFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleQuickPostSubmit = async (e: React.FormEvent) => {
+  const handleQuickPostSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPostCaption.trim() && mediaFiles.length === 0) {
       setPostError("أضف نص أو ميديا على الأقل يا بطل!");
       return;
     }
 
-    setLoading(true);
     setPostError("");
 
-    try {
-      let imageUrl = null;
-      let videoUrl = null;
-      let images: string[] = [];
-      let postType: 'image' | 'video' | 'text' | 'multi-image' = 'text';
+    const tagsArray = newPostTags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0);
 
-      if (mediaFiles.length > 0) {
-        const uploadPromises = mediaFiles.map(m => dataService.uploadMemeFile(m.file));
-        const uploadedUrls = await Promise.all(uploadPromises);
+    // بستايل تيك توك: بنبدأ الرفع في الخلفية ونرجع للفيد فوراً، مش
+    // بنقعد مستنيين هنا لحد ما الرفع يخلص. الرفع بيكمل حتى لو المستخدم
+    // نقل لتاب تاني، وعلامة التقدم بتفضل ظاهرة تحت لحد ما يخلص.
+    startPostUpload({
+      userId: currentUser.id,
+      caption: newPostCaption,
+      tags: tagsArray,
+      files: mediaFiles,
+      onDone: (meme) => onPostCreated?.(meme),
+    });
 
-        if (mediaFiles.length === 1) {
-          if (mediaFiles[0].type === 'video') {
-            videoUrl = uploadedUrls[0];
-            postType = 'video';
-          } else {
-            imageUrl = uploadedUrls[0];
-            postType = 'image';
-          }
-        } else {
-          images = uploadedUrls;
-          postType = 'multi-image';
-        }
-      }
-
-      const tagsArray = newPostTags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((tag) => tag.length > 0);
-
-      const createdMeme = await socialService.createPost({
-        user_id: currentUser.id,
-        caption: newPostCaption,
-        image_url: imageUrl,
-        video_url: videoUrl,
-        images: images,
-        post_type: postType,
-        tags: tagsArray,
-        status: "pending" // Changed to pending for moderation
-      });
-
-      // XP update should be handled server-side via Supabase Triggers for security
-      // Removed client-side update to prevent points manipulation
-
-      setNewPostCaption("");
-      setMediaFiles([]);
-      setNewPostTags("");
-      // كانت المشكلة إن الفيد ميتحدثش غير برفرش يدوي للصفحة كلها.
-      // دلوقتي بنبعت المنشور الجديد فوراً لأعلى الـ App عشان يظهر في الفيد على طول.
-      onPostCreated?.(createdMeme);
-      setActiveTab("feed");
-    } catch (err: any) {
-      setPostError(err.message || "فشل النشر، حاول تاني.");
-    } finally {
-      setLoading(false);
-    }
+    setNewPostCaption("");
+    setMediaFiles([]);
+    setNewPostTags("");
+    setActiveTab("feed");
   };
 
   return (
@@ -155,23 +118,26 @@ export default function CreatePostPage({ currentUser, setActiveTab, onPostCreate
       {/* هيدر - إلغاء / عنوان / نشر */}
       <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-gray-900 sticky top-0 bg-white/90 dark:bg-[#0f1115]/90 backdrop-blur-sm z-10">
         <button type="button" onClick={() => setActiveTab("feed")} className="text-gray-500 dark:text-gray-400 text-sm font-bold px-2 py-1 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">إلغاء</button>
-        <h2 className="text-[15px] font-bold text-gray-900 dark:text-white">منشور جديد</h2>
+        <h2 className="text-[15px] font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+          <Sparkles className="w-4 h-4 text-[#1d9bf0]" />
+          منشور جديد
+        </h2>
         <button
           type="submit"
           form="create-post-form"
-          disabled={(newPostCaption.trim() === "" && mediaFiles.length === 0) || loading}
-          className="bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white px-5 py-1.5 rounded-full text-xs font-bold disabled:opacity-40 transition-colors min-w-[64px] text-center shadow-sm shadow-blue-500/20"
+          disabled={newPostCaption.trim() === "" && mediaFiles.length === 0}
+          className="bg-gradient-to-r from-[#1d9bf0] to-[#3b82f6] hover:from-[#1a8cd8] hover:to-[#2f6fe0] text-white px-5 py-1.5 rounded-full text-xs font-bold disabled:opacity-40 transition-all min-w-[64px] text-center shadow-sm shadow-blue-500/30"
         >
-          {loading ? <Clock className="w-3.5 h-3.5 animate-spin mx-auto" /> : "نشر"}
+          نشر
         </button>
       </div>
 
       <form id="create-post-form" onSubmit={handleQuickPostSubmit} className="px-4 pt-5">
         {/* كارت المنشور */}
-        <div className="bg-white dark:bg-[#16181c] rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-4">
+        <div className="bg-white dark:bg-[#16181c] rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow p-4">
           {/* صف: أفاتار + اسم المستخدم + عمود النص */}
           <div className="flex items-start gap-3">
-            <img src={currentUser.avatar_url || ""} className="w-11 h-11 rounded-full object-cover shrink-0 ring-2 ring-gray-100 dark:ring-gray-800" alt="avatar" />
+            <img src={currentUser.avatar_url || ""} className="w-11 h-11 rounded-full object-cover shrink-0 ring-2 ring-[#1d9bf0]/20" alt="avatar" />
             <div className="flex-1 min-w-0">
               <span className="font-bold text-sm text-gray-900 dark:text-white">{currentUser.username}</span>
 
@@ -184,7 +150,7 @@ export default function CreatePostPage({ currentUser, setActiveTab, onPostCreate
               />
 
             {mediaFiles.length > 0 && (
-              <div className="mt-2 rounded-2xl overflow-hidden bg-gray-50 dark:bg-gray-900">
+              <div className="mt-2 rounded-2xl overflow-hidden bg-gray-50 dark:bg-gray-900 ring-1 ring-gray-100 dark:ring-gray-800">
                 {/* Threads-style Preview */}
                 {mediaFiles.length === 1 ? (
                   <div className="relative aspect-square">
@@ -265,14 +231,14 @@ export default function CreatePostPage({ currentUser, setActiveTab, onPostCreate
               </div>
             )}
 
-              {/* أزرار إضافة الميديا - شكل واضح بستايل الكاردز في باقي الأبليكيشن */}
+              {/* أزرار إضافة الميديا */}
               <div className="flex items-center gap-2 mt-4">
-                <label className="flex items-center gap-2 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-950/70 text-[#1d9bf0] px-3.5 py-2 rounded-full cursor-pointer transition-colors text-xs font-bold">
+                <label className="flex items-center gap-2 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/40 dark:to-blue-900/20 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-950/70 text-[#1d9bf0] px-3.5 py-2 rounded-full cursor-pointer transition-colors text-xs font-bold">
                   <Camera className="w-4 h-4" />
                   صورة
                   <input type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden"/>
                 </label>
-                <label className="flex items-center gap-2 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-950/70 text-purple-600 dark:text-purple-400 px-3.5 py-2 rounded-full cursor-pointer transition-colors text-xs font-bold">
+                <label className="flex items-center gap-2 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/40 dark:to-purple-900/20 hover:from-purple-100 hover:to-purple-200 dark:hover:from-purple-950/70 text-purple-600 dark:text-purple-400 px-3.5 py-2 rounded-full cursor-pointer transition-colors text-xs font-bold">
                   <Video className="w-4 h-4" />
                   فيديو
                   <input type="file" accept="video/*" onChange={handleFileChange} className="hidden"/>
@@ -281,7 +247,7 @@ export default function CreatePostPage({ currentUser, setActiveTab, onPostCreate
 
               {/* هاشتاج */}
               <div className="flex items-center gap-2 border-t border-gray-100 dark:border-gray-800 mt-4 pt-3.5">
-                <span className="text-gray-400 dark:text-gray-500 text-sm font-bold shrink-0">#</span>
+                <Hash className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 shrink-0" />
                 <input
                   type="text"
                   placeholder="أضف هاشتاج (اختياري)، افصل بينهم بفاصلة"
@@ -295,6 +261,10 @@ export default function CreatePostPage({ currentUser, setActiveTab, onPostCreate
 
           {postError && <p className="text-red-500 text-xs mt-3.5 text-center font-bold bg-red-50 dark:bg-red-950/30 p-2.5 rounded-xl">{postError}</p>}
         </div>
+
+        <p className="text-[11px] text-gray-400 dark:text-gray-600 text-center mt-3">
+          هتقدر تكمل تصفح التطبيق وانت البوست بيترفع في الخلفية
+        </p>
       </form>
     </div>
   );

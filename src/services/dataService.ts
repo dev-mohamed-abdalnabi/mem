@@ -1,5 +1,51 @@
-import { supabase } from "../supabaseClient";
+import { supabase, SUPABASE_URL_EXPORTED, SUPABASE_ANON_KEY_EXPORTED } from "../supabaseClient";
 import { Profile, Meme, Comment, Notification, Report } from "../types";
+
+/**
+ * رفع ملف لـ Supabase Storage عن طريق XMLHttpRequest يدوي (بدل supabase-js
+ * .upload() اللي مبني على fetch وملوش أي progress events خالص). ده اللي
+ * بيسمح لنا نعرض شريط تقدم حقيقي (0-100%) أثناء الرفع، بستايل تيك توك.
+ */
+async function uploadWithProgress(
+  bucket: string,
+  path: string,
+  file: File,
+  onProgress?: (pct: number) => void
+): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token || SUPABASE_ANON_KEY_EXPORTED;
+
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${SUPABASE_URL_EXPORTED}/storage/v1/object/${bucket}/${path}`, true);
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.setRequestHeader("apikey", SUPABASE_ANON_KEY_EXPORTED);
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    xhr.setRequestHeader("x-upsert", "false");
+    xhr.setRequestHeader("cache-control", "86400");
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
+        resolve();
+      } else {
+        let message = "فشل رفع الملف.";
+        try {
+          const parsed = JSON.parse(xhr.responseText);
+          message = parsed.message || parsed.error || message;
+        } catch { /* ignore */ }
+        reject(new Error(message));
+      }
+    };
+    xhr.onerror = () => reject(new Error("فشل الاتصال أثناء الرفع، تأكد من النت."));
+    xhr.send(file);
+  });
+}
 
 // Removed mock data entirely
 export const MOCK_PROFILES: Profile[] = [];
@@ -480,7 +526,7 @@ export const dataService = {
     return true;
   },
 
-  uploadMemeFile: async (file: File, bucket: string = "memes"): Promise<string> => {
+  uploadMemeFile: async (file: File, bucket: string = "memes", onProgress?: (pct: number) => void): Promise<string> => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime'];
     if (!allowedTypes.includes(file.type)) throw new Error("نوع الملف غير مدعوم.");
 
@@ -523,11 +569,7 @@ export const dataService = {
     // نفس الملف من الصفر بدل ما المتصفح/الـ CDN يخدمه من الكاش. ده استهلاك
     // باندويدث وبطء غير ضروري خصوصاً في الفيديوهات. دلوقتي بنحط كاش يوم كامل
     // (الملفات أصلاً بأسماء عشوائية unique، فمفيش خطر تضارب مع نسخة قديمة).
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(fileName, fileToUpload, {
-      contentType: fileToUpload.type,
-      cacheControl: "86400",
-    });
-    if (uploadError) throw uploadError;
+    await uploadWithProgress(bucket, fileName, fileToUpload, onProgress);
 
     const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(fileName);
     return publicUrl;

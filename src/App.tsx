@@ -15,6 +15,7 @@ import CreatePostPage from "./pages/CreatePostPage";
 import SavesPage from "./pages/SavesPage";
 import ProfilePage from "./pages/ProfilePage";
 import PostDetailModal from "./components/PostDetailModal";
+import UploadProgressWidget from "./components/UploadProgressWidget";
 // code splitting: الصفحات دي مش محتاجة تتحمل في أول فتحة للتطبيق (ريلز/ترندينج
 // بيتفتحوا بس لما المستخدم يدوس عليهم، والأدمن بانل والرسايل أصلاً لفئة صغيرة
 // من المستخدمين) - ده بيقلل حجم أول تحميل (bundle) لكل الزوار العاديين.
@@ -866,7 +867,9 @@ export default function App() {
       <Suspense fallback={<div className="w-full flex items-center justify-center py-20 text-gray-400 text-sm">جاري التحميل...</div>}>
         {renderContent()}
       </Suspense>
-      
+
+      <UploadProgressWidget />
+
       {selectedMemeForComments && (
         <PostDetailModal 
           meme={selectedMemeForComments}

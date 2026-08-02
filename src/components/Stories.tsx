@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, X, ChevronLeft, ChevronRight, Type, Video, Eye, MoreVertical, Trash2, EyeOff, Volume2, VolumeX } from "lucide-react";
+import { Plus, X, ChevronLeft, ChevronRight, Type, Video, Camera, Eye, MoreVertical, Trash2, EyeOff, Volume2, VolumeX } from "lucide-react";
 import { Story, Profile } from "../types";
 import { dataService } from "../services/dataService";
 import { socialService } from "../services/socialService";
 import { useDialog } from "./DialogProvider";
 import { formatRelativeTime as relativeTimeAr } from "../utils/format";
+import { useUploadManager } from "../contexts/UploadManagerContext";
 
 interface StoriesProps {
   currentUser: Profile;
@@ -83,6 +84,7 @@ function buildStoryRingBackground(uStories: Story[], viewedStoryIds: Set<string>
 
 export default function Stories({ currentUser, onStoryViewerChange, onUserProfileClick }: StoriesProps) {
   const { alertDialog, confirmDialog } = useDialog();
+  const { startStoryUpload, startTextStoryUpload } = useUploadManager();
   const [stories, setStories] = useState<Story[]>([]);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
@@ -524,27 +526,21 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
       }
     }
 
-    setLoading(true);
-    setUploadStage("جاري رفع الملف...");
-    try {
-      const url = await dataService.uploadMemeFile(file);
-      const type = file.type.startsWith('video/') ? 'video' : 'image';
-      setUploadStage("جاري نشر الحالة...");
-      await socialService.createStory(currentUser.id, url, type);
-      await loadStories();
-      setShowCreateModal(false);
-      setCreateMode(null);
-    } catch (e: any) {
-      console.error("Story upload error:", e);
-      // كنا بنعرض رسالة عامة تقول "مش عامل تسجيل دخول حقيقي" لأي خطأ مهما كان
-      // سببه الفعلي (حجم ملف، نوع ملف، RLS، تايم آوت، إلخ)، وده كان بيضلل
-      // التشخيص تمامًا ويوهم المستخدم إن المشكلة في حسابه بينما هي حاجة تانية
-      // خالص. دلوقتي بنعرض رسالة الخطأ الحقيقية.
-      await alertDialog(e?.message ? `فشل رفع الحالة: ${e.message}` : "فشل رفع الحالة، حاول تاني.");
-    } finally {
-      setLoading(false);
-      setUploadStage("");
-    }
+    // بستايل تيك توك بالظبط: بنقفل مودال الإنشاء فوراً ونسيب الرفع يكمل في
+    // الخلفية (شريط تقدم عائم تحت)، عشان المستخدم يقدر يكمل يتصفح التطبيق
+    // من غير ما يستنى الرفع يخلص واقف على شاشة سودا.
+    const type = file.type.startsWith('video/') ? 'video' : 'image';
+    const preview = URL.createObjectURL(file);
+    setShowCreateModal(false);
+    setCreateMode(null);
+
+    startStoryUpload({
+      userId: currentUser.id,
+      file,
+      type,
+      preview,
+      onDone: () => { loadStories(); },
+    });
   };
 
   const handleTextStory = async () => {
@@ -557,7 +553,6 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
       return;
     }
 
-    setLoading(true);
     try {
       const canvas = document.createElement('canvas');
       canvas.width = 1080;
@@ -598,22 +593,27 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
         });
       }
 
-      canvas.toBlob(async (blob) => {
+      // معاينة صغيرة بستايل تيك توك للبار العائم (مش لازم تكون بنفس دقة
+      // الصورة النهائية - دي بس thumbnail)
+      const previewDataUrl = canvas.toDataURL('image/png');
+
+      canvas.toBlob((blob) => {
         if (blob) {
-          const file = new File([blob], 'text-story.png', { type: 'image/png' });
-          const url = await dataService.uploadMemeFile(file);
-          await socialService.createStory(currentUser.id, url, 'image');
-          await loadStories();
+          // بنقفل المودال فوراً ونسيب الرفع يكمل في الخلفية زي باقي الحالات
           setShowCreateModal(false);
           setCreateMode(null);
           setTextContent("");
+          startTextStoryUpload({
+            userId: currentUser.id,
+            blob,
+            preview: previewDataUrl,
+            onDone: () => { loadStories(); },
+          });
         }
-        setLoading(false);
       });
     } catch (e) {
       console.error("Text story error:", e);
       await alertDialog("فشل إنشاء حالة النص");
-      setLoading(false);
     }
   };
 
@@ -1029,88 +1029,90 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
       {/* مودال إنشاء حالة جديدة */}
       {showCreateModal && (
         <div className="fixed inset-0 z-[100] bg-black flex flex-col">
-          {loading && createMode !== 'text' && (
-            <div className="absolute inset-0 z-10 bg-black/80 flex flex-col items-center justify-center gap-3">
-              <div className="w-10 h-10 border-4 border-white/20 border-t-blue-400 rounded-full animate-spin" />
-              <p className="text-sm font-bold text-white">{uploadStage || "جاري الرفع..."}</p>
-            </div>
-          )}
           {!createMode ? (
-            <div className="bg-white dark:bg-gray-900 w-full h-full flex flex-col">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">إنشاء حالة جديدة</h2>
-                <button onClick={() => setShowCreateModal(false)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white p-2">
+            <div className="bg-white dark:bg-[#0f1115] w-full h-full flex flex-col animate-fade-in">
+              <div className="p-5 border-b border-gray-100 dark:border-gray-900 flex items-center justify-between">
+                <button onClick={() => setShowCreateModal(false)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white p-2 -mr-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                   <X className="w-5 h-5" />
                 </button>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">إنشاء حالة جديدة</h2>
+                <div className="w-9" />
               </div>
-              <div className="p-6 space-y-3 flex-1">
-                <label className="block">
+              <div className="p-5 space-y-3.5 flex-1">
+                <label className="block group">
                   <input
                     type="file"
                     accept="image/*"
                     className="hidden"
                     onChange={(e) => { setCreateMode('image'); handleFileUpload(e); }}
-                    disabled={loading}
                   />
-                  <div className="flex items-center gap-4 p-4 border-2 border-dashed border-blue-300 rounded-xl cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors">
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                      <img loading="lazy" decoding="async" className="w-6 h-6" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231877F2'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='9' cy='9' r='2' fill='white'/%3E%3Cpath d='M3 15l6-6 9 9' stroke='white' stroke-width='2' fill='none'/%3E%3C/svg%3E" alt="صورة" />
+                  <div className="flex items-center gap-4 p-4 rounded-2xl cursor-pointer bg-gradient-to-l from-blue-50 to-white dark:from-blue-950/40 dark:to-[#141620] border border-blue-100 dark:border-blue-950 hover:shadow-md hover:shadow-blue-500/10 transition-all">
+                    <div className="w-12 h-12 shrink-0 bg-gradient-to-br from-[#1877F2] to-[#3b9bff] rounded-xl flex items-center justify-center shadow-sm">
+                      <Camera className="w-6 h-6 text-white" />
                     </div>
-                    <div>
+                    <div className="flex-1 text-right">
                       <p className="font-bold text-gray-900 dark:text-white">صورة</p>
-                      <p className="text-xs text-gray-500">اختر صورة من جهازك</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">اختر صورة من جهازك</p>
                     </div>
+                    <ChevronLeft className="w-4 h-4 text-gray-300 dark:text-gray-700 group-hover:text-blue-400 transition-colors" />
                   </div>
                 </label>
 
-                <label className="block">
+                <label className="block group">
                   <input
                     type="file"
                     accept="video/*"
                     className="hidden"
                     onChange={(e) => { setCreateMode('video'); handleFileUpload(e); }}
-                    disabled={loading}
                   />
-                  <div className="flex items-center gap-4 p-4 border-2 border-dashed border-purple-300 rounded-xl cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-950 transition-colors">
-                    <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-                      <Video className="w-6 h-6 text-purple-600" />
+                  <div className="flex items-center gap-4 p-4 rounded-2xl cursor-pointer bg-gradient-to-l from-purple-50 to-white dark:from-purple-950/40 dark:to-[#141620] border border-purple-100 dark:border-purple-950 hover:shadow-md hover:shadow-purple-500/10 transition-all">
+                    <div className="w-12 h-12 shrink-0 bg-gradient-to-br from-purple-500 to-fuchsia-500 rounded-xl flex items-center justify-center shadow-sm">
+                      <Video className="w-6 h-6 text-white" />
                     </div>
-                    <div>
+                    <div className="flex-1 text-right">
                       <p className="font-bold text-gray-900 dark:text-white">فيديو</p>
-                      <p className="text-xs text-gray-500">أقصى مدة دقيقة واحدة</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">أقصى مدة دقيقة واحدة</p>
                     </div>
+                    <ChevronLeft className="w-4 h-4 text-gray-300 dark:text-gray-700 group-hover:text-purple-400 transition-colors" />
                   </div>
                 </label>
 
                 <button
                   onClick={() => setCreateMode('text')}
-                  className="flex items-center gap-4 p-4 border-2 border-dashed border-green-300 rounded-xl cursor-pointer hover:bg-green-50 dark:hover:bg-green-950 transition-colors w-full"
+                  className="flex items-center gap-4 p-4 rounded-2xl cursor-pointer bg-gradient-to-l from-emerald-50 to-white dark:from-emerald-950/40 dark:to-[#141620] border border-emerald-100 dark:border-emerald-950 hover:shadow-md hover:shadow-emerald-500/10 transition-all w-full group"
                 >
-                  <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-                    <Type className="w-6 h-6 text-green-600" />
+                  <div className="w-12 h-12 shrink-0 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center shadow-sm">
+                    <Type className="w-6 h-6 text-white" />
                   </div>
-                  <div>
+                  <div className="flex-1 text-right">
                     <p className="font-bold text-gray-900 dark:text-white">نص</p>
-                    <p className="text-xs text-gray-500">اكتب نص ملون بخلفية من اختيارك</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">اكتب نص ملون بخلفية من اختيارك</p>
                   </div>
+                  <ChevronLeft className="w-4 h-4 text-gray-300 dark:text-gray-700 group-hover:text-emerald-400 transition-colors" />
                 </button>
+
+                <p className="text-[11px] text-gray-400 dark:text-gray-600 text-center pt-2">
+                  الحالة هتفضل ظاهرة ٢٤ ساعة، وهتقدر تكمل التصفح وهي بترفع
+                </p>
               </div>
             </div>
           ) : createMode === 'text' ? (
             // محرر نص بستايل واتساب: شاشة كاملة، الخلفية اللونية تملأ الشاشة، الكتابة فوقها مباشرة
-            <div className="w-full h-full flex flex-col relative" style={{ backgroundColor: textBgColor }}>
+            <div className="w-full h-full flex flex-col relative animate-fade-in" style={{ backgroundColor: textBgColor }}>
               <div className="relative z-10 flex items-center justify-between p-4">
-                <button onClick={() => setCreateMode(null)} className="text-white bg-black/20 hover:bg-black/30 p-2.5 rounded-full transition-colors">
+                <button onClick={() => setCreateMode(null)} className="text-white bg-black/25 hover:bg-black/40 p-2.5 rounded-full transition-colors backdrop-blur-sm">
                   <X className="w-5 h-5" />
                 </button>
-                <div className="flex gap-2">
+                <div className="flex gap-2 bg-black/20 backdrop-blur-sm p-1.5 rounded-full">
                   {['#1877F2', '#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181', '#111827'].map(color => (
                     <button
                       key={color}
                       onClick={() => setTextBgColor(color)}
-                      className={`w-7 h-7 rounded-full border-2 transition-all ${textBgColor === color ? 'border-white scale-110' : 'border-white/40'}`}
+                      className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${textBgColor === color ? 'border-white scale-110' : 'border-white/30'}`}
                       style={{ backgroundColor: color }}
-                    />
+                    >
+                      {textBgColor === color && <span className="w-2 h-2 rounded-full bg-white" />}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -1122,23 +1124,23 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
                   placeholder="اكتب نصك هنا"
                   autoFocus
                   className="w-full bg-transparent border-none outline-none resize-none text-white font-bold text-center placeholder-white/60"
-                  style={{ fontSize: `${textFontSize}px`, minHeight: "40%" }}
+                  style={{ fontSize: `${textFontSize}px`, minHeight: "40%", textShadow: "0 2px 12px rgba(0,0,0,0.25)" }}
                 />
               </div>
 
-              <div className="relative z-10 p-4 flex items-center gap-3">
-                <span className="text-white text-sm">حجم الخط</span>
+              <div className="relative z-10 p-4 flex items-center gap-3 bg-gradient-to-t from-black/25 to-transparent">
+                <span className="text-white text-xs font-bold shrink-0">حجم الخط</span>
                 <input
                   type="range"
                   min="16"
                   max="64"
                   value={textFontSize}
                   onChange={(e) => setTextFontSize(Number(e.target.value))}
-                  className="flex-1"
+                  className="flex-1 accent-white"
                 />
                 <button
                   onClick={handleTextStory}
-                  disabled={loading || !textContent.trim()}
+                  disabled={!textContent.trim()}
                   className="bg-white text-gray-900 disabled:bg-white/40 disabled:text-white font-bold px-6 py-2.5 rounded-full transition-colors shrink-0"
                 >
                   {loading ? "..." : "نشر"}
