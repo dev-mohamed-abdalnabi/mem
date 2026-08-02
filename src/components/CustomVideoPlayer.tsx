@@ -8,6 +8,16 @@ import { dataService } from "../services/dataService";
 // عن باقي الفيديوهات، فيقدر أكتر من فيديو يشتغلوا مع بعض في نفس الوقت.
 let currentlyPlayingVideo: HTMLVideoElement | null = null;
 
+// بتستخدم من بره الكومبوننت ده (مثلاً لما عارض الحالات يتفتح) عشان توقف
+// أي فيديو فيد شغال في الخلفية - كان بيفضل شغال وسمعه بيبان لحد ما
+// المستخدم يوقفه يدوي، وده كان بيحس غريب وانت بتتفرج على حالة حد تاني.
+export function pauseActiveFeedVideo() {
+  if (currentlyPlayingVideo) {
+    currentlyPlayingVideo.pause();
+    currentlyPlayingVideo = null;
+  }
+}
+
 // المدة اللي شريط التقدم/الكونترولز بتفضل ظاهرة بيها قبل ما تختفي لوحدها
 const CONTROLS_AUTO_HIDE_MS = 2500;
 

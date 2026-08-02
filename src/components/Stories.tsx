@@ -7,6 +7,7 @@ import { socialService } from "../services/socialService";
 import { useDialog } from "./DialogProvider";
 import { formatRelativeTime as relativeTimeAr } from "../utils/format";
 import { useUploadManager } from "../contexts/UploadManagerContext";
+import { pauseActiveFeedVideo } from "./CustomVideoPlayer";
 
 interface StoriesProps {
   currentUser: Profile;
@@ -316,6 +317,9 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
   };
 
   const openStory = (story: Story, index: number) => {
+    // لو فيه فيديو شغال في الفيد وانت داخل على الحالات، لازم يوقف - وإلا
+    // هيفضل شغال وصوته بيبان تحت عارض الحالة من غير ما تشوفه.
+    pauseActiveFeedVideo();
     setSelectedStory(story);
     setSelectedStoryIndex(index);
     setProgress(0);

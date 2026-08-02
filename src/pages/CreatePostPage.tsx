@@ -92,7 +92,7 @@ export default function CreatePostPage({ currentUser, setActiveTab, onPostCreate
     setPostError("");
 
     const tagsArray = newPostTags
-      .split(",")
+      .split(/[,\s]+/)
       .map((tag) => tag.trim())
       .filter((tag) => tag.length > 0);
 
@@ -247,10 +247,10 @@ export default function CreatePostPage({ currentUser, setActiveTab, onPostCreate
                 <Hash className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 shrink-0" />
                 <input
                   type="text"
-                  placeholder="أضف هاشتاج (اختياري)، افصل بينهم بفاصلة"
+                  placeholder="أضف هاشتاج (اختياري)، افصل بينهم بمسافة أو فاصلة"
                   value={newPostTags}
                   onChange={(e) => setNewPostTags(e.target.value)}
-                  className="w-full bg-transparent border-none text-xs text-right outline-none text-gray-600 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-600"
+                  className="plain-textarea w-full bg-transparent border-none text-xs text-right outline-none text-gray-600 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-600"
                 />
               </div>
 
