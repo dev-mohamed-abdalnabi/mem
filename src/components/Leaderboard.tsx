@@ -173,17 +173,17 @@ export default function Leaderboard({
       <div>
         <h3 className="font-extrabold text-sm text-gray-900 dark:text-white mb-4">مسار الصعود الإمبراطوري</h3>
 
-        <div className="relative pr-5">
+        <div>
 
           <div className="flex flex-col gap-4">
             {LEVELS.map((lvl, i) => {
               const reached = i <= myLevelIdx;
               const isCurrent = i === myLevelIdx;
               return (
-                <div key={lvl.name} className="relative flex items-center gap-3">
-                  {/* نقطة المسار */}
+                <div key={lvl.name} className="flex items-center gap-3">
+                  {/* نقطة المستوى */}
                   <div
-                    className={`absolute right-0 translate-x-1/2 w-[19px] h-[19px] rounded-full border-2 flex items-center justify-center shrink-0 z-10 ${
+                    className={`w-[19px] h-[19px] rounded-full border-2 flex items-center justify-center shrink-0 ${
                       isCurrent
                         ? "bg-[#caa24a] border-[#f1d98f] shadow-[0_0_0_4px_rgba(202,162,74,0.2)]"
                         : reached
@@ -195,7 +195,7 @@ export default function Leaderboard({
                   </div>
 
                   <div
-                    className={`flex-1 flex items-center justify-between gap-2 pr-8 py-2 pl-3 rounded-xl transition-colors ${
+                    className={`flex-1 flex items-center justify-between gap-2 px-3 py-2 rounded-xl transition-colors ${
                       isCurrent
                         ? "bg-[#caa24a]/10 border border-[#caa24a]/40"
                         : reached
