@@ -92,7 +92,7 @@ export default function Leaderboard({
   };
 
   return (
-    <div className="text-right flex flex-col gap-7 mb-20 md:mb-0">
+    <div className="text-right flex flex-col gap-7 px-3 mb-20 md:mb-0">
       {/* بطاقة اللقب الملكي - المستوى الحالي وتقدمك للي بعده */}
       <div className="relative overflow-hidden rounded-2xl p-5 text-white bg-[#0c1220] border border-[#caa24a]/30">
         {/* نقشة هيروغليفية خفيفة في الخلفية - إحساس نقش على حجر */}
