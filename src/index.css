@@ -177,10 +177,32 @@ textarea::placeholder {
   color: var(--muted-foreground) !important;
 }
 
+.story-text-editor::placeholder {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.story-text-editor.text-gray-900::placeholder {
+  color: rgba(107, 114, 128, 0.7) !important;
+}
+
+
 input:focus,
 textarea:focus {
   background-color: var(--card) !important;
   color: var(--foreground) !important;
+}
+
+/* استثناء تكستاريا محرر نص الحالة: القاعدة العامة فوق دي كانت بتحط خلفية
+   "كارت" وبوردر افتراضي على أي textarea في التطبيق - بما فيها التكستاريا
+   دي، اللي المفروض تبقى شفافة تماماً عشان تاخد شكل خلفية الحالة الملونة
+   أو صندوق الكتابة اللي بنرسمه إحنا بره (زرار Aa). ده اللي كان بيسبب
+   الشكل المكسور/المسنن اللي كان بيبان تحت النص. سيليكتور بالكلاس هنا
+   أعلى تخصيصاً من سيليكتور الـtextarea العادي، فبيكسبه رغم إن الاتنين !important. */
+.story-text-editor,
+.story-text-editor:focus {
+  background-color: transparent !important;
+  border: none !important;
+  border-width: 0 !important;
 }
 
 /* ===== BUTTONS ===== */

@@ -1156,7 +1156,7 @@ export default function Stories({ currentUser, onStoryViewerChange, onUserProfil
                     onChange={(e) => setTextContent(e.target.value)}
                     placeholder="اكتب نصك هنا"
                     autoFocus
-                    className={`w-full bg-transparent border-none outline-none resize-none font-bold text-center placeholder-white/60 ${textBoxStyle === 'light' ? 'text-gray-900' : 'text-white'}`}
+                    className={`story-text-editor w-full bg-transparent border-none outline-none resize-none font-bold text-center ${textBoxStyle === 'light' ? 'text-gray-900 placeholder-gray-400' : 'text-white placeholder-white/60'}`}
                     style={{
                       fontSize: `${textFontSize}px`,
                       minHeight: "40%",
