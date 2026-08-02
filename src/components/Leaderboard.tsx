@@ -174,12 +174,6 @@ export default function Leaderboard({
         <h3 className="font-extrabold text-sm text-gray-900 dark:text-white mb-4">مسار الصعود الإمبراطوري</h3>
 
         <div className="relative pr-5">
-          {/* الخط العمودي: دهبي للي فات + وصلت له، رمادي للي لسه جاي */}
-          <div className="absolute right-[9px] top-2 bottom-2 w-0.5 bg-gray-200 dark:bg-gray-800 rounded-full" />
-          <div
-            className="absolute right-[9px] top-2 w-0.5 bg-gradient-to-b from-[#e8c468] to-[#caa24a] rounded-full transition-all duration-700"
-            style={{ height: `${(myLevelIdx / (LEVELS.length - 1)) * 100}%` }}
-          />
 
           <div className="flex flex-col gap-4">
             {LEVELS.map((lvl, i) => {
