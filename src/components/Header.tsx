@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { Search, Bell, Trophy, User, Flame, LogOut, PlusCircle, Settings, LogIn, Sun, Moon, Bookmark, MessageCircle, X, Hash } from "lucide-react";
 import { Profile, Notification } from "../types";
 import { formatCompactNumber, formatRelativeTime } from "../utils/format";
@@ -558,8 +559,12 @@ export default function Header({
         </div>
       </div>
 
-      {/* شاشة البحث الكاملة (موبايل فقط) - بتفتح فوق كل حاجة لما المستخدم يدوس زرار البحث */}
-      {showMobileSearch && (
+      {/* شاشة البحث الكاملة (موبايل فقط) - بتفتح فوق كل حاجة لما المستخدم يدوس زرار البحث.
+          بنعملها Portal لبرة الـ header عمدًا: الـ header فيه inline transform دايمًا
+          (حتى translateY(0) بتاعة الـ hide-on-scroll) وده بيعمل containing block جديد
+          لأي حاجة fixed جواه، فكانت الشاشة دي بتتحشر جوه ارتفاع الـ header (64px) بدل
+          ما تاخد الشاشة كلها - وده كان سبب اختفاء نتايج البحث. */}
+      {showMobileSearch && createPortal(
         <div className="fixed inset-0 z-[60] bg-white dark:bg-gray-900 md:hidden flex flex-col" dir="rtl">
           <div className="flex items-center gap-3 p-4 border-b border-gray-100 dark:border-gray-800">
             <div className="flex-1 relative">
@@ -626,7 +631,8 @@ export default function Header({
               ))}
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </header>
   );
