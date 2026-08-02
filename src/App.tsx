@@ -826,6 +826,7 @@ export default function App() {
       }}
       onNavigate={navigateToTab}
       onSearch={setSearchQuery}
+      setSelectedTag={setSelectedTag}
       onUserSwitch={setCurrentUser}
       onMarkNotificationsRead={async () => {
         try {

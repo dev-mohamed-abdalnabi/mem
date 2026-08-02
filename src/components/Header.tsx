@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Search, Bell, Trophy, User, Flame, LogOut, PlusCircle, Settings, LogIn, Sun, Moon, Bookmark, MessageCircle, X } from "lucide-react";
+import { Search, Bell, Trophy, User, Flame, LogOut, PlusCircle, Settings, LogIn, Sun, Moon, Bookmark, MessageCircle, X, Hash } from "lucide-react";
 import { Profile, Notification } from "../types";
 import { formatCompactNumber, formatRelativeTime } from "../utils/format";
 
@@ -11,6 +11,7 @@ interface HeaderProps {
   notifications: Notification[]; // قائمة الإشعارات
   onNavigate: (tab: string, options?: { profileId?: string }) => void; // وظيفة التنقل
   onSearch: (query: string) => void; // وظيفة البحث
+  setSelectedTag: (tag: string | null) => void; // وظيفة تحديد هاشتاج للفلترة - بتستخدم لما البحث يبدأ بـ#
   activeTab: string; // التبويب النشط
   onUserSwitch: (profile: Profile) => void; // وظيفة تبديل المستخدم
   availableProfiles: Profile[]; // البروفايلات المتاحة
@@ -31,6 +32,7 @@ export default function Header({
   notifications,
   onNavigate,
   onSearch,
+  setSelectedTag,
   activeTab,
   onUserSwitch,
   availableProfiles,
@@ -53,19 +55,27 @@ export default function Header({
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   /**
+   * لو نص البحث بيبدأ بـ# بنعتبره بحث عن هاشتاج مش يوزر - زي انستجرام بالظبط.
+   */
+  const isHashtagQuery = searchQuery.trim().startsWith("#");
+  const hashtagQuery = searchQuery.trim().replace(/^#/, "").trim();
+
+  /**
    * نتايج بحث اليوزرز - بنفلتر من قائمة البروفايلات المتاحة أصلاً في الميموري
    * (availableProfiles) بدل ما نعمل نداء API جديد؛ مفيش داعي لأي round-trip
    * زيادة عشان القائمة أصلاً محملة كاملة في التطبيق (بتتستخدم في لوحة الشرف
    * والرسايل). بنقارن username بعد شيل المسافات وبأحرف صغيرة عشان البحث
-   * يشتغل صح بالعربي والإنجليزي مع أو من غير @.
+   * يشتغل صح بالعربي والإنجليزي مع أو من غير @. لو البحث بـ#، مفيش يوزرز
+   * أصلاً - ده بحث هاشتاج.
    */
   const matchingUsers = useMemo(() => {
+    if (isHashtagQuery) return [];
     const q = searchQuery.trim().replace(/^@/, "").toLowerCase();
     if (!q) return [];
     return availableProfiles
       .filter((p) => p.username?.toLowerCase().includes(q))
       .slice(0, 6);
-  }, [searchQuery, availableProfiles]);
+  }, [searchQuery, availableProfiles, isHashtagQuery]);
 
   // حالة الوضع الداكن (Dark Mode)
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -101,7 +111,22 @@ export default function Header({
     const val = e.target.value;
     setSearchQuery(val);
     setShowSearchResults(val.trim().length > 0);
-    onSearch(val);
+    // البحث بقى بيدور على اليوزرز بس (matchingUsers فوق) - مبقاش بيفلتر
+    // فيد الميمز بالكابشن/الهاشتاج، فمبقاش محتاجين نبلّغ App.tsx بالكويري.
+  };
+
+  /**
+   * تنفيذ بحث الهاشتاج - بيودّي على الفيد مفلتر بالتاج ده (نفس آلية الدوس
+   * على هاشتاج جوه أي بوست، بس هنا بندخل التاج يدوي من شريط البحث).
+   */
+  const handleHashtagSearch = () => {
+    const tag = hashtagQuery;
+    if (!tag) return;
+    setSelectedTag(tag);
+    onNavigate("feed");
+    setSearchQuery("");
+    setShowSearchResults(false);
+    setShowMobileSearch(false);
   };
 
   /**
@@ -232,15 +257,34 @@ export default function Header({
           </div>
           <input
             type="text"
-            placeholder="ابحث عن ميمز, هاشتاج, أو يوزر..."
+            placeholder="ابحث عن يوزر أو #هاشتاج..."
             value={searchQuery}
             onChange={handleSearchChange}
             onFocus={() => setShowSearchResults(searchQuery.trim().length > 0)}
+            onKeyDown={(e) => { if (e.key === "Enter" && isHashtagQuery) handleHashtagSearch(); }}
             className="w-full h-10 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 focus:bg-white dark:focus:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 focus:border-gray-300 dark:focus:border-gray-600 rounded-full py-2 pr-10 pl-4 text-sm text-gray-900 dark:text-white outline-none transition-all placeholder:text-gray-500 dark:placeholder:text-gray-400"
           />
 
+          {/* نتيجة بحث الهاشتاج (ديسكتوب) */}
+          {showSearchResults && isHashtagQuery && hashtagQuery.length > 0 && (
+            <div className="absolute top-full mt-2 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl py-2 shadow-2xl z-50">
+              <button
+                onClick={handleHashtagSearch}
+                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 text-right transition-colors"
+              >
+                <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-[#1d9bf0] shrink-0">
+                  <Hash className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0 text-right">
+                  <p className="text-sm font-bold text-gray-900 dark:text-white truncate">#{hashtagQuery}</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500">منشورات بهاشتاج #{hashtagQuery}</p>
+                </div>
+              </button>
+            </div>
+          )}
+
           {/* نتايج بحث اليوزرز - بتظهر فوق الفيد اللي بيتفلتر تلقائي تحت */}
-          {showSearchResults && matchingUsers.length > 0 && (
+          {showSearchResults && !isHashtagQuery && matchingUsers.length > 0 && (
             <div className="absolute top-full mt-2 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl py-2 shadow-2xl z-50 max-h-80 overflow-y-auto">
               <p className="px-4 pb-1 text-[10px] font-bold text-gray-400 dark:text-gray-500">يوزرز</p>
               {matchingUsers.map((p) => (
@@ -525,9 +569,10 @@ export default function Header({
               <input
                 autoFocus
                 type="text"
-                placeholder="ابحث عن ميمز, هاشتاج, أو يوزر..."
+                placeholder="ابحث عن يوزر أو #هاشتاج..."
                 value={searchQuery}
                 onChange={handleSearchChange}
+                onKeyDown={(e) => { if (e.key === "Enter" && isHashtagQuery) handleHashtagSearch(); }}
                 className="w-full h-11 bg-gray-100 dark:bg-gray-800 rounded-full py-2 pr-9 pl-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
             </div>
@@ -539,7 +584,25 @@ export default function Header({
             </button>
           </div>
 
-          {matchingUsers.length > 0 && (
+          {isHashtagQuery && hashtagQuery.length > 0 && (
+            <div className="py-2">
+              <p className="px-4 pb-1 text-[10px] font-bold text-gray-400 dark:text-gray-500">هاشتاج</p>
+              <button
+                onClick={handleHashtagSearch}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 text-right transition-colors"
+              >
+                <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-[#1d9bf0] shrink-0">
+                  <Hash className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0 text-right">
+                  <p className="text-sm font-bold text-gray-900 dark:text-white truncate">#{hashtagQuery}</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500">منشورات بهاشتاج #{hashtagQuery}</p>
+                </div>
+              </button>
+            </div>
+          )}
+
+          {!isHashtagQuery && matchingUsers.length > 0 && (
             <div className="overflow-y-auto py-2">
               <p className="px-4 pb-1 text-[10px] font-bold text-gray-400 dark:text-gray-500">يوزرز</p>
               {matchingUsers.map((p) => (
@@ -562,15 +625,6 @@ export default function Header({
                 </button>
               ))}
             </div>
-          )}
-
-          {searchQuery.trim() && (
-            <button
-              onClick={() => { onNavigate("feed"); setShowMobileSearch(false); }}
-              className="mx-4 mt-2 text-right text-sm text-blue-600 dark:text-blue-400 font-bold py-2"
-            >
-              عرض نتائج الميمز عن "{searchQuery}" في الفيد
-            </button>
           )}
         </div>
       )}

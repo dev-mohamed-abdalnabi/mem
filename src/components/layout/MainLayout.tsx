@@ -27,6 +27,7 @@ interface MainLayoutProps {
   onLightboxOpenComments?: (meme: Meme) => void;
   onNavigate: (tab: string, options?: { profileId?: string }) => void; // وظيفة التنقل بين التبويبات
   onSearch: (query: string) => void; // وظيفة البحث
+  setSelectedTag: (tag: string | null) => void; // وظيفة تحديد هاشتاج للفلترة - بيستخدمها البحث لما يبحث بـ#
   onUserSwitch: (profile: Profile) => void; // وظيفة تبديل المستخدم
   onMarkNotificationsRead: () => void; // وظيفة وضع علامة مقروء على الإشعارات
   onNotificationClick?: (notif: Notification) => void; // وظيفة الانتقال لمكان الإشعار (البوست أو البروفايل)
@@ -65,6 +66,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   onLightboxOpenComments,
   onNavigate,
   onSearch,
+  setSelectedTag,
   onUserSwitch,
   onMarkNotificationsRead,
   onNotificationClick,
@@ -128,6 +130,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         availableProfiles={profiles}
         onNavigate={onNavigate} 
         onSearch={onSearch}
+        setSelectedTag={setSelectedTag}
         onUserSwitch={onUserSwitch} 
         onMarkNotificationsRead={onMarkNotificationsRead}
         onNotificationClick={onNotificationClick}
