@@ -1,5 +1,5 @@
-import React from "react";
-import { Crown, Award, Flame, Heart, MessageCircle, UserPlus, CheckCircle2, Lock, Sparkles } from "lucide-react";
+import React, { useState } from "react";
+import { Crown, Award, Flame, Heart, MessageCircle, UserPlus, CheckCircle2, Lock, Sparkles, Users, Globe2 } from "lucide-react";
 import { Profile } from "../types";
 import { formatCompactNumber } from "../utils/format";
 
@@ -62,7 +62,17 @@ export default function Leaderboard({
   onFollowToggle,
   followingIds,
 }: LeaderboardProps) {
-  const sortedProfiles = [...profiles].sort((a, b) => b.total_points - a.total_points);
+  const [board, setBoard] = useState<"all" | "following">("all");
+
+  const allSorted = [...profiles].sort((a, b) => b.total_points - a.total_points);
+  const followingSorted = allSorted.filter(
+    (p) => followingIds.includes(p.id) || p.id === currentUser.id
+  );
+  const sortedProfiles = board === "all" ? allSorted : followingSorted;
+
+  // ترتيبك الحقيقي جوه المتابَعين بس (مش الترتيب العام) - عشان نوريه في الهيدر
+  const myRankAmongFollowing = followingSorted.findIndex((p) => p.id === currentUser.id) + 1;
+  const myRankOverall = allSorted.findIndex((p) => p.id === currentUser.id) + 1;
 
   const myPoints = currentUser.total_points || 0;
   const myLevelIdx = getLevelIndex(myPoints);
@@ -75,14 +85,14 @@ export default function Leaderboard({
   const pointsToNext = nextLevel ? nextLevel.min - myPoints : 0;
 
   const getRankIcon = (index: number) => {
-    if (index === 0) return <Crown className="w-5 h-5 text-yellow-500 fill-yellow-200 animate-bounce" />;
+    if (index === 0) return <Crown className="w-5 h-5 text-yellow-500 fill-yellow-200" />;
     if (index === 1) return <Award className="w-5 h-5 text-gray-400 fill-gray-100 dark:fill-gray-700" />;
     if (index === 2) return <Award className="w-5 h-5 text-amber-600 fill-amber-50 dark:fill-amber-900/30" />;
     return <span className="font-mono text-xs font-bold text-gray-400 dark:text-gray-500">#{index + 1}</span>;
   };
 
   return (
-    <div className="bg-white dark:bg-[#16181c] border border-gray-200 dark:border-gray-800/80 rounded-3xl p-5 text-right flex flex-col gap-7 shadow-sm dark:shadow-none mb-20 md:mb-0">
+    <div className="text-right flex flex-col gap-7 mb-20 md:mb-0">
       {/* بطاقة اللقب الملكي - المستوى الحالي وتقدمك للي بعده */}
       <div className="relative overflow-hidden rounded-2xl p-5 text-white bg-[#0c1220] border border-[#caa24a]/30">
         {/* نقشة هيروغليفية خفيفة في الخلفية - إحساس نقش على حجر */}
@@ -227,9 +237,54 @@ export default function Leaderboard({
         </div>
       </div>
 
-      {/* سجل التتويج التاريخي - ترتيب كل المستخدمين */}
+      {/* سجل التتويج التاريخي - الكل مقابل اللي بتتابعهم بس */}
       <div className="flex flex-col gap-3">
-        <h3 className="font-extrabold text-sm text-gray-900 dark:text-white">سجل التتويج التاريخي</h3>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800/60 p-1 rounded-xl border border-gray-200 dark:border-gray-800">
+            <button
+              onClick={() => setBoard("all")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-extrabold transition-colors ${
+                board === "all"
+                  ? "bg-[#caa24a] text-[#1a1305] shadow-sm"
+                  : "text-gray-500 dark:text-gray-400"
+              }`}
+            >
+              <Globe2 className="w-3.5 h-3.5" />
+              الكل
+            </button>
+            <button
+              onClick={() => setBoard("following")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-extrabold transition-colors ${
+                board === "following"
+                  ? "bg-[#caa24a] text-[#1a1305] shadow-sm"
+                  : "text-gray-500 dark:text-gray-400"
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              اللي بتتابعهم
+            </button>
+          </div>
+          <h3 className="font-extrabold text-sm text-gray-900 dark:text-white">سجل التتويج التاريخي</h3>
+        </div>
+
+        {/* مقارنة سريعة: ترتيبك بين الكل vs بين اللي بتتابعهم */}
+        <div className="flex items-center justify-center gap-2 bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-800 rounded-xl py-2 px-3">
+          <div className="flex items-center gap-1.5">
+            <span className="font-mono text-sm font-black text-[#b8862e] dark:text-[#e8c468]">#{myRankAmongFollowing}</span>
+            <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">ترتيبك بين اللي بتتابعهم</span>
+          </div>
+          <span className="text-gray-300 dark:text-gray-700">•</span>
+          <div className="flex items-center gap-1.5">
+            <span className="font-mono text-sm font-black text-gray-700 dark:text-gray-300">#{myRankOverall}</span>
+            <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">ترتيبك بين الكل</span>
+          </div>
+        </div>
+
+        {board === "following" && followingSorted.length === 1 && (
+          <div className="text-center py-6 text-gray-400 dark:text-gray-500 text-xs font-bold">
+            لسه مش متابع حد - تابع شوية ناس عشان تشوف ترتيبهم هنا
+          </div>
+        )}
 
         <div className="flex flex-col gap-2">
           {sortedProfiles.map((prof, index) => {
