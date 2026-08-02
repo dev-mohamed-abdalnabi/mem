@@ -142,7 +142,7 @@ export default function CreatePostPage({ currentUser, setActiveTab, onPostCreate
                 placeholder="بماذا تفكر يا غالي؟"
                 value={newPostCaption}
                 onChange={(e) => setNewPostCaption(e.target.value)}
-                className="w-full bg-transparent border-none focus:ring-0 p-0 text-[16px] leading-relaxed text-gray-800 dark:text-gray-100 resize-none min-h-[64px] outline-none text-right placeholder-gray-400 dark:placeholder-gray-600"
+                className="plain-textarea w-full bg-transparent border-none focus:ring-0 p-0 text-[16px] leading-relaxed text-gray-800 dark:text-gray-100 resize-none min-h-[64px] outline-none text-right placeholder-gray-400 dark:placeholder-gray-600"
                 autoFocus
               />
 
