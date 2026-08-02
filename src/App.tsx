@@ -117,6 +117,11 @@ export default function App() {
   const [followingIds, setFollowingIds] = useState<string[]>([]); // قائمة المعرفات التي يتابعها المستخدم
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0); // عدد الرسايل الغير مقروءة (بادج زرار الرسايل)
   const [pendingMessageTargetId, setPendingMessageTargetId] = useState<string | null>(null); // لفتح شات معين مباشرة (مثلاً من زرار "راسلني" في بروفايل)
+  // لما تدوس على نقاط شخص معين في بروفايله، بنحط الـ id هنا عشان صفحة
+  // المتصدرين توري وتعمل scroll لترتيب الشخص ده بالذات مش ترتيبك انت.
+  // بيترجع null تاني مع أي تنقل عادي للصفحة (من الهيدر/السايدبار) عشان
+  // يفضل افتراضيًا بيوريك ترتيبك انت.
+  const [leaderboardHighlightId, setLeaderboardHighlightId] = useState<string | null>(null);
 
   /**
    * كل تنقل بين التبويبات لازم يعدي من هنا، مش نداء مباشر لـ setActiveTab.
@@ -131,7 +136,7 @@ export default function App() {
    * بتاعة useCallback قبل ما الـ const بتاعها يتعرّف في الكود كان بيسبب
    * "Cannot access before initialization" وبيوقع الصفحة كلها بشاشة سودة.
    */
-  const navigateToTab = useCallback((tab: string, options?: { profileId?: string }) => {
+  const navigateToTab = useCallback((tab: string, options?: { profileId?: string; highlightUserId?: string }) => {
     // بدون الشرط ده، الانتقال من بروفايل لبروفايل تاني (تبويب "user-profile"
     // فاضل زي ما هو، بس المعرف بيتغير) كان بيتسجلش كخطوة history خالص.
     const isProfileSwitch = tab === "user-profile" && !!options?.profileId && options.profileId !== selectedProfileId;
@@ -139,6 +144,9 @@ export default function App() {
       window.history.pushState({ tab }, "", window.location.href);
     }
     if (options?.profileId) setSelectedProfileId(options.profileId);
+    // بنحدّث هدف التلوين في صفحة المتصدرين بس لما نروح فعلاً لتبويب المتصدرين؛
+    // بيترجع فاضي (يوري ترتيبك انت) لو مفيش highlightUserId متبعت معاه
+    if (tab === "leaderboard") setLeaderboardHighlightId(options?.highlightUserId ?? null);
     setActiveTab(tab);
     setSelectedTag(null);
     try {
@@ -753,6 +761,7 @@ export default function App() {
             onNavigate={navigateToTab} 
             onFollowToggle={handleFollowToggle}
             followingIds={followingIds} 
+            highlightUserId={leaderboardHighlightId || currentUser.id}
           />
         );
       case "profile":

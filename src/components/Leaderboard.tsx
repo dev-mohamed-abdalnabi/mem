@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Crown, Award, Flame, Heart, MessageCircle, UserPlus, CheckCircle2, Lock, Sparkles, Users, Globe2 } from "lucide-react";
 import { Profile } from "../types";
 import { formatCompactNumber } from "../utils/format";
@@ -9,6 +9,10 @@ interface LeaderboardProps {
   onNavigate: (tab: string, options?: { profileId?: string }) => void;
   onFollowToggle: (followerId: string, followingId: string) => void;
   followingIds: string[];
+  // لو المستخدم داس على نقاط شخص معين من صفحة البروفايل بتاعه (مش نقاطه هو)،
+  // بنستخدم الـ id ده عشان نلوّن ترتيبه بالذات ونعمل scroll تلقائي ليه في
+  // القائمة، بدل ما نوريه بس ترتيب المستخدم الحالي زي ما كان قبل كده.
+  highlightUserId?: string;
 }
 
 /**
@@ -61,14 +65,32 @@ export default function Leaderboard({
   onNavigate,
   onFollowToggle,
   followingIds,
+  highlightUserId,
 }: LeaderboardProps) {
   const [board, setBoard] = useState<"all" | "following">("all");
+  const targetId = highlightUserId || currentUser.id;
+  const targetItemRef = useRef<HTMLDivElement | null>(null);
 
   const allSorted = [...profiles].sort((a, b) => b.total_points - a.total_points);
   const followingSorted = allSorted.filter(
     (p) => followingIds.includes(p.id) || p.id === currentUser.id
   );
-  const sortedProfiles = board === "all" ? allSorted : followingSorted;
+  // لو الشخص المستهدف مش موجود جوه اللي بتتابعهم، نفضل نعرض "الكل" عشان
+  // نلاقيه فعلاً، بدل ما نفضل نبحث في تبويب مش هيلاقيه فيه أبداً
+  const sortedProfiles =
+    board === "following" && followingSorted.some((p) => p.id === targetId)
+      ? followingSorted
+      : board === "all"
+      ? allSorted
+      : followingSorted;
+
+  // نعمل scroll تلقائي لمكان الشخص المستهدف في القائمة أول ما الصفحة تفتح
+  useEffect(() => {
+    const t = setTimeout(() => {
+      targetItemRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [targetId, board]);
 
   // ترتيبك الحقيقي جوه المتابَعين بس (مش الترتيب العام) - عشان نوريه في الهيدر
   const myRankAmongFollowing = followingSorted.findIndex((p) => p.id === currentUser.id) + 1;
@@ -283,13 +305,15 @@ export default function Leaderboard({
         <div className="flex flex-col gap-2">
           {sortedProfiles.map((prof, index) => {
             const isMe = prof.id === currentUser.id;
+            const isTarget = prof.id === targetId;
             const isFollowing = followingIds.includes(prof.id);
             return (
               <div
                 key={prof.id}
+                ref={isTarget ? targetItemRef : undefined}
                 className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
-                  isMe
-                    ? "bg-[#caa24a]/10 border-[#caa24a]/40 shadow-sm dark:shadow-none"
+                  isTarget
+                    ? "bg-[#caa24a]/10 border-[#caa24a]/60 ring-2 ring-[#caa24a]/40 shadow-sm dark:shadow-none"
                     : "bg-white dark:bg-transparent border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-sm dark:hover:shadow-none"
                 }`}
               >

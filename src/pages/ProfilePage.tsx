@@ -26,7 +26,7 @@ interface ProfilePageProps {
   handleShareCompleted: (id: string) => Promise<void>;
   handleDeleteMeme: (id: string) => Promise<void>;
   setSelectedProfileId: (id: string | null) => void;
-  setActiveTab: (tab: string) => void;
+  setActiveTab: (tab: string, options?: { profileId?: string; highlightUserId?: string }) => void;
   setLightboxImage: (url: string | null, meme?: Meme | null) => void;
 }
 
@@ -490,12 +490,16 @@ export default function ProfilePage({
         {/* إحصائيات سريعة - ستايل تيك توك: رقم وتسمية جنب بعض من غير
             كارت أو أيقونات، النقاط والمتابعين بس هنا. المشاهدات والإعجابات
             نقلناها لقائمة "التفاصيل" تحت بدل ما تزنق الشريط ده. */}
-        <div className="flex items-center justify-center gap-8 mt-4">
+        <div className="flex items-center justify-end gap-8 mt-2">
           {[
-            { value: profile.followers_count || 0, label: "متابع" },
-            { value: profile.total_points || 0, label: "نقطة" },
-          ].map(({ value, label }) => (
-            <div key={label} className="flex items-center gap-1.5">
+            { value: profile.followers_count || 0, label: "متابع", clickable: false },
+            { value: profile.total_points || 0, label: "نقطة", clickable: true },
+          ].map(({ value, label, clickable }) => (
+            <div
+              key={label}
+              onClick={clickable ? () => setActiveTab("leaderboard", { highlightUserId: profile.id }) : undefined}
+              className={`flex items-center gap-1.5 ${clickable ? "cursor-pointer hover:opacity-70 transition-opacity" : ""}`}
+            >
               <span className="text-[17px] font-extrabold text-gray-900 dark:text-white leading-none">
                 {formatCompactNumber(value)}
               </span>
