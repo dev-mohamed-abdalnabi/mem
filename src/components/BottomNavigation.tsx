@@ -23,9 +23,8 @@ const navItems = [
   { id: "profile", label: "الملف", icon: User },
 ];
 
-// الارتفاع الكلي للبار - رقم صريح ثابت بيتحسب منه كل حاجة تانية
-// (حجم زرار الإنشاء البارز، مسافة البروز فوق الخط...)
-const BAR_HEIGHT = 58; // px
+// الارتفاع الكلي للبار - رقم صريح ثابت، وكل زرار بياخد h-full منه
+const BAR_HEIGHT = 60; // px
 
 /**
  * دايرة صورة البروفايل الصغيرة اللي بتتحط بدل أيقونة "الملف" العادية -
@@ -52,7 +51,7 @@ function ProfileAvatar({
     <span
       className={`inline-flex items-center justify-center rounded-full overflow-hidden shrink-0 ${
         onDark ? "bg-white/15" : "bg-gray-200 dark:bg-gray-700"
-      } ${active ? "ring-2 ring-blue-500 dark:ring-blue-400" : ""}`}
+      } ${active ? "ring-2 ring-blue-600 dark:ring-blue-400" : ""}`}
       style={{ width: size, height: size }}
     >
       {showImage ? (
@@ -75,13 +74,17 @@ function ProfileAvatar({
  * مكون الشريط السفلي (BottomNavigation)
  * يظهر فقط في الشاشات الصغيرة (الموبايل)
  *
- * بار عادي ملتصق بأسفل الشاشة بالكامل (زي يوتيوب بالظبط) - مش عايم
- * ومفيش استدارة كبيرة، بس خط علوي رفيع (border-top) يفصله عن المحتوى.
- * أيقونة فوق تسمية تحت، والتاب النشط بياخد لون مميز + خط صغير فوق
- * الأيقونة كمؤشر. اللمسة المميزة الوحيدة: زرار "إنشاء" في النص بارز
- * شوية فوق خط البار (زي تيك توك/انستجرام) عشان يوضح إنه فعل إيجابي
- * مختلف عن باقي التابات اللي هي مجرد تنقل. الارتفاع ثابت رقميًا
- * (BAR_HEIGHT) وكل زرار بياخد h-full، فمفيش أي احتمال لاختلاف الأطوال.
+ * بار عادي ملتصق بأسفل الشاشة (زي يوتيوب) بس بتنفيذ أدق وأكثر احترافية:
+ * - كل الأيقونات بنفس الحجم والمحاذاة بالظبط (h-full ثابت لكل زرار)
+ * - التاب النشط بياخد "حبة" (pill) خلفية لونها فاتح حوالين الأيقونة بس
+ *   (مش الزرار كله) - نفس أسلوب Material 3 / يوتيوب الحديث - بانتقال
+ *   ناعم بدل خط بسيط
+ * - زرار "إنشاء" مميز بدايرة زرقاء معبأة صلبة (نفس لون العلامة التجارية
+ *   #3b82f6 المستخدم في باقي التطبيق) - بس **في نفس صف الأزرار وبنفس
+ *   ارتفاعها**، من غير أي بروز/طيران فوق خط البار، عشان يفضل شكله نضيف
+ *   ومحسوب من غير أي تراكب مع المحتوى فوقه
+ * - ظل خفيف لأعلى + خط علوي رفيع بيدوا إحساس ارتفاع (elevation) حقيقي
+ *   بدل خط تقسيم مسطح
  */
 export default function BottomNavigation({
   activeTab,
@@ -108,10 +111,15 @@ export default function BottomNavigation({
           ? "bg-neutral-900 border-white/10"
           : "bg-white dark:bg-gray-900 border-gray-200 dark:border-white/10"
       }`}
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      style={{
+        paddingBottom: "env(safe-area-inset-bottom)",
+        boxShadow: isReelsActive
+          ? "0 -2px 12px rgba(0,0,0,0.35)"
+          : "0 -2px 12px rgba(15,23,42,0.06)",
+      }}
     >
       <div
-        className="mx-auto flex w-full max-w-2xl items-stretch justify-between"
+        className="mx-auto flex w-full max-w-2xl items-stretch justify-between px-1"
         style={{ height: BAR_HEIGHT }}
       >
         {navItems.map((item) => {
@@ -119,28 +127,24 @@ export default function BottomNavigation({
           const isActive = activeTab === item.id;
           const isCreate = item.id === "create-post";
 
-          const inactiveText = isReelsActive ? "text-white/60" : "text-gray-500 dark:text-gray-400";
+          const inactiveText = isReelsActive ? "text-white/55" : "text-gray-400 dark:text-gray-500";
           const activeColorText = isReelsActive ? "text-blue-300" : "text-blue-600 dark:text-blue-400";
+          const activePillBg = isReelsActive ? "bg-white/10" : "bg-blue-50 dark:bg-blue-400/10";
 
-          // زرار "إنشاء" شكله مختلف تمامًا: دايرة بارزة بلون واحد ثابت
-          // مش بتتأثر بحالة active/reels، عشان تفضل واضحة وواقفة لوحدها
+          // زرار "إنشاء": دايرة زرقاء معبأة ثابتة، جوه نفس الصف وبنفس
+          // ارتفاع باقي الأزرار بالظبط - من غير أي بروز خارج حدود البار
           if (isCreate) {
             return (
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className="relative flex flex-1 flex-col items-center justify-end pb-1.5"
+                className="flex-1 h-full flex flex-col items-center justify-center gap-1"
                 title={item.label}
               >
-                <span
-                  className="absolute flex items-center justify-center rounded-full bg-blue-600 text-white shadow-md shadow-blue-600/30 active:scale-95 transition-transform duration-150"
-                  style={{ width: 40, height: 40, top: -14 }}
-                >
-                  <Plus className="w-6 h-6" strokeWidth={2.4} />
+                <span className="flex items-center justify-center rounded-full bg-blue-600 text-white shadow-sm shadow-blue-600/40 active:scale-95 transition-transform duration-150 w-8 h-8">
+                  <Plus className="w-5 h-5" strokeWidth={2.5} />
                 </span>
-                <span
-                  className={`text-[10px] font-bold leading-none mt-6 ${inactiveText}`}
-                >
+                <span className={`text-[10px] font-semibold leading-none ${inactiveText}`}>
                   {item.label}
                 </span>
               </button>
@@ -151,33 +155,32 @@ export default function BottomNavigation({
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id)}
-              className="relative flex-1 h-full flex flex-col items-center justify-center gap-1"
+              className="flex-1 h-full flex flex-col items-center justify-center gap-1"
               title={item.label}
             >
-              {/* مؤشر صغير فوق الأيقونة يبان بس لما التاب يكون نشط */}
               <span
-                className={`absolute top-0 h-[3px] w-6 rounded-b-full transition-colors duration-200 ${
-                  isActive ? "bg-blue-600 dark:bg-blue-400" : "bg-transparent"
+                className={`flex items-center justify-center rounded-2xl transition-colors duration-200 w-11 h-7 ${
+                  isActive ? activePillBg : ""
                 }`}
-              />
-
-              {item.id === "profile" ? (
-                <ProfileAvatar
-                  user={currentUser}
-                  isRealUser={isRealUser}
-                  active={isActive}
-                  size={22}
-                  onDark={isReelsActive}
-                />
-              ) : (
-                <Icon
-                  className={`w-[22px] h-[22px] ${isActive ? activeColorText : inactiveText}`}
-                  strokeWidth={isActive ? 2.4 : 2}
-                />
-              )}
+              >
+                {item.id === "profile" ? (
+                  <ProfileAvatar
+                    user={currentUser}
+                    isRealUser={isRealUser}
+                    active={isActive}
+                    size={22}
+                    onDark={isReelsActive}
+                  />
+                ) : (
+                  <Icon
+                    className={`w-[22px] h-[22px] ${isActive ? activeColorText : inactiveText}`}
+                    strokeWidth={isActive ? 2.4 : 2}
+                  />
+                )}
+              </span>
               <span
-                className={`text-[10px] font-bold leading-none ${
-                  isActive ? activeColorText : inactiveText
+                className={`text-[10px] leading-none transition-colors duration-200 ${
+                  isActive ? `font-bold ${activeColorText}` : `font-medium ${inactiveText}`
                 }`}
               >
                 {item.label}
