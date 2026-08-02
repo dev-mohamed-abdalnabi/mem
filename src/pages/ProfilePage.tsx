@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Camera, MessageCircle, Award, Clock, X, Check, CalendarDays, Users, UserPlus, Image as ImageIcon, Flame, Eye, Heart } from "lucide-react";
+import { Camera, MessageCircle, Award, Clock, X, Check, CalendarDays, Users, UserPlus, Image as ImageIcon, Eye, Heart } from "lucide-react";
 import { Profile, Meme } from "../types";
 import MemeCard from "../components/MemeCard";
 import { dataService } from "../services/dataService";
@@ -487,24 +487,19 @@ export default function ProfilePage({
           )}
         </div>
 
-        {/* إحصائيات سريعة - شريط كامل العرض تحت النبذة، بدل ما تتزنق جنب
-            الصورة وتتلزق فوق بعض. كل رقم له مساحته وواضح لوحده. */}
-        <div className="grid grid-cols-4 mt-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-2xl py-3">
+        {/* إحصائيات سريعة - ستايل تيك توك: رقم وتسمية جنب بعض من غير
+            كارت أو أيقونات، النقاط والمتابعين بس هنا. المشاهدات والإعجابات
+            نقلناها لقائمة "التفاصيل" تحت بدل ما تزنق الشريط ده. */}
+        <div className="flex items-center justify-center gap-8 mt-4">
           {[
-            { icon: Flame, value: profile.total_points || 0, label: "نقطة", color: "text-amber-500" },
-            { icon: Users, value: profile.followers_count || 0, label: "متابع", color: "text-[#1d9bf0]" },
-            { icon: Eye, value: totalViews, label: "مشاهدة", color: "text-emerald-500" },
-            { icon: Heart, value: totalLikes, label: "إعجاب", color: "text-rose-500" },
-          ].map(({ icon: Icon, value, label, color }, i) => (
-            <div
-              key={label}
-              className={`flex flex-col items-center gap-1 ${i > 0 ? "border-r border-gray-200 dark:border-gray-800" : ""}`}
-            >
-              <Icon className={`w-[18px] h-[18px] ${color}`} />
-              <span className="text-[16px] font-extrabold text-gray-900 dark:text-white leading-none">
+            { value: profile.followers_count || 0, label: "متابع" },
+            { value: profile.total_points || 0, label: "نقطة" },
+          ].map(({ value, label }) => (
+            <div key={label} className="flex items-center gap-1.5">
+              <span className="text-[17px] font-extrabold text-gray-900 dark:text-white leading-none">
                 {formatCompactNumber(value)}
               </span>
-              <span className="text-[11px] text-gray-500 dark:text-gray-400 leading-none">{label}</span>
+              <span className="text-[14px] text-gray-500 dark:text-gray-400 leading-none">{label}</span>
             </div>
           ))}
         </div>
@@ -637,6 +632,14 @@ export default function ProfilePage({
                     <li className="flex items-center gap-3">
                       <ImageIcon className="w-6 h-6 text-gray-400 dark:text-gray-500 shrink-0" />
                       <span className="text-[15px] text-gray-900 dark:text-white">نشر <strong>{localUserMemes.length}</strong> منشورات</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <Eye className="w-6 h-6 text-gray-400 dark:text-gray-500 shrink-0" />
+                      <span className="text-[15px] text-gray-900 dark:text-white">جمع <strong>{formatCompactNumber(totalViews)}</strong> مشاهدة</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <Heart className="w-6 h-6 text-gray-400 dark:text-gray-500 shrink-0" />
+                      <span className="text-[15px] text-gray-900 dark:text-white">جمع <strong>{formatCompactNumber(totalLikes)}</strong> إعجاب</span>
                     </li>
                     <li className="flex items-center gap-3">
                       <CalendarDays className="w-6 h-6 text-gray-400 dark:text-gray-500 shrink-0" />
