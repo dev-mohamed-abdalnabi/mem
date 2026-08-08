@@ -265,7 +265,7 @@ export default function CustomVideoPlayer({
         if (!isNear && isPlaying) return;
         setShouldLoad(isNear);
       },
-      { rootMargin: "600px 0px" }
+      { rootMargin: "150px 0px" }
     );
     observer.observe(container);
     return () => observer.disconnect();

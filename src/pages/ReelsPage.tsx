@@ -540,8 +540,14 @@ export default function ReelsPage({
         const activeIndex = reels.findIndex(r => r.id === activeId);
         const distance = activeIndex === -1 ? index : index - activeIndex;
         const withinLoadWindow = distance === 0 || distance === 1 || distance === -1;
+        // مهم: ريل اتفرج عليه المستخدم قبل كده وبعدين بعد عنه بيرجع "metadata"
+        // بس (مش "auto") - يعني بيفضل عنده بيانات كفاية إنه يرجع يشتغل بسرعة
+        // معقولة لو المستخدم رجعله، من غير ما يفضل يسحب الفيديو كامل من النت
+        // في الخلفية طول الوقت وهو مش ظاهر أصلاً. ده كان أكبر سبب لاستهلاك
+        // الباندويدث - عشرات الريلز اللي اتشافت مرة كانت بتفضل بتحمّل كاملة
+        // للأبد حتى بعد ما المستخدم يبعد عنها تمامًا.
         const preload: "auto" | "metadata" | "none" =
-          withinLoadWindow || everLoaded.has(meme.id) ? "auto" : "none";
+          withinLoadWindow ? "auto" : everLoaded.has(meme.id) ? "metadata" : "none";
 
         return (
         <div key={meme.id} className="relative w-full h-full snap-start snap-always flex items-center justify-center bg-black">

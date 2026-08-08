@@ -241,8 +241,12 @@ async function compressVideo(file: File, maxDimension = 1280): Promise<File> {
       "video/webm",
     ];
     const mimeType = mimeCandidates.find(m => MediaRecorder.isTypeSupported(m)) || "video/webm";
-    // معدل بت محدود على حسب عدد البكسلات - كافي لجودة مقبولة بصرياً بحجم أصغر بكتير
-    const videoBitsPerSecond = Math.min(4_000_000, Math.max(1_200_000, Math.round(width * height * 0.09)));
+    // معدل بت محدود على حسب عدد البكسلات - كافي لجودة مقبولة بصرياً بحجم أصغر بكتير.
+    // الحد الأقصى كان 4 ميجابت/ثانية وده أعلى بكتير من اللي فعلياً محتاجينه لعرض
+    // على شاشة موبايل في فيد بيسكرول بسرعة - نزلناه لـ 2 ميجابت/ثانية (تقريباً
+    // بيقلل حجم كل فيديو جديد للنص) من غير فرق محسوس بصرياً في حجم العرض ده.
+    // ده بيقلل استهلاك الباندويدث في *كل* مشاهدة مستقبلية للفيديو، مش مرة واحدة بس.
+    const videoBitsPerSecond = Math.min(2_000_000, Math.max(800_000, Math.round(width * height * 0.06)));
 
     const recorder = new MediaRecorder(canvasStream, { mimeType, videoBitsPerSecond });
     const chunks: Blob[] = [];
